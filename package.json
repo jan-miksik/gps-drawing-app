@@ -1,0 +1,39 @@
+{
+  "name": "gps-drawing-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "d": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "build:android": "yarn build && npx cap sync android",
+    "open:android": "npx cap open android",
+    "run:android": "npx cap run android",
+    "android:build": "yarn config set nodeLinker node-modules && yarn install && yarn build:android && yarn config set nodeLinker pnp && yarn install"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.2",
+    "@capacitor/cli": "^7.4.2",
+    "@capacitor/core": "^7.4.2",
+    "@capacitor/filesystem": "^7.1.2",
+    "@capacitor/geolocation": "^7.1.4",
+    "@capacitor/splash-screen": "^7.0.1",
+    "@capacitor/status-bar": "^7.0.1",
+    "vue": "^3.5.17"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.28.1",
+    "@types/node": "^24.0.15",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/compiler-sfc": "^3.5.17",
+    "@vue/runtime-core": "^3.5.17",
+    "@vue/runtime-dom": "^3.5.17",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "undici-types": "^7.12.0",
+    "vite": "^5.0.0",
+    "vue-tsc": "^2.2.12"
+  }
+}
