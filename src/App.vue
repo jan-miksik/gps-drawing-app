@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <canvas
-      ref="canvas" 
-      class="canvas" 
+      ref="canvasEl"
+      class="canvas"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
@@ -11,169 +11,210 @@
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
     />
-    <div class="coordinates">Lat: {{ currentLat }}, Lon: {{ currentLon }}</div>
+    <div class="coordinates">Lat: {{ currentLat.toFixed(6) }}, Lon: {{ currentLon.toFixed(6) }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
 
-const canvas = ref<HTMLCanvasElement | null>(null);
-const context = ref<CanvasRenderingContext2D | null>(null);
-const points = ref<{ lat: number; lon: number; timestamp: number }[]>([]);
-// const isTracking = ref(true);
-const bounds = ref<{
+interface Point {
+  lat: number;
+  lon: number;
+  timestamp: number;
+}
+
+interface Bounds {
   minLat: number;
   maxLat: number;
   minLon: number;
   maxLon: number;
-} | null>(null);
+}
+
+const canvasEl = ref<HTMLCanvasElement | null>(null); // Renamed for clarity
+const context = ref<CanvasRenderingContext2D | null>(null);
+const points = ref<Point[]>([]);
+const bounds = ref<Bounds | null>(null);
 let watchId: string | null = null;
 
 // Zoom and pan state
 const scale = ref(1);
-const offsetX = ref(0);
-const offsetY = ref(0);
+const viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
+const viewOffsetY = ref(0);
 const isDragging = ref(false);
-const lastX = ref(0);
-const lastY = ref(0);
+const lastDragX = ref(0); // Renamed for clarity
+const lastDragY = ref(0);
 
 // Current GPS position
 const currentLat = ref(0);
 const currentLon = ref(0);
 
+// Padding around the drawing within the canvas
+const DRAWING_PADDING = 40; // In logical pixels
+
 // Detect if we're on desktop
 const isDesktop = computed(() => {
+  if (typeof window === 'undefined') return false;
   return window.innerWidth > 768 && !('ontouchstart' in window);
 });
 
-// const statusText = computed(() => {
-//   if (points.value.length === 0) return 'Ready to track';
-//   const duration = points.value.length > 1 
-//     ? Math.round((points.value[points.value.length - 1].timestamp - points.value[0].timestamp) / 1000)
-//     : 0;
-//   return `Points: ${points.value.length} | Time: ${duration}s | Zoom: ${scale.value.toFixed(1)}x`;
-// });
-
-// Function to navigate to desktop version
-// const goToDesktop = () => {
-//   // Store current data in localStorage for desktop version
-//   localStorage.setItem('gps-drawing-data', JSON.stringify({
-//     points: points.value,
-//     timestamp: Date.now()
-//   }));
-  
-//   // Navigate to desktop version
-//   window.location.href = '/desktop.html';
-// };
-
 const calculateBounds = () => {
-  if (points.value.length === 0) return;
-  
-  const lats = points.value.map((p: { lat: number; lon: number; timestamp: number }) => p.lat);
-  const lons = points.value.map((p: { lat: number; lon: number; timestamp: number }) => p.lon);
-  
+  if (points.value.length === 0) {
+    bounds.value = null;
+    return;
+  }
+  if (points.value.length === 1) {
+    // For a single point, create a small default bound around it
+    const p = points.value[0];
+    const delta = 0.0001; // Small delta for single point bounds
+    bounds.value = {
+      minLat: p.lat - delta,
+      maxLat: p.lat + delta,
+      minLon: p.lon - delta,
+      maxLon: p.lon + delta,
+    };
+    return;
+  }
+
+  const lats = points.value.map(p => p.lat);
+  const lons = points.value.map(p => p.lon);
+
   bounds.value = {
     minLat: Math.min(...lats),
     maxLat: Math.max(...lats),
     minLon: Math.min(...lons),
-    maxLon: Math.max(...lons)
+    maxLon: Math.max(...lons),
   };
 };
 
-const project = ({ lat, lon }: { lat: number; lon: number }) => {
-  const width = canvas.value!.width;
-  const height = canvas.value!.height;
-  
-  if (!bounds.value || points.value.length < 2) {
-    // Center the first point
-    return { x: width / 2, y: height / 2 };
+const project = (
+  point: { lat: number; lon: number },
+  currentBounds: Bounds,
+  canvasLogicalWidth: number,
+  canvasLogicalHeight: number
+): { x: number; y: number } => {
+  // If only one point exists (or bounds indicate no range), center it.
+  if (currentBounds.minLat === currentBounds.maxLat || currentBounds.minLon === currentBounds.maxLon) {
+    return {
+      x: (canvasLogicalWidth - 2 * DRAWING_PADDING) / 2 + DRAWING_PADDING,
+      y: (canvasLogicalHeight - 2 * DRAWING_PADDING) / 2 + DRAWING_PADDING,
+    };
   }
-  
-  const padding = 80;
-  const latRange = bounds.value.maxLat - bounds.value.minLat;
-  const lonRange = bounds.value.maxLon - bounds.value.minLon;
-  
-  const scaleX = lonRange > 0 ? (width - 2 * padding) / lonRange : 1;
-  const scaleY = latRange > 0 ? (height - 2 * padding) / latRange : 1;
+
+  const latRange = currentBounds.maxLat - currentBounds.minLat;
+  const lonRange = currentBounds.maxLon - currentBounds.minLon;
+
+  const drawableWidth = canvasLogicalWidth - 2 * DRAWING_PADDING;
+  const drawableHeight = canvasLogicalHeight - 2 * DRAWING_PADDING;
+
+  // Handle potential division by zero if range is extremely small (though bounds check helps)
+  const scaleX = lonRange > 1e-9 ? drawableWidth / lonRange : 1;
+  const scaleY = latRange > 1e-9 ? drawableHeight / latRange : 1;
+
+  // Use the smaller scale to fit the entire drawing within the drawable area and maintain aspect ratio
   const baseScale = Math.min(scaleX, scaleY);
-  
-  const centerX = (bounds.value.minLon + bounds.value.maxLon) / 2;
-  const centerY = (bounds.value.minLat + bounds.value.maxLat) / 2;
-  
-  let x = width / 2 + (lon - centerX) * baseScale;
-  let y = height / 2 - (lat - centerY) * baseScale;
-  
-  // Apply zoom and pan transforms
-  x = (x + offsetX.value) * scale.value;
-  y = (y + offsetY.value) * scale.value;
-  
+
+  // Calculate the center of the bounds in lat/lon
+  const centerXLatLon = (currentBounds.minLat + currentBounds.maxLat) / 2;
+  const centerYLatLon = (currentBounds.minLon + currentBounds.maxLon) / 2;
+
+  // Calculate the center of the drawable area on canvas
+  const canvasCenterX = drawableWidth / 2 + DRAWING_PADDING;
+  const canvasCenterY = drawableHeight / 2 + DRAWING_PADDING;
+
+  // Project the point:
+  // 1. Get offset from the center of the bounds (in lat/lon units, scaled by baseScale)
+  // 2. Add to canvas center
+  // Y is inverted because canvas Y increases downwards, latitude increases upwards
+  const x = canvasCenterX + (point.lon - centerYLatLon) * baseScale;
+  const y = canvasCenterY - (point.lat - centerXLatLon) * baseScale;
+
   return { x, y };
 };
 
-// const resetView = () => {
-//   scale.value = 1;
-//   offsetX.value = 0;
-//   offsetY.value = 0;
-//   drawPath();
-// };
-
 const drawPath = () => {
-  if (!context.value) return;
-
-  console.log('Calling drawPath', points.value.length); 
-  
-  const width = canvas.value!.width;
-  const height = canvas.value!.height;
-  
-  // Clear canvas
-  context.value.clearRect(0, 0, width, height);
-  
-  // Save context state
-  context.value.save();
-  
-  // Apply zoom and pan transforms
-  context.value.translate(offsetX.value * scale.value, offsetY.value * scale.value);
-  context.value.scale(scale.value, scale.value);
-  
-  if (points.value.length < 2) {
-    context.value.restore();
+  if (!context.value || !canvasEl.value) {
+    console.warn('Canvas or context not available for drawing.');
     return;
   }
-  
-  // Draw the path
-  context.value.beginPath();
-  for (let i = 0; i < points.value.length; i++) {
-    const { x, y } = project(points.value[i]);
-    if (i === 0) {
-      context.value.moveTo(x, y);
-    } else {
-      context.value.lineTo(x, y);
+
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = canvasEl.value;
+  const ctx = context.value;
+
+  // Logical dimensions (CSS pixels)
+  const logicalWidth = canvas.width / dpr;
+  const logicalHeight = canvas.height / dpr;
+
+  // 0. Reset transform to identity and clear
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Apply DPR scale, reset others
+  ctx.clearRect(0, 0, logicalWidth, logicalHeight); // Clear based on logical size
+  ctx.restore();
+
+  if (points.value.length === 0 || !bounds.value) {
+    // console.log('No points or bounds to draw.');
+    return;
+  }
+
+  ctx.save();
+
+  // 1. Apply Device Pixel Ratio scaling (base transform)
+  ctx.scale(dpr, dpr);
+
+  // 2. Apply view pan (user dragging) - these are offsets in logical pixels
+  ctx.translate(viewOffsetX.value, viewOffsetY.value);
+
+  // 3. Apply view zoom (user wheel/pinch) - centered zoom
+  // To zoom from the center of the viewport:
+  // Translate so the current center of the view is at the origin (0,0)
+  ctx.translate(logicalWidth / 2, logicalHeight / 2);
+  ctx.scale(scale.value, scale.value); // Apply zoom
+  // Translate back
+  ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
+
+
+  // --- Drawing logic ---
+  if (points.value.length >= 1 && bounds.value) { // Need at least one point to draw a dot
+    ctx.beginPath();
+    for (let i = 0; i < points.value.length; i++) {
+      const { x, y } = project(points.value[i], bounds.value, logicalWidth, logicalHeight);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
     }
+
+    if (points.value.length > 1) { // Only stroke if there's a path
+        ctx.strokeStyle = 'white';
+        // Adjust line width based on current view scale, so it appears consistent
+        ctx.lineWidth = 2 / (scale.value * dpr) ; // More refined line width adjustment
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+
+    // Draw current position as a dot (even if it's the only point)
+    const lastPoint = points.value[points.value.length - 1];
+    const { x: lastX, y: lastY } = project(lastPoint, bounds.value, logicalWidth, logicalHeight);
+    ctx.fillStyle = 'white'; // Current position dot color
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 10 / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
+    ctx.fill();
   }
-  
-  // Path styling
-  context.value.strokeStyle = 'white';
-  context.value.lineWidth = 4 / scale.value; // Adjust line width for zoom
-  context.value.lineCap = 'round';
-  context.value.lineJoin = 'round';
-  context.value.stroke();
-  
-  // Draw current position
-  if (points.value.length > 0) {
-    const { x, y } = project(points.value[points.value.length - 1]);
-    context.value.fillStyle = 'white';
-    context.value.beginPath();
-    context.value.arc(x, y, 8 / scale.value, 0, 2 * Math.PI); // Adjust circle size for zoom
-    context.value.fill();
-  }
-  
-  // Restore context state
-  context.value.restore();
+  // --- End Drawing logic ---
+
+  ctx.restore(); // Restore to the state before pan/zoom/DPR
 };
 
-const addGPSPoint = (position: { coords: { latitude: number; longitude: number } }) => {
+
+const addGPSPoint = (position: { coords: { latitude: number; longitude: number } } | null) => {
+  if (!position) {
+    console.warn('Received null position in addGPSPoint');
+    return;
+  }
   const lat = position.coords.latitude;
   const lon = position.coords.longitude;
   const timestamp = Date.now();
@@ -182,176 +223,181 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number }
   currentLon.value = lon;
 
   points.value.push({ lat, lon, timestamp });
+  calculateBounds(); // Recalculate bounds with the new point
 
-  if (points.value.length >= 2) {
-    calculateBounds();
-  }
-
-  drawPath();
+  // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
+  nextTick(() => {
+    drawPath();
+  });
 };
 
-// const clearPath = () => {
-//   points.value = [];
-//   bounds.value = null;
-//   scale.value = 1;
-//   offsetX.value = 0;
-//   offsetY.value = 0;
-//   if (context.value && canvas.value) {
-//     context.value.clearRect(0, 0, canvas.value.width, canvas.value.height);
-//   }
-// };
+const setupCanvas = () => {
+  if (canvasEl.value) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvasEl.value.getBoundingClientRect();
 
+    canvasEl.value.width = rect.width * dpr;
+    canvasEl.value.height = rect.height * dpr;
+    // CSS already handles display width/height at 100%
+
+    context.value = canvasEl.value.getContext('2d');
+    if (!context.value) {
+        console.error("Failed to get 2D context");
+        return;
+    }
+    // Initial draw if there are points (e.g., from loaded data)
+    calculateBounds();
+    drawPath();
+  }
+};
 
 onMounted(async () => {
-  if (canvas.value) {
-    // Set canvas size to match device pixel ratio for sharp rendering
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.value.getBoundingClientRect();
-    
-    canvas.value.width = rect.width * dpr;
-    canvas.value.height = rect.height * dpr;
-    canvas.value.style.width = rect.width + 'px';
-    canvas.value.style.height = rect.height + 'px';
-    
-    context.value = canvas.value.getContext('2d');
-    if (context.value) {
-      context.value.scale(dpr, dpr);
-    }
-  }
-  
-  // Start GPS tracking
+  setupCanvas(); // Initial setup
+
+  // Optional: Add resize listener if you want to re-setup canvas on window resize
+  window.addEventListener('resize', setupCanvas);
+
   try {
-    const permission = await Geolocation.checkPermissions();
-    if (permission.location !== 'granted') {
-      await Geolocation.requestPermissions();
+    const permissionStatus = await Geolocation.checkPermissions();
+    if (permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted') {
+      const requestStatus = await Geolocation.requestPermissions();
+      if (requestStatus.location !== 'granted' && requestStatus.coarseLocation !== 'granted') {
+        console.error('Location permission denied.');
+        // Optionally, display a message to the user
+        return;
+      }
     }
-    
+
     watchId = await Geolocation.watchPosition(
-      { 
+      {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 3000
+        timeout: 10000, // Max time to wait for a position
+        maximumAge: 3000 // How old a cached position can be
       },
-      (position: any, err: any) => {
+      (position, err) => {
         if (err) {
-          console.error('GPS Error:', err);
+          console.error('GPS Error:', err.message, err.code);
+          // Handle specific errors, e.g., err.code === 1 (PERMISSION_DENIED)
+          // err.code === 2 (POSITION_UNAVAILABLE)
+          // err.code === 3 (TIMEOUT)
         } else if (position) {
           addGPSPoint(position);
         }
       }
     );
-  } catch (error) {
-    console.error('Failed to start tracking:', error);
+  } catch (error: any) {
+    console.error('Failed to start GPS tracking:', error.message || error);
   }
-  
-  // Load data from desktop version if available
-  loadDataFromDesktop();
 });
-
-// Function to load data from desktop version
-const loadDataFromDesktop = () => {
-  try {
-    const savedData = localStorage.getItem('gps-drawing-data');
-    if (savedData) {
-      const data = JSON.parse(savedData);
-      if (data.points && data.points.length > 0) {
-        points.value = data.points;
-        if (points.value.length >= 2) {
-          calculateBounds();
-        }
-        drawPath();
-        
-        // Clear the saved data after loading
-        localStorage.removeItem('gps-drawing-data');
-      }
-    }
-  } catch (error) {
-    console.error('Error loading data from desktop:', error);
-  }
-};
 
 onUnmounted(() => {
   if (watchId) {
     Geolocation.clearWatch({ id: watchId });
   }
+  window.removeEventListener('resize', setupCanvas);
 });
 
-// Touch and mouse event handlers
+// --- Touch and Mouse Event Handlers for Panning ---
+const startDrag = (clientX: number, clientY: number) => {
+  isDragging.value = true;
+  lastDragX.value = clientX;
+  lastDragY.value = clientY;
+};
+
+const drag = (clientX: number, clientY: number) => {
+  if (!isDragging.value) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  // Deltas should be in logical pixels, so divide by current scale and DPR
+  // No, deltas are direct view offsets, user perceives them in screen pixels.
+  // The effect of scale on panning speed is managed by how transforms are applied.
+
+  const deltaX = (clientX - lastDragX.value) / dpr; // Convert screen pixel delta to logical canvas pixel delta
+  const deltaY = (clientY - lastDragY.value) / dpr;
+
+  viewOffsetX.value += deltaX;
+  viewOffsetY.value += deltaY;
+
+  lastDragX.value = clientX;
+  lastDragY.value = clientY;
+  drawPath();
+};
+
+const endDrag = () => {
+  isDragging.value = false;
+};
+
 const handleTouchStart = (e: TouchEvent) => {
-  e.preventDefault();
   if (e.touches.length === 1) {
-    isDragging.value = true;
-    lastX.value = e.touches[0].clientX;
-    lastY.value = e.touches[0].clientY;
+    e.preventDefault();
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
   }
+  // Basic pinch zoom could be added here by checking e.touches.length === 2
 };
 
 const handleTouchMove = (e: TouchEvent) => {
-  e.preventDefault();
-  if (isDragging.value && e.touches.length === 1) {
-    const deltaX = e.touches[0].clientX - lastX.value;
-    const deltaY = e.touches[0].clientY - lastY.value;
-    
-    offsetX.value += deltaX;
-    offsetY.value += deltaY;
-    
-    lastX.value = e.touches[0].clientX;
-    lastY.value = e.touches[0].clientY;
-    
-    drawPath();
+  if (e.touches.length === 1) {
+    e.preventDefault();
+    drag(e.touches[0].clientX, e.touches[0].clientY);
   }
 };
 
-const handleTouchEnd = () => {
-  isDragging.value = false;
+const handleTouchEnd = (e: TouchEvent) => {
+  if (e.touches.length === 0) { // All touches lifted
+    endDrag();
+  }
 };
 
 const handleMouseDown = (e: MouseEvent) => {
   if (isDesktop.value) {
-    isDragging.value = true;
-    lastX.value = e.clientX;
-    lastY.value = e.clientY;
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY);
   }
 };
 
 const handleMouseMove = (e: MouseEvent) => {
-  if (isDragging.value && isDesktop.value) {
-    const deltaX = e.clientX - lastX.value;
-    const deltaY = e.clientY - lastY.value;
-    
-    offsetX.value += deltaX;
-    offsetY.value += deltaY;
-    
-    lastX.value = e.clientX;
-    lastY.value = e.clientY;
-    
-    drawPath();
+  if (isDesktop.value) {
+    e.preventDefault();
+    drag(e.clientX, e.clientY);
   }
 };
 
-const handleMouseUp = () => {
-  isDragging.value = false;
+const handleMouseUp = (e: MouseEvent) => {
+  if (isDesktop.value) {
+    e.preventDefault();
+    endDrag();
+  }
 };
 
+// --- Wheel Event Handler for Zooming ---
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault();
-  
-  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-  const newScale = Math.max(0.1, Math.min(10, scale.value * zoomFactor));
-  
-  // Zoom towards mouse position
-  const rect = canvas.value!.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-  
-  const scaleChange = newScale / scale.value;
-  offsetX.value = mouseX - (mouseX - offsetX.value) * scaleChange;
-  offsetY.value = mouseY - (mouseY - offsetY.value) * scaleChange;
-  
-  scale.value = newScale;
+  if (!canvasEl.value) return;
+
+  const zoomFactor = 0.1;
+  const newScale = e.deltaY < 0
+    ? scale.value * (1 + zoomFactor) // Zoom in
+    : scale.value / (1 + zoomFactor); // Zoom out
+
+  scale.value = Math.max(0.1, Math.min(newScale, 10)); // Clamp scale
+
+  // Zoom towards mouse position (more complex, for simplicity, this example zooms towards center)
+  // To implement zoom towards mouse:
+  // 1. Get mouse position relative to canvas (logical pixels)
+  // const rect = canvasEl.value.getBoundingClientRect();
+  // const mouseX = (e.clientX - rect.left);
+  // const mouseY = (e.clientY - rect.top);
+  // 2. Adjust viewOffsetX/Y based on mouse position and scale change
+  // const dpr = window.devicePixelRatio || 1;
+  // const logicalMouseX = mouseX / dpr;
+  // const logicalMouseY = mouseY / dpr;
+
+  // const scaleChange = newScale / oldScale; // oldScale needs to be stored before updating scale.value
+  // viewOffsetX.value = logicalMouseX - (logicalMouseX - viewOffsetX.value) * scaleChange;
+  // viewOffsetY.value = logicalMouseY - (logicalMouseY - viewOffsetY.value) * scaleChange;
+
   drawPath();
 };
-
 
 </script>
 
@@ -368,7 +414,7 @@ body, html, #app {
   background: black;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* Important to prevent scrollbars from canvas content */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -378,118 +424,19 @@ body, html, #app {
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: none;
-}
-
-.status {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 16px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-}
-
-.track-button {
-  position: absolute;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  color: black;
-  border: none;
-  padding: 16px 32px;
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 12px;
-  cursor: pointer;
-  min-width: 120px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.track-button:active {
-  transform: translateX(-50%) scale(0.95);
-}
-
-.clear-button {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 24px;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.clear-button:active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.reset-button {
-  position: absolute;
-  bottom: 180px; /* Position above the clear button */
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 24px;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.reset-button:active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.reset-button:active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.desktop-link {
-  position: absolute;
-  bottom: 140px; /* Adjust position to be above the clear button */
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 24px;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: none; /* Hide by default, show only on desktop */
-}
-
-.desktop-link:active {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Show desktop link only on desktop */
-@media (min-width: 769px) {
-  .desktop-link {
-    display: block;
-  }
+  touch-action: none; /* Prevents default touch actions like scrolling */
 }
 
 .coordinates {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 15px;
+  left: 0px;
   background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 14px;
   backdrop-filter: blur(10px);
+  z-index: 10; /* Ensure it's above the canvas */
 }
 </style>
