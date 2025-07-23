@@ -1,0 +1,1 @@
+$ npx cap run android --target emulator-5554 --live-reload --host 172.31.99.45:3000

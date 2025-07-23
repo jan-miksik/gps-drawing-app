@@ -11,13 +11,68 @@
       @mouseup="handleMouseUp"
       @wheel="handleWheel"
     />
-    <div class="coordinates">Lat: {{ currentLat.toFixed(6) }}, Lon: {{ currentLon.toFixed(6) }}</div>
+    <!-- <div class="coordinates">lat {{ currentLat.toFixed(POINTS_PRECISION) }}, lon: {{ currentLon.toFixed(POINTS_PRECISION) }}</div> -->
+    
+    <!-- GPS Points List Button -->
+    <button @click="showModal = true" class="gps-points-button">
+      <span class="gps-points-button-text">Points ({{ points.length }})</span>
+    </button>
+
+    <!-- Modal -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>GPS Points ({{ points.length }})</h2>
+          <button @click="closeModal" class="close-button">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div v-if="points.length === 0" class="no-points">
+            No GPS points recorded yet.
+          </div>
+          
+          <div v-else class="points-list">
+            <div class="list-header">
+              <div class="header-item index">Index</div>
+              <div class="header-item lat">Latitude</div>
+              <div class="header-item lon">Longitude</div>
+              <div class="header-item time">Time</div>
+            </div>
+            
+            <div class="list-body">
+              <div 
+                v-for="(point, index) in [...points].reverse()" 
+                :key="`${point.lat}-${point.lon}-${point.timestamp}`"
+                class="point-row"
+                :class="{ 'current-point': index === 0 }"
+              >
+                <div class="row-item index">{{ points.length - index }}</div>
+                <div class="row-item lat">{{ point.lat.toFixed(POINTS_PRECISION) }}</div>
+                <div class="row-item lon">{{ point.lon.toFixed(POINTS_PRECISION) }}</div>
+                <div class="row-item time">{{ formatTime(point.timestamp) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="exportPoints" class="export-button">
+            Export
+          </button>
+          <div @click="clearAllPoints" class="clear-button-1">
+            Clear All
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
+
+const POINTS_PRECISION = 5;
 
 interface Point {
   lat: number;
@@ -38,6 +93,9 @@ const points = ref<Point[]>([]);
 const bounds = ref<Bounds | null>(null);
 let watchId: string | null = null;
 
+// Modal state
+const showModal = ref(false);
+
 // Zoom and pan state
 const scale = ref(1);
 const viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
@@ -52,6 +110,135 @@ const currentLon = ref(0);
 
 // Padding around the drawing within the canvas
 const DRAWING_PADDING = 40; // In logical pixels
+
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+
+const FILE_NAME = 'gps_points.json';
+
+const savePointsToFile = async () => {
+  try {
+    await Filesystem.writeFile({
+      path: FILE_NAME,
+      data: JSON.stringify(points.value),
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+    });
+    // console.log('Points saved to file');
+  } catch (e) {
+    console.error('Failed to save GPS points to file', e);
+  }
+};
+
+const loadPointsFromFile = async () => {
+  try {
+    const result = await Filesystem.readFile({
+      path: FILE_NAME,
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+    });
+    // Fix TypeScript error by ensuring result.data is treated as string
+    const dataString = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+    points.value = JSON.parse(dataString);
+    calculateBounds();
+    drawPath();
+    // console.log('Points loaded from file');
+  } catch (e) {
+    console.warn('No saved file found. Starting fresh.', e);
+  }
+};
+
+// Modal functions
+const closeModal = () => {
+  showModal.value = false;
+};
+
+const formatTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('en-US', { 
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
+const exportPoints = async () => {
+  try {
+    const dataToExport = {
+      exportDate: new Date().toISOString(),
+      totalPoints: points.value.length,
+      points: points.value.map((point, index) => ({
+        index: index + 1,
+        latitude: point.lat,
+        longitude: point.lon,
+        timestamp: point.timestamp,
+        time: new Date(point.timestamp).toISOString()
+      }))
+    };
+
+    const exportData = JSON.stringify(dataToExport, null, 2);
+    const fileName = `gps_export_${new Date().toISOString().split('T')[0]}.json`;
+
+    await Filesystem.writeFile({
+      path: fileName,
+      data: exportData,
+      directory: Directory.Documents,
+      encoding: Encoding.UTF8,
+    });
+
+    alert(`GPS points exported to ${fileName}`);
+  } catch (error) {
+    console.error('Export failed:', error);
+    alert('Export failed. Please try again.');
+  }
+};
+
+const clearAllPoints = async () => {
+  if (confirm(`Are you sure you want to delete all ${points.value.length} GPS points? This cannot be undone.`)) {
+    points.value = [];
+    bounds.value = null;
+    currentLat.value = 0;
+    currentLon.value = 0;
+    
+    // Clear the saved file
+    try {
+      await Filesystem.deleteFile({
+        path: FILE_NAME,
+        directory: Directory.Data,
+      });
+    } catch (e) {
+      console.warn('No file to delete or delete failed:', e);
+    }
+    
+    // Redraw canvas
+    drawPath();
+    closeModal();
+  }
+};
+
+// const STORAGE_KEY = 'gps_path_points';
+
+// const loadPointsFromStorage = () => {
+//   try {
+//     const saved = localStorage.getItem(STORAGE_KEY);
+//     if (saved) {
+//       const parsed = JSON.parse(saved) as Point[];
+//       points.value = parsed;
+//       calculateBounds();
+//       nextTick(() => drawPath());
+//     }
+//   } catch (e) {
+//     console.error('Failed to load points from storage', e);
+//   }
+// };
+
+// const savePointsToStorage = () => {
+//   try {
+//     localStorage.setItem(STORAGE_KEY, JSON.stringify(points.value));
+//   } catch (e) {
+//     console.error('Failed to save points to storage', e);
+//   }
+// };
 
 // Detect if we're on desktop
 const isDesktop = computed(() => {
@@ -215,8 +402,10 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number }
     console.warn('Received null position in addGPSPoint');
     return;
   }
-  const lat = position.coords.latitude;
-  const lon = position.coords.longitude;
+  
+  // Round coordinates to specified precision to save storage space
+  const lat = Math.round(position.coords.latitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
+  const lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
   const timestamp = Date.now();
 
   currentLat.value = lat;
@@ -224,6 +413,8 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number }
 
   points.value.push({ lat, lon, timestamp });
   calculateBounds(); // Recalculate bounds with the new point
+
+  savePointsToFile(); // ✅ Save locally
 
   // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
   nextTick(() => {
@@ -253,6 +444,8 @@ const setupCanvas = () => {
 
 onMounted(async () => {
   setupCanvas(); // Initial setup
+
+  await loadPointsFromFile(); // ✅ Load existing points
 
   // Optional: Add resize listener if you want to re-setup canvas on window resize
   window.addEventListener('resize', setupCanvas);
@@ -439,4 +632,220 @@ body, html, #app {
   backdrop-filter: blur(10px);
   z-index: 10; /* Ensure it's above the canvas */
 }
+
+.gps-points-button {
+  position: absolute;
+  bottom: 25px;
+  right: 15px;
+  background-color: transparent;
+  color: white;
+
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  z-index: 10;
+  /* border: 1px dashed rgb(131, 131, 131); */
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.gps-points-button:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.gps-points-button-text {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(131, 131, 131);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 0;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: max(env(safe-area-inset-top), 20px);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 20px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.close-button:hover {
+  color: #ff6b6b;
+}
+
+.modal-body {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  height: 0; /* Forces flex-grow to work properly */
+}
+
+.no-points {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+
+.points-list {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.list-header {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-weight: bold;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.header-item {
+  display: inline-block;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.header-item.index {
+  width: 40px;
+  text-align: center;
+}
+
+.header-item.lat, .header-item.lon {
+  width: 85px;
+  text-align: center;
+}
+
+.header-item.time {
+  width: 70px;
+  text-align: center;
+}
+
+.list-body {
+  /* No specific styles needed, table will handle layout */
+}
+
+.point-row {
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 11px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+}
+
+.point-row:last-child {
+  border-bottom: none;
+}
+
+.point-row.current-point {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid white;
+  padding-left: 8px;
+}
+
+.row-item {
+  display: inline-block;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.row-item.index {
+  width: 40px;
+  text-align: center;
+}
+
+.row-item.lat, .row-item.lon {
+  width: 85px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.row-item.time {
+  width: 70px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.modal-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* justify-content: space-between; */
+  gap: 20px;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.export-button, .clear-button-1  {
+  all: unset;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.export-button:hover, .clear-button-1:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
 </style>

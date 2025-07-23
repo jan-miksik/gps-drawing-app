@@ -21,6 +21,7 @@
     "@capacitor/geolocation": "^7.1.4",
     "@capacitor/splash-screen": "^7.0.1",
     "@capacitor/status-bar": "^7.0.1",
+    "@capacitor/storage": "^1.2.5",
     "vue": "^3.5.17"
   },
   "devDependencies": {

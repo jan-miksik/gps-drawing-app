@@ -64,6 +64,27 @@ var currentLat = ref(0);
 var currentLon = ref(0);
 // Padding around the drawing within the canvas
 var DRAWING_PADDING = 40; // In logical pixels
+// const STORAGE_KEY = 'gps_path_points';
+// const loadPointsFromStorage = () => {
+//   try {
+//     const saved = localStorage.getItem(STORAGE_KEY);
+//     if (saved) {
+//       const parsed = JSON.parse(saved) as Point[];
+//       points.value = parsed;
+//       calculateBounds();
+//       nextTick(() => drawPath());
+//     }
+//   } catch (e) {
+//     console.error('Failed to load points from storage', e);
+//   }
+// };
+// const savePointsToStorage = () => {
+//   try {
+//     localStorage.setItem(STORAGE_KEY, JSON.stringify(points.value));
+//   } catch (e) {
+//     console.error('Failed to save points to storage', e);
+//   }
+// };
 // Detect if we're on desktop
 var isDesktop = computed(function () {
     if (typeof window === 'undefined')
@@ -202,6 +223,7 @@ var addGPSPoint = function (position) {
     currentLon.value = lon;
     points.value.push({ lat: lat, lon: lon, timestamp: timestamp });
     calculateBounds(); // Recalculate bounds with the new point
+    // savePointsToStorage(); // 🆕 Save updated path
     // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
     nextTick(function () {
         drawPath();
@@ -230,6 +252,7 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
         switch (_a.label) {
             case 0:
                 setupCanvas(); // Initial setup
+                // loadPointsFromStorage();
                 // Optional: Add resize listener if you want to re-setup canvas on window resize
                 window.addEventListener('resize', setupCanvas);
                 _a.label = 1;
