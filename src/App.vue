@@ -18,11 +18,24 @@
       <span class="gps-points-button-text">Points ({{ points.length }})</span>
     </button>
 
+
+
     <!-- Modal -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>GPS Points ({{ points.length }})</h2>
+                <div class="modal-header">
+          <div class="header-left">
+            <h2>GPS Points ({{ points.length }})</h2>
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                :checked="!isAnonymized"
+                @change="toggleAnonymization"
+                class="toggle-checkbox"
+              />
+              <span class="toggle-text">Real Position</span>
+            </label>
+          </div>
           <button @click="closeModal" class="close-button">✕</button>
         </div>
         
@@ -34,14 +47,14 @@
           <div v-else class="points-list">
             <div class="list-header">
               <div class="header-item index">Index</div>
-              <div class="header-item lat">Latitude</div>
-              <div class="header-item lon">Longitude</div>
+              <div class="header-item lat">{{ isAnonymized ? 'Rel. Lat' : 'Latitude' }}</div>
+              <div class="header-item lon">{{ isAnonymized ? 'Rel. Lon' : 'Longitude' }}</div>
               <div class="header-item time">Time</div>
             </div>
             
             <div class="list-body">
               <div 
-                v-for="(point, index) in [...points].reverse()" 
+                v-for="(point, index) in [...displayPoints].reverse()" 
                 :key="`${point.lat}-${point.lon}-${point.timestamp}`"
                 class="point-row"
                 :class="{ 'current-point': index === 0 }"
@@ -49,7 +62,7 @@
                 <div class="row-item index">{{ points.length - index }}</div>
                 <div class="row-item lat">{{ point.lat.toFixed(POINTS_PRECISION) }}</div>
                 <div class="row-item lon">{{ point.lon.toFixed(POINTS_PRECISION) }}</div>
-                <div class="row-item time">{{ formatTime(point.timestamp) }}</div>
+                <div class="row-item time">{{ formatTime(point.timestamp, displayPoints.length - 1 - index, displayPoints) }}</div>
               </div>
             </div>
           </div>
@@ -103,6 +116,10 @@ let watchId: string | null = null;
 // Modal state
 const showModal = ref(false);
 
+// Anonymization state
+const isAnonymized = ref(true); // Start anonymized by default
+const anonymizationOrigin = ref<{lat: number, lon: number} | null>(null);
+
 // Zoom and pan state
 const scale = ref(1);
 const viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
@@ -121,6 +138,96 @@ const DRAWING_PADDING = 40; // In logical pixels
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 const FILE_NAME = 'gps_points.json';
+
+// Anonymization functions
+const setAnonymizationOrigin = () => {
+  if (points.value.length > 0) {
+    // Use the first point as the origin for anonymization
+    const firstPoint = points.value[0];
+    anonymizationOrigin.value = {
+      lat: firstPoint.lat,
+      lon: firstPoint.lon
+    };
+  }
+};
+
+const anonymizePoint = (point: Point): Point => {
+  if (!anonymizationOrigin.value) {
+    setAnonymizationOrigin();
+  }
+  
+  if (!anonymizationOrigin.value) {
+    return point; // Fallback if no origin set
+  }
+
+  // Convert to relative coordinates (preserving distances)
+  return {
+    lat: point.lat - anonymizationOrigin.value.lat,
+    lon: point.lon - anonymizationOrigin.value.lon,
+    timestamp: point.timestamp // Keep original timestamp
+  };
+};
+
+const anonymizePoints = (pointsArray: Point[]): Point[] => {
+  if (pointsArray.length === 0) return pointsArray;
+  
+  if (!anonymizationOrigin.value) {
+    setAnonymizationOrigin();
+  }
+  
+  return pointsArray.map(point => anonymizePoint(point));
+};
+
+// Computed property for display points (either real or anonymized)
+const displayPoints = computed(() => {
+  return isAnonymized.value ? anonymizePoints(points.value) : points.value;
+});
+
+// Computed property for display bounds
+const displayBounds = computed(() => {
+  if (!bounds.value) return null;
+  
+  if (!isAnonymized.value) return bounds.value;
+  
+  // Calculate bounds for anonymized data
+  const anonPoints = anonymizePoints(points.value);
+  if (anonPoints.length === 0) return null;
+  
+  if (anonPoints.length === 1) {
+    const p = anonPoints[0];
+    const delta = 0.0001;
+    return {
+      minLat: p.lat - delta,
+      maxLat: p.lat + delta,
+      minLon: p.lon - delta,
+      maxLon: p.lon + delta,
+    };
+  }
+
+  const lats = anonPoints.map(p => p.lat);
+  const lons = anonPoints.map(p => p.lon);
+
+  return {
+    minLat: Math.min(...lats),
+    maxLat: Math.max(...lats),
+    minLon: Math.min(...lons),
+    maxLon: Math.max(...lons),
+  };
+});
+
+const toggleAnonymization = () => {
+  isAnonymized.value = !isAnonymized.value;
+  
+  // Set origin when first enabling anonymization
+  if (isAnonymized.value && !anonymizationOrigin.value) {
+    setAnonymizationOrigin();
+  }
+  
+  // Redraw the path with new data
+  nextTick(() => {
+    drawPath();
+  });
+};
 
 const savePointsToFile = async () => {
   try {
@@ -159,14 +266,44 @@ const closeModal = () => {
   showModal.value = false;
 };
 
-const formatTime = (timestamp: number): string => {
+const formatTime = (timestamp: number, index: number, allPoints: Point[]): string => {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('en-US', { 
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Check if this is the first point or if the date changed from previous point
+  const isFirstPoint = index === 0;
+  const dateChanged = !isFirstPoint && 
+    new Date(allPoints[index - 1].timestamp).toDateString() !== date.toDateString();
+  
+  const timeString = date.toLocaleTimeString('en-US', { 
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
   });
+  
+  // Always show "Today" for today's dates
+  if (date.toDateString() === today.toDateString()) {
+    return `Today ${timeString}`;
+  }
+  
+  // Show date if it's the first point or date changed (for non-today dates)
+  if (isFirstPoint || dateChanged) {
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday ${timeString}`;
+    } else {
+      const dateString = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+      return `${dateString} ${timeString}`;
+    }
+  }
+  
+  return timeString;
 };
 
 const exportPoints = async () => {
@@ -174,7 +311,8 @@ const exportPoints = async () => {
     const dataToExport = {
       exportDate: new Date().toISOString(),
       totalPoints: points.value.length,
-      points: points.value.map((point, index) => ({
+      isAnonymized: isAnonymized.value,
+      points: displayPoints.value.map((point, index) => ({
         index: index + 1,
         latitude: point.lat,
         longitude: point.lon,
@@ -204,6 +342,7 @@ const clearAllPoints = async () => {
   if (confirm(`Are you sure you want to delete all ${points.value.length} GPS points? This cannot be undone.`)) {
     points.value = [];
     bounds.value = null;
+    anonymizationOrigin.value = null;
     currentLat.value = 0;
     currentLon.value = 0;
     
@@ -222,30 +361,6 @@ const clearAllPoints = async () => {
     closeModal();
   }
 };
-
-// const STORAGE_KEY = 'gps_path_points';
-
-// const loadPointsFromStorage = () => {
-//   try {
-//     const saved = localStorage.getItem(STORAGE_KEY);
-//     if (saved) {
-//       const parsed = JSON.parse(saved) as Point[];
-//       points.value = parsed;
-//       calculateBounds();
-//       nextTick(() => drawPath());
-//     }
-//   } catch (e) {
-//     console.error('Failed to load points from storage', e);
-//   }
-// };
-
-// const savePointsToStorage = () => {
-//   try {
-//     localStorage.setItem(STORAGE_KEY, JSON.stringify(points.value));
-//   } catch (e) {
-//     console.error('Failed to save points to storage', e);
-//   }
-// };
 
 // Detect if we're on desktop
 const isDesktop = computed(() => {
@@ -347,7 +462,10 @@ const drawPath = () => {
   ctx.clearRect(0, 0, logicalWidth, logicalHeight); // Clear based on logical size
   ctx.restore();
 
-  if (points.value.length === 0 || !bounds.value) {
+  const currentDisplayPoints = displayPoints.value;
+  const currentBounds = displayBounds.value;
+
+  if (currentDisplayPoints.length === 0 || !currentBounds) {
     // console.log('No points or bounds to draw.');
     return;
   }
@@ -368,12 +486,11 @@ const drawPath = () => {
   // Translate back
   ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
 
-
   // --- Drawing logic ---
-  if (points.value.length >= 1 && bounds.value) { // Need at least one point to draw a dot
+  if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
     ctx.beginPath();
-    for (let i = 0; i < points.value.length; i++) {
-      const { x, y } = project(points.value[i], bounds.value, logicalWidth, logicalHeight);
+    for (let i = 0; i < currentDisplayPoints.length; i++) {
+      const { x, y } = project(currentDisplayPoints[i], currentBounds, logicalWidth, logicalHeight);
       if (i === 0) {
         ctx.moveTo(x, y);
       } else {
@@ -381,7 +498,7 @@ const drawPath = () => {
       }
     }
 
-    if (points.value.length > 1) { // Only stroke if there's a path
+    if (currentDisplayPoints.length > 1) { // Only stroke if there's a path
         ctx.strokeStyle = 'white';
         // Adjust line width based on current view scale, so it appears consistent
         ctx.lineWidth = 2 / (scale.value * dpr) ; // More refined line width adjustment
@@ -391,9 +508,9 @@ const drawPath = () => {
     }
 
     // Draw current position as a dot (even if it's the only point)
-    const lastPoint = points.value[points.value.length - 1];
-    const { x: lastX, y: lastY } = project(lastPoint, bounds.value, logicalWidth, logicalHeight);
-    ctx.fillStyle = 'white'; // Current position dot color
+    const lastPoint = currentDisplayPoints[currentDisplayPoints.length - 1];
+    const { x: lastX, y: lastY } = project(lastPoint, currentBounds, logicalWidth, logicalHeight);
+    ctx.fillStyle = 'white';
     ctx.beginPath();
     ctx.arc(lastX, lastY, 10 / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
     ctx.fill();
@@ -402,7 +519,6 @@ const drawPath = () => {
 
   ctx.restore(); // Restore to the state before pan/zoom/DPR
 };
-
 
 const addGPSPoint = (position: { coords: { latitude: number; longitude: number } } | null) => {
   if (!position) {
@@ -420,6 +536,11 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number }
 
   points.value.push({ lat, lon, timestamp });
   calculateBounds(); // Recalculate bounds with the new point
+
+  // Set anonymization origin if this is the first point and anonymization is enabled
+  if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
+    setAnonymizationOrigin();
+  }
 
   savePointsToFile(); // ✅ Save locally
 
@@ -581,21 +702,6 @@ const handleWheel = (e: WheelEvent) => {
 
   scale.value = Math.max(0.1, Math.min(newScale, 10)); // Clamp scale
 
-  // Zoom towards mouse position (more complex, for simplicity, this example zooms towards center)
-  // To implement zoom towards mouse:
-  // 1. Get mouse position relative to canvas (logical pixels)
-  // const rect = canvasEl.value.getBoundingClientRect();
-  // const mouseX = (e.clientX - rect.left);
-  // const mouseY = (e.clientY - rect.top);
-  // 2. Adjust viewOffsetX/Y based on mouse position and scale change
-  // const dpr = window.devicePixelRatio || 1;
-  // const logicalMouseX = mouseX / dpr;
-  // const logicalMouseY = mouseY / dpr;
-
-  // const scaleChange = newScale / oldScale; // oldScale needs to be stored before updating scale.value
-  // viewOffsetX.value = logicalMouseX - (logicalMouseX - viewOffsetX.value) * scaleChange;
-  // viewOffsetY.value = logicalMouseY - (logicalMouseY - viewOffsetY.value) * scaleChange;
-
   drawPath();
 };
 
@@ -650,7 +756,6 @@ body, html, #app {
   border-radius: 5px;
   font-size: 14px;
   z-index: 10;
-  /* border: 1px dashed rgb(131, 131, 131); */
   cursor: pointer;
   transition: border-color 0.3s ease;
   margin-bottom: env(safe-area-inset-bottom);
@@ -667,6 +772,8 @@ body, html, #app {
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 }
+
+
 
 .modal-overlay {
   position: fixed;
@@ -699,10 +806,37 @@ body, html, #app {
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 15px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: rgba(255, 255, 255, 0.7);
+}
+
+.toggle-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: normal;
 }
 
 .modal-header h2 {
@@ -720,6 +854,7 @@ body, html, #app {
   padding: 5px;
   line-height: 1;
   transition: color 0.3s ease;
+  align-self: flex-start;
 }
 
 .close-button:hover {
@@ -730,8 +865,7 @@ body, html, #app {
   flex-grow: 1;
   padding: 10px;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  height: 0; /* Forces flex-grow to work properly */
+  -webkit-overflow-scrolling: touch;
 }
 
 .no-points {
@@ -774,7 +908,7 @@ body, html, #app {
 }
 
 .header-item.time {
-  width: 70px;
+  width: 110px;
   text-align: center;
 }
 
@@ -820,9 +954,9 @@ body, html, #app {
 }
 
 .row-item.time {
-  width: 70px;
+  width: 110px;
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .modal-footer {

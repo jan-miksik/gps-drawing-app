@@ -64,6 +64,9 @@ var bounds = ref(null);
 var watchId = null;
 // Modal state
 var showModal = ref(false);
+// Anonymization state
+var isAnonymized = ref(true); // Start anonymized by default
+var anonymizationOrigin = ref(null);
 // Zoom and pan state
 var scale = ref(1);
 var viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
@@ -78,6 +81,83 @@ var currentLon = ref(0);
 var DRAWING_PADDING = 40; // In logical pixels
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 var FILE_NAME = 'gps_points.json';
+// Anonymization functions
+var setAnonymizationOrigin = function () {
+    if (points.value.length > 0) {
+        // Use the first point as the origin for anonymization
+        var firstPoint = points.value[0];
+        anonymizationOrigin.value = {
+            lat: firstPoint.lat,
+            lon: firstPoint.lon
+        };
+    }
+};
+var anonymizePoint = function (point) {
+    if (!anonymizationOrigin.value) {
+        setAnonymizationOrigin();
+    }
+    if (!anonymizationOrigin.value) {
+        return point; // Fallback if no origin set
+    }
+    // Convert to relative coordinates (preserving distances)
+    return {
+        lat: point.lat - anonymizationOrigin.value.lat,
+        lon: point.lon - anonymizationOrigin.value.lon,
+        timestamp: point.timestamp // Keep original timestamp
+    };
+};
+var anonymizePoints = function (pointsArray) {
+    if (pointsArray.length === 0)
+        return pointsArray;
+    if (!anonymizationOrigin.value) {
+        setAnonymizationOrigin();
+    }
+    return pointsArray.map(function (point) { return anonymizePoint(point); });
+};
+// Computed property for display points (either real or anonymized)
+var displayPoints = computed(function () {
+    return isAnonymized.value ? anonymizePoints(points.value) : points.value;
+});
+// Computed property for display bounds
+var displayBounds = computed(function () {
+    if (!bounds.value)
+        return null;
+    if (!isAnonymized.value)
+        return bounds.value;
+    // Calculate bounds for anonymized data
+    var anonPoints = anonymizePoints(points.value);
+    if (anonPoints.length === 0)
+        return null;
+    if (anonPoints.length === 1) {
+        var p = anonPoints[0];
+        var delta = 0.0001;
+        return {
+            minLat: p.lat - delta,
+            maxLat: p.lat + delta,
+            minLon: p.lon - delta,
+            maxLon: p.lon + delta,
+        };
+    }
+    var lats = anonPoints.map(function (p) { return p.lat; });
+    var lons = anonPoints.map(function (p) { return p.lon; });
+    return {
+        minLat: Math.min.apply(Math, lats),
+        maxLat: Math.max.apply(Math, lats),
+        minLon: Math.min.apply(Math, lons),
+        maxLon: Math.max.apply(Math, lons),
+    };
+});
+var toggleAnonymization = function () {
+    isAnonymized.value = !isAnonymized.value;
+    // Set origin when first enabling anonymization
+    if (isAnonymized.value && !anonymizationOrigin.value) {
+        setAnonymizationOrigin();
+    }
+    // Redraw the path with new data
+    nextTick(function () {
+        drawPath();
+    });
+};
 var savePointsToFile = function () { return __awaiter(void 0, void 0, void 0, function () {
     var e_1;
     return __generator(this, function (_a) {
@@ -131,14 +211,40 @@ var loadPointsFromFile = function () { return __awaiter(void 0, void 0, void 0, 
 var closeModal = function () {
     showModal.value = false;
 };
-var formatTime = function (timestamp) {
+var formatTime = function (timestamp, index, allPoints) {
     var date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    var today = new Date();
+    var yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    // Check if this is the first point or if the date changed from previous point
+    var isFirstPoint = index === 0;
+    var dateChanged = !isFirstPoint &&
+        new Date(allPoints[index - 1].timestamp).toDateString() !== date.toDateString();
+    var timeString = date.toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
     });
+    // Always show "Today" for today's dates
+    if (date.toDateString() === today.toDateString()) {
+        return "Today ".concat(timeString);
+    }
+    // Show date if it's the first point or date changed (for non-today dates)
+    if (isFirstPoint || dateChanged) {
+        if (date.toDateString() === yesterday.toDateString()) {
+            return "Yesterday ".concat(timeString);
+        }
+        else {
+            var dateString = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+            });
+            return "".concat(dateString, " ").concat(timeString);
+        }
+    }
+    return timeString;
 };
 var exportPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
     var dataToExport, exportData, fileName, error_1;
@@ -149,7 +255,8 @@ var exportPoints = function () { return __awaiter(void 0, void 0, void 0, functi
                 dataToExport = {
                     exportDate: new Date().toISOString(),
                     totalPoints: points.value.length,
-                    points: points.value.map(function (point, index) { return ({
+                    isAnonymized: isAnonymized.value,
+                    points: displayPoints.value.map(function (point, index) { return ({
                         index: index + 1,
                         latitude: point.lat,
                         longitude: point.lon,
@@ -186,6 +293,7 @@ var clearAllPoints = function () { return __awaiter(void 0, void 0, void 0, func
                 if (!confirm("Are you sure you want to delete all ".concat(points.value.length, " GPS points? This cannot be undone."))) return [3 /*break*/, 5];
                 points.value = [];
                 bounds.value = null;
+                anonymizationOrigin.value = null;
                 currentLat.value = 0;
                 currentLon.value = 0;
                 _a.label = 1;
@@ -211,27 +319,6 @@ var clearAllPoints = function () { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); };
-// const STORAGE_KEY = 'gps_path_points';
-// const loadPointsFromStorage = () => {
-//   try {
-//     const saved = localStorage.getItem(STORAGE_KEY);
-//     if (saved) {
-//       const parsed = JSON.parse(saved) as Point[];
-//       points.value = parsed;
-//       calculateBounds();
-//       nextTick(() => drawPath());
-//     }
-//   } catch (e) {
-//     console.error('Failed to load points from storage', e);
-//   }
-// };
-// const savePointsToStorage = () => {
-//   try {
-//     localStorage.setItem(STORAGE_KEY, JSON.stringify(points.value));
-//   } catch (e) {
-//     console.error('Failed to save points to storage', e);
-//   }
-// };
 // Detect if we're on desktop
 var isDesktop = computed(function () {
     if (typeof window === 'undefined')
@@ -311,7 +398,9 @@ var drawPath = function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Apply DPR scale, reset others
     ctx.clearRect(0, 0, logicalWidth, logicalHeight); // Clear based on logical size
     ctx.restore();
-    if (points.value.length === 0 || !bounds.value) {
+    var currentDisplayPoints = displayPoints.value;
+    var currentBounds = displayBounds.value;
+    if (currentDisplayPoints.length === 0 || !currentBounds) {
         // console.log('No points or bounds to draw.');
         return;
     }
@@ -328,10 +417,10 @@ var drawPath = function () {
     // Translate back
     ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
     // --- Drawing logic ---
-    if (points.value.length >= 1 && bounds.value) { // Need at least one point to draw a dot
+    if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
         ctx.beginPath();
-        for (var i = 0; i < points.value.length; i++) {
-            var _a = project(points.value[i], bounds.value, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
+        for (var i = 0; i < currentDisplayPoints.length; i++) {
+            var _a = project(currentDisplayPoints[i], currentBounds, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
             if (i === 0) {
                 ctx.moveTo(x, y);
             }
@@ -339,7 +428,7 @@ var drawPath = function () {
                 ctx.lineTo(x, y);
             }
         }
-        if (points.value.length > 1) { // Only stroke if there's a path
+        if (currentDisplayPoints.length > 1) { // Only stroke if there's a path
             ctx.strokeStyle = 'white';
             // Adjust line width based on current view scale, so it appears consistent
             ctx.lineWidth = 2 / (scale.value * dpr); // More refined line width adjustment
@@ -348,9 +437,9 @@ var drawPath = function () {
             ctx.stroke();
         }
         // Draw current position as a dot (even if it's the only point)
-        var lastPoint = points.value[points.value.length - 1];
-        var _b = project(lastPoint, bounds.value, logicalWidth, logicalHeight), lastX = _b.x, lastY = _b.y;
-        ctx.fillStyle = 'white'; // Current position dot color
+        var lastPoint = currentDisplayPoints[currentDisplayPoints.length - 1];
+        var _b = project(lastPoint, currentBounds, logicalWidth, logicalHeight), lastX = _b.x, lastY = _b.y;
+        ctx.fillStyle = 'white';
         ctx.beginPath();
         ctx.arc(lastX, lastY, 10 / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
         ctx.fill();
@@ -371,6 +460,10 @@ var addGPSPoint = function (position) {
     currentLon.value = lon;
     points.value.push({ lat: lat, lon: lon, timestamp: timestamp });
     calculateBounds(); // Recalculate bounds with the new point
+    // Set anonymization origin if this is the first point and anonymization is enabled
+    if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
+        setAnonymizationOrigin();
+    }
     savePointsToFile(); // ✅ Save locally
     // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
     nextTick(function () {
@@ -523,19 +616,6 @@ var handleWheel = function (e) {
         ? scale.value * (1 + zoomFactor) // Zoom in
         : scale.value / (1 + zoomFactor); // Zoom out
     scale.value = Math.max(0.1, Math.min(newScale, 10)); // Clamp scale
-    // Zoom towards mouse position (more complex, for simplicity, this example zooms towards center)
-    // To implement zoom towards mouse:
-    // 1. Get mouse position relative to canvas (logical pixels)
-    // const rect = canvasEl.value.getBoundingClientRect();
-    // const mouseX = (e.clientX - rect.left);
-    // const mouseY = (e.clientY - rect.top);
-    // 2. Adjust viewOffsetX/Y based on mouse position and scale change
-    // const dpr = window.devicePixelRatio || 1;
-    // const logicalMouseX = mouseX / dpr;
-    // const logicalMouseY = mouseY / dpr;
-    // const scaleChange = newScale / oldScale; // oldScale needs to be stored before updating scale.value
-    // viewOffsetX.value = logicalMouseX - (logicalMouseX - viewOffsetX.value) * scaleChange;
-    // viewOffsetY.value = logicalMouseY - (logicalMouseY - viewOffsetY.value) * scaleChange;
     drawPath();
 };
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
@@ -563,8 +643,12 @@ if (__VLS_ctx.showModal) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "modal-overlay" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: function () { } }, { class: "modal-content" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-header" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-left" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
     (__VLS_ctx.points.length);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "toggle-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign(__assign({ onChange: (__VLS_ctx.toggleAnonymization) }, { type: "checkbox", checked: (!__VLS_ctx.isAnonymized) }), { class: "toggle-checkbox" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
     if (__VLS_ctx.points.length === 0) {
@@ -575,10 +659,12 @@ if (__VLS_ctx.showModal) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-header" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item index" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
+        (__VLS_ctx.isAnonymized ? 'Rel. Lat' : 'Latitude');
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
+        (__VLS_ctx.isAnonymized ? 'Rel. Lon' : 'Longitude');
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item time" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-body" }));
-        for (var _i = 0, _a = __VLS_getVForSourceType((__spreadArray([], __VLS_ctx.points, true).reverse())); _i < _a.length; _i++) {
+        for (var _i = 0, _a = __VLS_getVForSourceType((__spreadArray([], __VLS_ctx.displayPoints, true).reverse())); _i < _a.length; _i++) {
             var _b = _a[_i], point = _b[0], index = _b[1];
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign(__assign({ key: ("".concat(point.lat, "-").concat(point.lon, "-").concat(point.timestamp)) }, { class: "point-row" }), { class: ({ 'current-point': index === 0 }) }));
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item index" }));
@@ -588,12 +674,15 @@ if (__VLS_ctx.showModal) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
             (point.lon.toFixed(__VLS_ctx.POINTS_PRECISION));
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
-            (__VLS_ctx.formatTime(point.timestamp));
+            (__VLS_ctx.formatTime(point.timestamp, __VLS_ctx.displayPoints.length - 1 - index, __VLS_ctx.displayPoints));
         }
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-left" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.exportPoints) }, { class: "export-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.clearAllPoints) }, { class: "clear-button-1" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-right" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button-footer" }));
 }
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
@@ -601,6 +690,10 @@ if (__VLS_ctx.showModal) {
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-left']} */ ;
+/** @type {__VLS_StyleScopedClasses['toggle-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
+/** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-points']} */ ;
@@ -626,8 +719,11 @@ if (__VLS_ctx.showModal) {
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer-left']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['clear-button-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['footer-right']} */ ;
+/** @type {__VLS_StyleScopedClasses['close-button-footer']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
@@ -636,6 +732,9 @@ var __VLS_self = (await import('vue')).defineComponent({
             canvasEl: canvasEl,
             points: points,
             showModal: showModal,
+            isAnonymized: isAnonymized,
+            displayPoints: displayPoints,
+            toggleAnonymization: toggleAnonymization,
             closeModal: closeModal,
             formatTime: formatTime,
             exportPoints: exportPoints,
