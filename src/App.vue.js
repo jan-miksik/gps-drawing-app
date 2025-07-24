@@ -45,13 +45,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
+var POINTS_PRECISION = 5;
 var canvasEl = ref(null); // Renamed for clarity
 var context = ref(null);
 var points = ref([]);
 var bounds = ref(null);
 var watchId = null;
+// Modal state
+var showModal = ref(false);
 // Zoom and pan state
 var scale = ref(1);
 var viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
@@ -64,6 +76,141 @@ var currentLat = ref(0);
 var currentLon = ref(0);
 // Padding around the drawing within the canvas
 var DRAWING_PADDING = 40; // In logical pixels
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+var FILE_NAME = 'gps_points.json';
+var savePointsToFile = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var e_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                return [4 /*yield*/, Filesystem.writeFile({
+                        path: FILE_NAME,
+                        data: JSON.stringify(points.value),
+                        directory: Directory.Data,
+                        encoding: Encoding.UTF8,
+                    })];
+            case 1:
+                _a.sent();
+                return [3 /*break*/, 3];
+            case 2:
+                e_1 = _a.sent();
+                console.error('Failed to save GPS points to file', e_1);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+var loadPointsFromFile = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var result, dataString, e_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                return [4 /*yield*/, Filesystem.readFile({
+                        path: FILE_NAME,
+                        directory: Directory.Data,
+                        encoding: Encoding.UTF8,
+                    })];
+            case 1:
+                result = _a.sent();
+                dataString = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+                points.value = JSON.parse(dataString);
+                calculateBounds();
+                drawPath();
+                return [3 /*break*/, 3];
+            case 2:
+                e_2 = _a.sent();
+                console.warn('No saved file found. Starting fresh.', e_2);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+// Modal functions
+var closeModal = function () {
+    showModal.value = false;
+};
+var formatTime = function (timestamp) {
+    var date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+};
+var exportPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var dataToExport, exportData, fileName, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                dataToExport = {
+                    exportDate: new Date().toISOString(),
+                    totalPoints: points.value.length,
+                    points: points.value.map(function (point, index) { return ({
+                        index: index + 1,
+                        latitude: point.lat,
+                        longitude: point.lon,
+                        timestamp: point.timestamp,
+                        time: new Date(point.timestamp).toISOString()
+                    }); })
+                };
+                exportData = JSON.stringify(dataToExport, null, 2);
+                fileName = "gps_export_".concat(new Date().toISOString().split('T')[0], ".json");
+                return [4 /*yield*/, Filesystem.writeFile({
+                        path: fileName,
+                        data: exportData,
+                        directory: Directory.Documents,
+                        encoding: Encoding.UTF8,
+                    })];
+            case 1:
+                _a.sent();
+                alert("GPS points exported to ".concat(fileName));
+                return [3 /*break*/, 3];
+            case 2:
+                error_1 = _a.sent();
+                console.error('Export failed:', error_1);
+                alert('Export failed. Please try again.');
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+var clearAllPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var e_3;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!confirm("Are you sure you want to delete all ".concat(points.value.length, " GPS points? This cannot be undone."))) return [3 /*break*/, 5];
+                points.value = [];
+                bounds.value = null;
+                currentLat.value = 0;
+                currentLon.value = 0;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, Filesystem.deleteFile({
+                        path: FILE_NAME,
+                        directory: Directory.Data,
+                    })];
+            case 2:
+                _a.sent();
+                return [3 /*break*/, 4];
+            case 3:
+                e_3 = _a.sent();
+                console.warn('No file to delete or delete failed:', e_3);
+                return [3 /*break*/, 4];
+            case 4:
+                // Redraw canvas
+                drawPath();
+                closeModal();
+                _a.label = 5;
+            case 5: return [2 /*return*/];
+        }
+    });
+}); };
 // const STORAGE_KEY = 'gps_path_points';
 // const loadPointsFromStorage = () => {
 //   try {
@@ -216,14 +363,15 @@ var addGPSPoint = function (position) {
         console.warn('Received null position in addGPSPoint');
         return;
     }
-    var lat = position.coords.latitude;
-    var lon = position.coords.longitude;
+    // Round coordinates to specified precision to save storage space
+    var lat = Math.round(position.coords.latitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
+    var lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
     var timestamp = Date.now();
     currentLat.value = lat;
     currentLon.value = lon;
     points.value.push({ lat: lat, lon: lon, timestamp: timestamp });
     calculateBounds(); // Recalculate bounds with the new point
-    // savePointsToStorage(); // 🆕 Save updated path
+    savePointsToFile(); // ✅ Save locally
     // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
     nextTick(function () {
         drawPath();
@@ -247,31 +395,33 @@ var setupCanvas = function () {
     }
 };
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var permissionStatus, requestStatus, error_1;
+    var permissionStatus, requestStatus, error_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 setupCanvas(); // Initial setup
-                // loadPointsFromStorage();
+                return [4 /*yield*/, loadPointsFromFile()];
+            case 1:
+                _a.sent(); // ✅ Load existing points
                 // Optional: Add resize listener if you want to re-setup canvas on window resize
                 window.addEventListener('resize', setupCanvas);
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 6, , 7]);
-                return [4 /*yield*/, Geolocation.checkPermissions()];
+                _a.label = 2;
             case 2:
-                permissionStatus = _a.sent();
-                if (!(permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted')) return [3 /*break*/, 4];
-                return [4 /*yield*/, Geolocation.requestPermissions()];
+                _a.trys.push([2, 7, , 8]);
+                return [4 /*yield*/, Geolocation.checkPermissions()];
             case 3:
+                permissionStatus = _a.sent();
+                if (!(permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted')) return [3 /*break*/, 5];
+                return [4 /*yield*/, Geolocation.requestPermissions()];
+            case 4:
                 requestStatus = _a.sent();
                 if (requestStatus.location !== 'granted' && requestStatus.coarseLocation !== 'granted') {
                     console.error('Location permission denied.');
                     // Optionally, display a message to the user
                     return [2 /*return*/];
                 }
-                _a.label = 4;
-            case 4: return [4 /*yield*/, Geolocation.watchPosition({
+                _a.label = 5;
+            case 5: return [4 /*yield*/, Geolocation.watchPosition({
                     enableHighAccuracy: true,
                     timeout: 10000, // Max time to wait for a position
                     maximumAge: 3000 // How old a cached position can be
@@ -286,14 +436,14 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                         addGPSPoint(position);
                     }
                 })];
-            case 5:
-                watchId = _a.sent();
-                return [3 /*break*/, 7];
             case 6:
-                error_1 = _a.sent();
-                console.error('Failed to start GPS tracking:', error_1.message || error_1);
-                return [3 /*break*/, 7];
-            case 7: return [2 /*return*/];
+                watchId = _a.sent();
+                return [3 /*break*/, 8];
+            case 7:
+                error_2 = _a.sent();
+                console.error('Failed to start GPS tracking:', error_2.message || error_2);
+                return [3 /*break*/, 8];
+            case 8: return [2 /*return*/];
         }
     });
 }); });
@@ -399,18 +549,97 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "coordinates" }));
-(__VLS_ctx.currentLat.toFixed(6));
-(__VLS_ctx.currentLon.toFixed(6));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
+        var _a = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            _a[_i] = arguments[_i];
+        }
+        var $event = _a[0];
+        __VLS_ctx.showModal = true;
+    } }, { class: "gps-points-button" }));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "gps-points-button-text" }));
+(__VLS_ctx.points.length);
+if (__VLS_ctx.showModal) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "modal-overlay" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: function () { } }, { class: "modal-content" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-header" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
+    (__VLS_ctx.points.length);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
+    if (__VLS_ctx.points.length === 0) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "no-points" }));
+    }
+    else {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "points-list" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-header" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item index" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item time" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-body" }));
+        for (var _i = 0, _a = __VLS_getVForSourceType((__spreadArray([], __VLS_ctx.points, true).reverse())); _i < _a.length; _i++) {
+            var _b = _a[_i], point = _b[0], index = _b[1];
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign(__assign({ key: ("".concat(point.lat, "-").concat(point.lon, "-").concat(point.timestamp)) }, { class: "point-row" }), { class: ({ 'current-point': index === 0 }) }));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item index" }));
+            (__VLS_ctx.points.length - index);
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lat" }));
+            (point.lat.toFixed(__VLS_ctx.POINTS_PRECISION));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
+            (point.lon.toFixed(__VLS_ctx.POINTS_PRECISION));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
+            (__VLS_ctx.formatTime(point.timestamp));
+        }
+    }
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.exportPoints) }, { class: "export-button" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.clearAllPoints) }, { class: "clear-button-1" }));
+}
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
-/** @type {__VLS_StyleScopedClasses['coordinates']} */ ;
+/** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
+/** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['close-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['no-points']} */ ;
+/** @type {__VLS_StyleScopedClasses['points-list']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['index']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['lat']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['time']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['point-row']} */ ;
+/** @type {__VLS_StyleScopedClasses['current-point']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['index']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['lat']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['time']} */ ;
+/** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
+/** @type {__VLS_StyleScopedClasses['export-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['clear-button-1']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
+            POINTS_PRECISION: POINTS_PRECISION,
             canvasEl: canvasEl,
-            currentLat: currentLat,
-            currentLon: currentLon,
+            points: points,
+            showModal: showModal,
+            closeModal: closeModal,
+            formatTime: formatTime,
+            exportPoints: exportPoints,
+            clearAllPoints: clearAllPoints,
             handleTouchStart: handleTouchStart,
             handleTouchMove: handleTouchMove,
             handleTouchEnd: handleTouchEnd,

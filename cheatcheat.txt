@@ -1,1 +1,2 @@
 $ npx cap run android --target emulator-5554 --live-reload --host 172.31.99.45:3000
+$ npx cap run android -l --host $(ifconfig en0 | grep "inet " | awk '{print $2}')
