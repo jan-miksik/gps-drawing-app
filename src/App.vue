@@ -56,11 +56,18 @@
         </div>
         
         <div class="modal-footer">
-          <button @click="exportPoints" class="export-button">
-            Export
-          </button>
-          <div @click="clearAllPoints" class="clear-button-1">
-            Clear All
+          <div class="footer-left">
+            <button @click="exportPoints" class="export-button">
+              Export
+            </button>
+            <div @click="clearAllPoints" class="clear-button-1">
+              Clear All
+            </div>
+          </div>
+          <div class="footer-right">
+            <button @click="closeModal" class="close-button-footer">
+              Close
+            </button>
           </div>
         </div>
       </div>
@@ -635,11 +642,10 @@ body, html, #app {
 
 .gps-points-button {
   position: absolute;
-  bottom: 25px;
-  right: 15px;
+  bottom: calc(45px + env(safe-area-inset-bottom));
+  right: 20px;
   background-color: transparent;
   color: white;
-
   padding: 6px 10px;
   border-radius: 5px;
   font-size: 14px;
@@ -647,6 +653,7 @@ body, html, #app {
   /* border: 1px dashed rgb(131, 131, 131); */
   cursor: pointer;
   transition: border-color 0.3s ease;
+  margin-bottom: env(safe-area-inset-bottom);
 }
 
 .gps-points-button:hover {
@@ -822,14 +829,24 @@ body, html, #app {
   display: flex;
   flex-direction: row;
   align-items: center;
-  /* justify-content: space-between; */
-  gap: 20px;
+  justify-content: space-between;
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-.export-button, .clear-button-1  {
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.export-button, .clear-button-1, .close-button-footer  {
   all: unset;
   background-color: rgba(255, 255, 255, 0.2);
   color: white;
@@ -844,7 +861,7 @@ body, html, #app {
   flex-shrink: 0;
 }
 
-.export-button:hover, .clear-button-1:hover {
+.export-button:hover, .clear-button-1:hover, .close-button-footer:hover {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
