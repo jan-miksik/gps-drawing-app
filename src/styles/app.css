@@ -1,0 +1,52 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html, #app {
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden; /* Important to prevent scrollbars from canvas content */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* Prevents default touch actions like scrolling */
+}
+
+.gps-points-button {
+  position: absolute;
+  bottom: env(safe-area-inset-bottom);
+  right: 20px;
+  background-color: transparent;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  z-index: 10;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+  margin-bottom: env(safe-area-inset-bottom);
+  border: none;
+}
+
+.gps-points-button:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.gps-points-button-text {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(131, 131, 131);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+} 

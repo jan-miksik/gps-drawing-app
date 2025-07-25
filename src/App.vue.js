@@ -54,708 +54,121 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
-import { Geolocation } from '@capacitor/geolocation';
-var POINTS_PRECISION = 5;
-var canvasEl = ref(null); // Renamed for clarity
-var context = ref(null);
-var points = ref([]);
-var bounds = ref(null);
-var watchId = null;
-// Modal state
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { useGPS } from './composables/useGPS';
+import { useCanvas } from './composables/useCanvas';
+import { useFileOperations } from './composables/useFileOperations';
+import { useInteractions } from './composables/useInteractions';
+import GPSStatusBar from './components/GPSStatusBar.vue';
+import GPSPointsModal from './components/GPSPointsModal.vue';
+import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
+// State
 var showModal = ref(false);
-// Anonymization state
-var isAnonymized = ref(true); // Start anonymized by default
+var points = ref([]);
+var isAnonymized = ref(true);
 var anonymizationOrigin = ref(null);
-// Zoom and pan state
-var scale = ref(1);
-var viewOffsetX = ref(0); // Renamed to avoid confusion with point offsets
-var viewOffsetY = ref(0);
-var isDragging = ref(false);
-var lastDragX = ref(0); // Renamed for clarity
-var lastDragY = ref(0);
-// Current GPS position
-var currentLat = ref(0);
-var currentLon = ref(0);
-// GPS accuracy settings and state
-var GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
-var GPS_DISTANCE_THRESHOLD = 10; // meters - minimum distance to add new point
-var GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
-var currentAccuracy = ref(null);
-var gpsSignalQuality = ref('unknown');
-// Padding around the drawing within the canvas
-var DRAWING_PADDING = 40; // In logical pixels
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-var FILE_NAME = 'gps_points.json';
-// Distance calculation function (Haversine formula)
-var calculateDistance = function (lat1, lon1, lat2, lon2) {
-    var R = 6371000; // Earth's radius in meters
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in meters
-};
-// Get distance from anonymization origin
-var getDistanceFromOrigin = function (point) {
-    if (!anonymizationOrigin.value) {
-        return 0;
-    }
-    if (isAnonymized.value) {
-        // Point is already anonymized (relative coords), convert back to real coords for distance calc
-        var realLat = point.lat + anonymizationOrigin.value.lat;
-        var realLon = point.lon + anonymizationOrigin.value.lon;
-        return calculateDistance(anonymizationOrigin.value.lat, anonymizationOrigin.value.lon, realLat, realLon);
-    }
-    else {
-        // Point is in real coordinates
-        return calculateDistance(anonymizationOrigin.value.lat, anonymizationOrigin.value.lon, point.lat, point.lon);
-    }
-};
-// Anonymization functions
-var setAnonymizationOrigin = function () {
-    if (points.value.length > 0) {
-        // Use the first point as the origin for anonymization
-        var firstPoint = points.value[0];
-        anonymizationOrigin.value = {
-            lat: firstPoint.lat,
-            lon: firstPoint.lon
-        };
-    }
-};
-var anonymizePoint = function (point) {
-    if (!anonymizationOrigin.value) {
-        setAnonymizationOrigin();
-    }
-    if (!anonymizationOrigin.value) {
-        return point; // Fallback if no origin set
-    }
-    // Convert to relative coordinates (preserving distances)
-    return {
-        lat: point.lat - anonymizationOrigin.value.lat,
-        lon: point.lon - anonymizationOrigin.value.lon,
-        timestamp: point.timestamp // Keep original timestamp
-    };
-};
-var anonymizePoints = function (pointsArray) {
-    if (pointsArray.length === 0)
-        return pointsArray;
-    if (!anonymizationOrigin.value) {
-        setAnonymizationOrigin();
-    }
-    return pointsArray.map(function (point) { return anonymizePoint(point); });
-};
-// Computed property for display points (either real or anonymized)
+// Composables
+var _a = useGPS(), currentAccuracy = _a.currentAccuracy, gpsSignalQuality = _a.gpsSignalQuality, startGPSTracking = _a.startGPSTracking, stopGPSTracking = _a.stopGPSTracking, shouldAddPoint = _a.shouldAddPoint, processNewPoint = _a.processNewPoint;
+var _b = useCanvas(), canvasEl = _b.canvasEl, setupCanvas = _b.setupCanvas, drawPath = _b.drawPath, calculateBounds = _b.calculateBounds, pan = _b.pan, zoom = _b.zoom;
+var _c = useFileOperations(), loadPointsFromFile = _c.loadPointsFromFile, savePointsToFile = _c.savePointsToFile, exportPoints = _c.exportPoints, clearAllData = _c.clearAllData;
+var _d = useInteractions(function (deltaX, deltaY) {
+    pan(deltaX, deltaY);
+    redrawCanvas();
+}, function (deltaY) {
+    zoom(deltaY);
+    redrawCanvas();
+}), handleTouchStart = _d.handleTouchStart, handleTouchMove = _d.handleTouchMove, handleTouchEnd = _d.handleTouchEnd, handleMouseDown = _d.handleMouseDown, handleMouseMove = _d.handleMouseMove, handleMouseUp = _d.handleMouseUp, handleWheel = _d.handleWheel;
+// Computed properties
 var displayPoints = computed(function () {
-    return isAnonymized.value ? anonymizePoints(points.value) : points.value;
+    return isAnonymized.value && anonymizationOrigin.value
+        ? anonymizePoints(points.value, anonymizationOrigin.value)
+        : points.value;
 });
-// Computed property for display bounds
 var displayBounds = computed(function () {
-    if (!bounds.value)
-        return null;
-    if (!isAnonymized.value)
-        return bounds.value;
-    // Calculate bounds for anonymized data
-    var anonPoints = anonymizePoints(points.value);
-    if (anonPoints.length === 0)
-        return null;
-    if (anonPoints.length === 1) {
-        var p = anonPoints[0];
-        var delta = 0.0001;
-        return {
-            minLat: p.lat - delta,
-            maxLat: p.lat + delta,
-            minLon: p.lon - delta,
-            maxLon: p.lon + delta,
-        };
-    }
-    var lats = anonPoints.map(function (p) { return p.lat; });
-    var lons = anonPoints.map(function (p) { return p.lon; });
-    return {
-        minLat: Math.min.apply(Math, lats),
-        maxLat: Math.max.apply(Math, lats),
-        minLon: Math.min.apply(Math, lons),
-        maxLon: Math.max.apply(Math, lons),
-    };
+    return calculateBounds(displayPoints.value);
 });
+// Methods
+var addGPSPoint = function (newPoint) {
+    if (!shouldAddPoint(points.value, newPoint)) {
+        return;
+    }
+    var processedPoint = processNewPoint(points.value, newPoint);
+    points.value.push(processedPoint);
+    // Set anonymization origin if this is the first point
+    if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
+        anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+    }
+    savePointsToFile(points.value);
+    redrawCanvas();
+};
+var redrawCanvas = function () {
+    nextTick(function () {
+        drawPath(displayPoints.value, displayBounds.value);
+    });
+};
 var toggleAnonymization = function () {
     isAnonymized.value = !isAnonymized.value;
     // Set origin when first enabling anonymization
     if (isAnonymized.value && !anonymizationOrigin.value) {
-        setAnonymizationOrigin();
+        anonymizationOrigin.value = createAnonymizationOrigin(points.value);
     }
-    // Redraw the path with new data
-    nextTick(function () {
-        drawPath();
-    });
+    redrawCanvas();
 };
-// GPS accuracy helper functions
-// const getSignalQuality = (accuracy: number): 'excellent' | 'good' | 'fair' | 'poor' => {
-//   if (accuracy <= 5) return 'excellent';
-//   if (accuracy <= 10) return 'good';
-//   if (accuracy <= 20) return 'fair';
-//   return 'poor';
-// };
-var smoothGPSPoints = function (newPoint) {
-    if (points.value.length < GPS_SMOOTHING_WINDOW) {
-        return newPoint;
-    }
-    // Get the last N points including the new one
-    var recentPoints = __spreadArray(__spreadArray([], points.value.slice(-GPS_SMOOTHING_WINDOW + 1), true), [newPoint], false);
-    // Calculate moving average
-    var avgLat = recentPoints.reduce(function (sum, p) { return sum + p.lat; }, 0) / recentPoints.length;
-    var avgLon = recentPoints.reduce(function (sum, p) { return sum + p.lon; }, 0) / recentPoints.length;
-    return {
-        lat: Math.round(avgLat * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
-        lon: Math.round(avgLon * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
-        timestamp: newPoint.timestamp
-    };
-};
-var savePointsToFile = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var e_1;
+var handleExport = function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, Filesystem.writeFile({
-                        path: FILE_NAME,
-                        data: JSON.stringify(points.value),
-                        directory: Directory.Data,
-                        encoding: Encoding.UTF8,
-                    })];
+            case 0: return [4 /*yield*/, exportPoints(points.value, isAnonymized.value, anonymizationOrigin.value)];
             case 1:
                 _a.sent();
-                return [3 /*break*/, 3];
-            case 2:
-                e_1 = _a.sent();
-                console.error('Failed to save GPS points to file', e_1);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                return [2 /*return*/];
         }
     });
 }); };
-var loadPointsFromFile = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var result, dataString, e_2;
+var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, Filesystem.readFile({
-                        path: FILE_NAME,
-                        directory: Directory.Data,
-                        encoding: Encoding.UTF8,
-                    })];
-            case 1:
-                result = _a.sent();
-                dataString = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
-                points.value = JSON.parse(dataString);
-                calculateBounds();
-                drawPath();
-                return [3 /*break*/, 3];
-            case 2:
-                e_2 = _a.sent();
-                console.warn('No saved file found. Starting fresh.', e_2);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
-        }
-    });
-}); };
-// Modal functions
-var closeModal = function () {
-    showModal.value = false;
-};
-var formatTime = function (timestamp, index, allPoints) {
-    var date = new Date(timestamp);
-    var today = new Date();
-    var yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    // Check if this is the first point or if the date changed from previous point
-    var isFirstPoint = index === 0;
-    var dateChanged = !isFirstPoint &&
-        new Date(allPoints[index - 1].timestamp).toDateString() !== date.toDateString();
-    var timeString = date.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    // Always show "Today" for today's dates
-    if (date.toDateString() === today.toDateString()) {
-        return "Today ".concat(timeString);
-    }
-    // Show date if it's the first point or date changed (for non-today dates)
-    if (isFirstPoint || dateChanged) {
-        if (date.toDateString() === yesterday.toDateString()) {
-            return "Yesterday ".concat(timeString);
-        }
-        else {
-            var dateString = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-            });
-            return "".concat(dateString, " ").concat(timeString);
-        }
-    }
-    return timeString;
-};
-var exportPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var currentTime, timestamp, dataToExport, exportData, suffix, fileName, exportType, externalError_1, exportType, error_1;
-    var _a, _b;
-    return __generator(this, function (_c) {
-        switch (_c.label) {
-            case 0:
-                _c.trys.push([0, 6, , 7]);
-                if (points.value.length === 0) {
-                    alert('No GPS points to export');
-                    return [2 /*return*/];
-                }
-                currentTime = new Date();
-                timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
-                dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.value.length, isAnonymized: isAnonymized.value }, (isAnonymized.value && anonymizationOrigin.value && {
-                    anonymizationOrigin: anonymizationOrigin.value,
-                    note: "Coordinates are anonymized - showing relative distances from first point"
-                })), { points: displayPoints.value.map(function (point, index) { return ({
-                        index: index + 1,
-                        latitude: point.lat,
-                        longitude: point.lon,
-                        timestamp: point.timestamp,
-                        time: new Date(point.timestamp).toISOString()
-                    }); }) });
-                exportData = JSON.stringify(dataToExport, null, 2);
-                suffix = isAnonymized.value ? '_anonymized' : '';
-                fileName = "gps_export".concat(suffix, "_").concat(timestamp, ".json");
-                _c.label = 1;
-            case 1:
-                _c.trys.push([1, 3, , 5]);
-                return [4 /*yield*/, Filesystem.writeFile({
-                        path: fileName,
-                        data: exportData,
-                        directory: Directory.ExternalStorage,
-                        encoding: Encoding.UTF8,
-                    })];
-            case 2:
-                _c.sent();
-                exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
-                alert("\u2705 Exported ".concat(points.value.length, " ").concat(exportType, " points to Downloads/").concat(fileName));
-                return [3 /*break*/, 5];
-            case 3:
-                externalError_1 = _c.sent();
-                console.warn('External storage failed, trying Documents:', externalError_1);
-                // Fallback to Documents directory
-                return [4 /*yield*/, Filesystem.writeFile({
-                        path: fileName,
-                        data: exportData,
-                        directory: Directory.Documents,
-                        encoding: Encoding.UTF8,
-                    })];
-            case 4:
-                // Fallback to Documents directory
-                _c.sent();
-                exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
-                alert("\u2705 Exported ".concat(points.value.length, " ").concat(exportType, " points to Documents/").concat(fileName));
-                return [3 /*break*/, 5];
-            case 5: return [3 /*break*/, 7];
-            case 6:
-                error_1 = _c.sent();
-                console.error('Export failed:', error_1);
-                // More detailed error messages
-                if ((_a = error_1.message) === null || _a === void 0 ? void 0 : _a.includes('permission')) {
-                    alert('❌ Export failed: Storage permission denied. Please check app permissions.');
-                }
-                else if ((_b = error_1.message) === null || _b === void 0 ? void 0 : _b.includes('space')) {
-                    alert('❌ Export failed: Not enough storage space.');
-                }
-                else {
-                    alert("\u274C Export failed: ".concat(error_1.message || 'Unknown error', ". Check console for details."));
-                }
-                return [3 /*break*/, 7];
-            case 7: return [2 /*return*/];
-        }
-    });
-}); };
-var clearAllPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var e_3;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                if (!confirm("Are you sure you want to delete all ".concat(points.value.length, " GPS points? This cannot be undone."))) return [3 /*break*/, 5];
                 points.value = [];
-                bounds.value = null;
                 anonymizationOrigin.value = null;
-                currentLat.value = 0;
-                currentLon.value = 0;
-                _a.label = 1;
+                return [4 /*yield*/, clearAllData()];
             case 1:
-                _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, Filesystem.deleteFile({
-                        path: FILE_NAME,
-                        directory: Directory.Data,
-                    })];
-            case 2:
                 _a.sent();
-                return [3 /*break*/, 4];
-            case 3:
-                e_3 = _a.sent();
-                console.warn('No file to delete or delete failed:', e_3);
-                return [3 /*break*/, 4];
-            case 4:
-                // Redraw canvas
-                drawPath();
-                closeModal();
-                _a.label = 5;
-            case 5: return [2 /*return*/];
+                redrawCanvas();
+                showModal.value = false;
+                return [2 /*return*/];
         }
     });
 }); };
-// Detect if we're on desktop
-var isDesktop = computed(function () {
-    if (typeof window === 'undefined')
-        return false;
-    return window.innerWidth > 768 && !('ontouchstart' in window);
-});
-var calculateBounds = function () {
-    if (points.value.length === 0) {
-        bounds.value = null;
-        return;
-    }
-    if (points.value.length === 1) {
-        // For a single point, create a small default bound around it
-        var p = points.value[0];
-        var delta = 0.0001; // Small delta for single point bounds
-        bounds.value = {
-            minLat: p.lat - delta,
-            maxLat: p.lat + delta,
-            minLon: p.lon - delta,
-            maxLon: p.lon + delta,
-        };
-        return;
-    }
-    var lats = points.value.map(function (p) { return p.lat; });
-    var lons = points.value.map(function (p) { return p.lon; });
-    bounds.value = {
-        minLat: Math.min.apply(Math, lats),
-        maxLat: Math.max.apply(Math, lats),
-        minLon: Math.min.apply(Math, lons),
-        maxLon: Math.max.apply(Math, lons),
-    };
-};
-var project = function (point, currentBounds, canvasLogicalWidth, canvasLogicalHeight) {
-    // If only one point exists (or bounds indicate no range), center it.
-    if (currentBounds.minLat === currentBounds.maxLat || currentBounds.minLon === currentBounds.maxLon) {
-        return {
-            x: (canvasLogicalWidth - 2 * DRAWING_PADDING) / 2 + DRAWING_PADDING,
-            y: (canvasLogicalHeight - 2 * DRAWING_PADDING) / 2 + DRAWING_PADDING,
-        };
-    }
-    var latRange = currentBounds.maxLat - currentBounds.minLat;
-    var lonRange = currentBounds.maxLon - currentBounds.minLon;
-    var drawableWidth = canvasLogicalWidth - 2 * DRAWING_PADDING;
-    var drawableHeight = canvasLogicalHeight - 2 * DRAWING_PADDING;
-    // Handle potential division by zero if range is extremely small (though bounds check helps)
-    var scaleX = lonRange > 1e-9 ? drawableWidth / lonRange : 1;
-    var scaleY = latRange > 1e-9 ? drawableHeight / latRange : 1;
-    // Use the smaller scale to fit the entire drawing within the drawable area and maintain aspect ratio
-    var baseScale = Math.min(scaleX, scaleY);
-    // Calculate the center of the bounds in lat/lon
-    var centerXLatLon = (currentBounds.minLat + currentBounds.maxLat) / 2;
-    var centerYLatLon = (currentBounds.minLon + currentBounds.maxLon) / 2;
-    // Calculate the center of the drawable area on canvas
-    var canvasCenterX = drawableWidth / 2 + DRAWING_PADDING;
-    var canvasCenterY = drawableHeight / 2 + DRAWING_PADDING;
-    // Project the point:
-    // 1. Get offset from the center of the bounds (in lat/lon units, scaled by baseScale)
-    // 2. Add to canvas center
-    // Y is inverted because canvas Y increases downwards, latitude increases upwards
-    var x = canvasCenterX + (point.lon - centerYLatLon) * baseScale;
-    var y = canvasCenterY - (point.lat - centerXLatLon) * baseScale;
-    return { x: x, y: y };
-};
-var drawPath = function () {
-    if (!context.value || !canvasEl.value) {
-        console.warn('Canvas or context not available for drawing.');
-        return;
-    }
-    var dpr = window.devicePixelRatio || 1;
-    var canvas = canvasEl.value;
-    var ctx = context.value;
-    // Logical dimensions (CSS pixels)
-    var logicalWidth = canvas.width / dpr;
-    var logicalHeight = canvas.height / dpr;
-    // 0. Reset transform to identity and clear
-    ctx.save();
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Apply DPR scale, reset others
-    ctx.clearRect(0, 0, logicalWidth, logicalHeight); // Clear based on logical size
-    ctx.restore();
-    var currentDisplayPoints = displayPoints.value;
-    var currentBounds = displayBounds.value;
-    ctx.save();
-    // 1. Apply Device Pixel Ratio scaling (base transform)
-    ctx.scale(dpr, dpr);
-    // 2. Apply view pan (user dragging) - these are offsets in logical pixels
-    ctx.translate(viewOffsetX.value, viewOffsetY.value);
-    // 3. Apply view zoom (user wheel/pinch) - centered zoom
-    // To zoom from the center of the viewport:
-    // Translate so the current center of the view is at the origin (0,0)
-    ctx.translate(logicalWidth / 2, logicalHeight / 2);
-    ctx.scale(scale.value, scale.value); // Apply zoom
-    // Translate back
-    ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
-    // --- Drawing logic ---
-    if (currentDisplayPoints.length === 0) {
-        // Draw a cross in the center when no GPS points are available
-        var centerX = logicalWidth / 2;
-        var centerY = logicalHeight / 2;
-        var crossSize = 20 / scale.value; // Adjust cross size based on zoom level
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 2 / (scale.value * dpr);
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        // Horizontal line
-        ctx.moveTo(centerX - crossSize, centerY);
-        ctx.lineTo(centerX + crossSize, centerY);
-        // Vertical line
-        ctx.moveTo(centerX, centerY - crossSize);
-        ctx.lineTo(centerX, centerY + crossSize);
-        ctx.stroke();
-    }
-    else if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
-        ctx.beginPath();
-        for (var i = 0; i < currentDisplayPoints.length; i++) {
-            var _a = project(currentDisplayPoints[i], currentBounds, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            }
-            else {
-                ctx.lineTo(x, y);
-            }
-        }
-        if (currentDisplayPoints.length > 1) { // Only stroke if there's a path
-            ctx.strokeStyle = 'white';
-            // Adjust line width based on current view scale, so it appears consistent
-            ctx.lineWidth = 2 / (scale.value * dpr); // More refined line width adjustment
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke();
-        }
-        // Draw current position as a dot (even if it's the only point)
-        var lastPoint = currentDisplayPoints[currentDisplayPoints.length - 1];
-        var _b = project(lastPoint, currentBounds, logicalWidth, logicalHeight), lastX = _b.x, lastY = _b.y;
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(lastX, lastY, 10 / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
-        ctx.fill();
-    }
-    // --- End Drawing logic ---
-    ctx.restore(); // Restore to the state before pan/zoom/DPR
-};
-var addGPSPoint = function (position) {
-    if (!position) {
-        console.warn('Received null position in addGPSPoint');
-        return;
-    }
-    var accuracy = position.coords.accuracy || 999;
-    currentAccuracy.value = accuracy;
-    // gpsSignalQuality.value = getSignalQuality(accuracy);
-    // Log GPS metadata for debugging
-    console.log('GPS Position:', {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
-        accuracy: accuracy,
-        speed: position.coords.speed || 'unknown',
-        heading: position.coords.heading || 'unknown',
-        quality: gpsSignalQuality.value
-    });
-    // Filter out low-accuracy points
-    if (accuracy > GPS_ACCURACY_THRESHOLD) {
-        console.warn("Skipping low-accuracy GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_ACCURACY_THRESHOLD, "m)"));
-        return;
-    }
-    // Round coordinates to specified precision to save storage space
-    var lat = Math.round(position.coords.latitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
-    var lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
-    var timestamp = Date.now();
-    // Always update current position for display
-    currentLat.value = lat;
-    currentLon.value = lon;
-    // Check distance threshold if we have previous points
-    if (points.value.length > 0) {
-        var lastPoint = points.value[points.value.length - 1];
-        var distance = calculateDistance(lastPoint.lat, lastPoint.lon, lat, lon);
-        if (distance < GPS_DISTANCE_THRESHOLD) {
-            console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_DISTANCE_THRESHOLD, "m threshold"));
-            return;
-        }
-        console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m from last point"));
-    }
-    else {
-        console.log('Adding first GPS point');
-    }
-    // Create new point and apply smoothing
-    var newPoint = { lat: lat, lon: lon, timestamp: timestamp };
-    var smoothedPoint = smoothGPSPoints(newPoint);
-    points.value.push(smoothedPoint);
-    calculateBounds(); // Recalculate bounds with the new point
-    // Set anonymization origin if this is the first point and anonymization is enabled
-    if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
-        setAnonymizationOrigin();
-    }
-    savePointsToFile(); // ✅ Save locally
-    // Use nextTick to ensure DOM updates (like canvas resize) are processed before drawing
-    nextTick(function () {
-        drawPath();
-    });
-};
-var setupCanvas = function () {
-    if (canvasEl.value) {
-        var dpr = window.devicePixelRatio || 1;
-        var rect = canvasEl.value.getBoundingClientRect();
-        canvasEl.value.width = rect.width * dpr;
-        canvasEl.value.height = rect.height * dpr;
-        // CSS already handles display width/height at 100%
-        context.value = canvasEl.value.getContext('2d');
-        if (!context.value) {
-            console.error("Failed to get 2D context");
-            return;
-        }
-        // Initial draw if there are points (e.g., from loaded data)
-        calculateBounds();
-        drawPath();
-    }
-};
+// Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var permissionStatus, requestStatus, error_2;
+    var loadedPoints;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                setupCanvas(); // Initial setup
+                setupCanvas();
                 return [4 /*yield*/, loadPointsFromFile()];
             case 1:
-                _a.sent(); // ✅ Load existing points
-                // Optional: Add resize listener if you want to re-setup canvas on window resize
-                window.addEventListener('resize', setupCanvas);
-                _a.label = 2;
-            case 2:
-                _a.trys.push([2, 7, , 8]);
-                return [4 /*yield*/, Geolocation.checkPermissions()];
-            case 3:
-                permissionStatus = _a.sent();
-                if (!(permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted')) return [3 /*break*/, 5];
-                return [4 /*yield*/, Geolocation.requestPermissions()];
-            case 4:
-                requestStatus = _a.sent();
-                if (requestStatus.location !== 'granted' && requestStatus.coarseLocation !== 'granted') {
-                    console.error('Location permission denied.');
-                    // Optionally, display a message to the user
-                    return [2 /*return*/];
+                loadedPoints = _a.sent();
+                if (loadedPoints.length > 0) {
+                    points.value = loadedPoints;
+                    if (isAnonymized.value && !anonymizationOrigin.value) {
+                        anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+                    }
                 }
-                _a.label = 5;
-            case 5: return [4 /*yield*/, Geolocation.watchPosition({
-                    enableHighAccuracy: true,
-                    timeout: 10000, // Reduced timeout for faster updates
-                    maximumAge: 2000 // Collect every 2 seconds
-                }, function (position, err) {
-                    if (err) {
-                        console.error('GPS Error:', err.message, err.code);
-                        // Handle specific errors, e.g., err.code === 1 (PERMISSION_DENIED)
-                        // err.code === 2 (POSITION_UNAVAILABLE)
-                        // err.code === 3 (TIMEOUT)
-                    }
-                    else if (position) {
-                        addGPSPoint(position);
-                    }
-                })];
-            case 6:
-                watchId = _a.sent();
-                return [3 /*break*/, 8];
-            case 7:
-                error_2 = _a.sent();
-                console.error('Failed to start GPS tracking:', error_2.message || error_2);
-                return [3 /*break*/, 8];
-            case 8: return [2 /*return*/];
+                // Setup canvas resize listener
+                window.addEventListener('resize', setupCanvas);
+                // Start GPS tracking
+                startGPSTracking(addGPSPoint);
+                // Initial draw
+                redrawCanvas();
+                return [2 /*return*/];
         }
     });
 }); });
 onUnmounted(function () {
-    if (watchId) {
-        Geolocation.clearWatch({ id: watchId });
-    }
+    stopGPSTracking();
     window.removeEventListener('resize', setupCanvas);
 });
-// --- Touch and Mouse Event Handlers for Panning ---
-var startDrag = function (clientX, clientY) {
-    isDragging.value = true;
-    lastDragX.value = clientX;
-    lastDragY.value = clientY;
-};
-var drag = function (clientX, clientY) {
-    if (!isDragging.value)
-        return;
-    var dpr = window.devicePixelRatio || 1;
-    // Deltas should be in logical pixels, so divide by current scale and DPR
-    // No, deltas are direct view offsets, user perceives them in screen pixels.
-    // The effect of scale on panning speed is managed by how transforms are applied.
-    var deltaX = (clientX - lastDragX.value) / dpr; // Convert screen pixel delta to logical canvas pixel delta
-    var deltaY = (clientY - lastDragY.value) / dpr;
-    viewOffsetX.value += deltaX;
-    viewOffsetY.value += deltaY;
-    lastDragX.value = clientX;
-    lastDragY.value = clientY;
-    drawPath();
-};
-var endDrag = function () {
-    isDragging.value = false;
-};
-var handleTouchStart = function (e) {
-    if (e.touches.length === 1) {
-        e.preventDefault();
-        startDrag(e.touches[0].clientX, e.touches[0].clientY);
-    }
-    // Basic pinch zoom could be added here by checking e.touches.length === 2
-};
-var handleTouchMove = function (e) {
-    if (e.touches.length === 1) {
-        e.preventDefault();
-        drag(e.touches[0].clientX, e.touches[0].clientY);
-    }
-};
-var handleTouchEnd = function (e) {
-    if (e.touches.length === 0) { // All touches lifted
-        endDrag();
-    }
-};
-var handleMouseDown = function (e) {
-    if (isDesktop.value) {
-        e.preventDefault();
-        startDrag(e.clientX, e.clientY);
-    }
-};
-var handleMouseMove = function (e) {
-    if (isDesktop.value) {
-        e.preventDefault();
-        drag(e.clientX, e.clientY);
-    }
-};
-var handleMouseUp = function (e) {
-    if (isDesktop.value) {
-        e.preventDefault();
-        endDrag();
-    }
-};
-// --- Wheel Event Handler for Zooming ---
-var handleWheel = function (e) {
-    e.preventDefault();
-    if (!canvasEl.value)
-        return;
-    var zoomFactor = 0.1;
-    var newScale = e.deltaY < 0
-        ? scale.value * (1 + zoomFactor) // Zoom in
-        : scale.value / (1 + zoomFactor); // Zoom out
-    scale.value = Math.max(0.1, Math.min(newScale, 10)); // Clamp scale
-    drawPath();
-};
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -767,12 +180,16 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status" }, { class: ("signal-".concat(__VLS_ctx.gpsSignalQuality)) }));
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status-text" }));
-if (__VLS_ctx.currentAccuracy !== null) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-value" }));
-    (__VLS_ctx.currentAccuracy.toFixed(0));
-}
+/** @type {[typeof GPSStatusBar, ]} */ ;
+// @ts-ignore
+var __VLS_0 = __VLS_asFunctionalComponent(GPSStatusBar, new GPSStatusBar({
+    gpsSignalQuality: (__VLS_ctx.gpsSignalQuality),
+    currentAccuracy: (__VLS_ctx.currentAccuracy),
+}));
+var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([{
+        gpsSignalQuality: (__VLS_ctx.gpsSignalQuality),
+        currentAccuracy: (__VLS_ctx.currentAccuracy),
+    }], __VLS_functionalComponentArgsRest(__VLS_0), false));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -783,129 +200,49 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     } }, { class: "gps-points-button" }));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "gps-points-button-text" }));
 (__VLS_ctx.points.length);
-if (__VLS_ctx.showModal) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "modal-overlay" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: function () { } }, { class: "modal-content" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-header" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-left" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
-    (__VLS_ctx.points.length);
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "toggle-label" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign(__assign({ onChange: (__VLS_ctx.toggleAnonymization) }, { type: "checkbox", checked: (!__VLS_ctx.isAnonymized) }), { class: "toggle-checkbox" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
-    if (__VLS_ctx.points.length === 0) {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "no-points" }));
+/** @type {[typeof GPSPointsModal, ]} */ ;
+// @ts-ignore
+var __VLS_3 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin) })));
+var __VLS_4 = __VLS_3.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin) })], __VLS_functionalComponentArgsRest(__VLS_3), false));
+var __VLS_6;
+var __VLS_7;
+var __VLS_8;
+var __VLS_9 = {
+    onClose: function () {
+        var _a = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            _a[_i] = arguments[_i];
+        }
+        var $event = _a[0];
+        __VLS_ctx.showModal = false;
     }
-    else {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "points-list" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-header" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item index" }));
-        if (!__VLS_ctx.isAnonymized) {
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
-        }
-        if (!__VLS_ctx.isAnonymized) {
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
-        }
-        if (__VLS_ctx.isAnonymized) {
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item distance" }));
-        }
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item time" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-body" }));
-        for (var _i = 0, _a = __VLS_getVForSourceType((__spreadArray([], __VLS_ctx.displayPoints, true).reverse())); _i < _a.length; _i++) {
-            var _b = _a[_i], point = _b[0], index = _b[1];
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign(__assign({ key: ("".concat(point.lat, "-").concat(point.lon, "-").concat(point.timestamp)) }, { class: "point-row" }), { class: ({ 'current-point': index === 0 }) }));
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item index" }));
-            (__VLS_ctx.points.length - index);
-            if (!__VLS_ctx.isAnonymized) {
-                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lat" }));
-                (point.lat.toFixed(__VLS_ctx.POINTS_PRECISION));
-            }
-            if (!__VLS_ctx.isAnonymized) {
-                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
-                (point.lon.toFixed(__VLS_ctx.POINTS_PRECISION));
-            }
-            if (__VLS_ctx.isAnonymized) {
-                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item distance" }));
-                (__VLS_ctx.getDistanceFromOrigin(point).toFixed(1));
-            }
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
-            (__VLS_ctx.formatTime(point.timestamp, __VLS_ctx.displayPoints.length - 1 - index, __VLS_ctx.displayPoints));
-        }
-    }
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-left" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.exportPoints) }, { class: "export-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.clearAllPoints) }, { class: "clear-button-1" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-right" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button-footer" }));
-}
+};
+var __VLS_10 = {
+    onToggleAnonymization: (__VLS_ctx.toggleAnonymization)
+};
+var __VLS_11 = {
+    onExport: (__VLS_ctx.handleExport)
+};
+var __VLS_12 = {
+    onClear: (__VLS_ctx.handleClearAll)
+};
+var __VLS_5;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
-/** @type {__VLS_StyleScopedClasses['accuracy-status']} */ ;
-/** @type {__VLS_StyleScopedClasses['accuracy-status-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['accuracy-value']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
-/** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
-/** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-left']} */ ;
-/** @type {__VLS_StyleScopedClasses['toggle-label']} */ ;
-/** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
-/** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['close-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
-/** @type {__VLS_StyleScopedClasses['no-points']} */ ;
-/** @type {__VLS_StyleScopedClasses['points-list']} */ ;
-/** @type {__VLS_StyleScopedClasses['list-header']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['index']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lat']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lon']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['distance']} */ ;
-/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['time']} */ ;
-/** @type {__VLS_StyleScopedClasses['list-body']} */ ;
-/** @type {__VLS_StyleScopedClasses['point-row']} */ ;
-/** @type {__VLS_StyleScopedClasses['current-point']} */ ;
-/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['index']} */ ;
-/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lat']} */ ;
-/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lon']} */ ;
-/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['distance']} */ ;
-/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['time']} */ ;
-/** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer-left']} */ ;
-/** @type {__VLS_StyleScopedClasses['export-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['clear-button-1']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer-right']} */ ;
-/** @type {__VLS_StyleScopedClasses['close-button-footer']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
-            POINTS_PRECISION: POINTS_PRECISION,
-            canvasEl: canvasEl,
-            points: points,
+            GPSStatusBar: GPSStatusBar,
+            GPSPointsModal: GPSPointsModal,
             showModal: showModal,
+            points: points,
             isAnonymized: isAnonymized,
+            anonymizationOrigin: anonymizationOrigin,
             currentAccuracy: currentAccuracy,
             gpsSignalQuality: gpsSignalQuality,
-            getDistanceFromOrigin: getDistanceFromOrigin,
-            displayPoints: displayPoints,
-            toggleAnonymization: toggleAnonymization,
-            closeModal: closeModal,
-            formatTime: formatTime,
-            exportPoints: exportPoints,
-            clearAllPoints: clearAllPoints,
+            canvasEl: canvasEl,
             handleTouchStart: handleTouchStart,
             handleTouchMove: handleTouchMove,
             handleTouchEnd: handleTouchEnd,
@@ -913,6 +250,10 @@ var __VLS_self = (await import('vue')).defineComponent({
             handleMouseMove: handleMouseMove,
             handleMouseUp: handleMouseUp,
             handleWheel: handleWheel,
+            displayPoints: displayPoints,
+            toggleAnonymization: toggleAnonymization,
+            handleExport: handleExport,
+            handleClearAll: handleClearAll,
         };
     },
 });
