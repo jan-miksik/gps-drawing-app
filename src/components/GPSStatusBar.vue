@@ -44,11 +44,11 @@ defineProps<Props>();
 }
 
 .accuracy-status.signal-poor {
-  color: rgba(255, 255, 255, 0.4); /* Very dim/gray */
+  color: rgba(255, 255, 255, 0.65); /* Very dim/gray */
 }
 
 .accuracy-status.signal-unknown {
-  color: rgba(255, 255, 255, 0.25); /* Darkest - unknown state */
+  color: rgba(255, 255, 255, 0.65); /* Darkest - unknown state */
 }
 
 .accuracy-status-text {
