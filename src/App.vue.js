@@ -77,6 +77,11 @@ var lastDragY = ref(0);
 // Current GPS position
 var currentLat = ref(0);
 var currentLon = ref(0);
+// GPS accuracy settings and state
+var GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
+var GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
+var currentAccuracy = ref(null);
+var gpsSignalQuality = ref('unknown');
 // Padding around the drawing within the canvas
 var DRAWING_PADDING = 40; // In logical pixels
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -157,6 +162,28 @@ var toggleAnonymization = function () {
     nextTick(function () {
         drawPath();
     });
+};
+// GPS accuracy helper functions
+// const getSignalQuality = (accuracy: number): 'excellent' | 'good' | 'fair' | 'poor' => {
+//   if (accuracy <= 5) return 'excellent';
+//   if (accuracy <= 10) return 'good';
+//   if (accuracy <= 20) return 'fair';
+//   return 'poor';
+// };
+var smoothGPSPoints = function (newPoint) {
+    if (points.value.length < GPS_SMOOTHING_WINDOW) {
+        return newPoint;
+    }
+    // Get the last N points including the new one
+    var recentPoints = __spreadArray(__spreadArray([], points.value.slice(-GPS_SMOOTHING_WINDOW + 1), true), [newPoint], false);
+    // Calculate moving average
+    var avgLat = recentPoints.reduce(function (sum, p) { return sum + p.lat; }, 0) / recentPoints.length;
+    var avgLon = recentPoints.reduce(function (sum, p) { return sum + p.lon; }, 0) / recentPoints.length;
+    return {
+        lat: Math.round(avgLat * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
+        lon: Math.round(avgLon * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
+        timestamp: newPoint.timestamp
+    };
 };
 var savePointsToFile = function () { return __awaiter(void 0, void 0, void 0, function () {
     var e_1;
@@ -247,41 +274,77 @@ var formatTime = function (timestamp, index, allPoints) {
     return timeString;
 };
 var exportPoints = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var dataToExport, exportData, fileName, error_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var currentTime, timestamp, dataToExport, exportData, suffix, fileName, exportType, externalError_1, exportType, error_1;
+    var _a, _b;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                dataToExport = {
-                    exportDate: new Date().toISOString(),
-                    totalPoints: points.value.length,
-                    isAnonymized: isAnonymized.value,
-                    points: displayPoints.value.map(function (point, index) { return ({
+                _c.trys.push([0, 6, , 7]);
+                if (points.value.length === 0) {
+                    alert('No GPS points to export');
+                    return [2 /*return*/];
+                }
+                currentTime = new Date();
+                timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.value.length, isAnonymized: isAnonymized.value }, (isAnonymized.value && anonymizationOrigin.value && {
+                    anonymizationOrigin: anonymizationOrigin.value,
+                    note: "Coordinates are anonymized - showing relative distances from first point"
+                })), { points: displayPoints.value.map(function (point, index) { return ({
                         index: index + 1,
                         latitude: point.lat,
                         longitude: point.lon,
                         timestamp: point.timestamp,
                         time: new Date(point.timestamp).toISOString()
-                    }); })
-                };
+                    }); }) });
                 exportData = JSON.stringify(dataToExport, null, 2);
-                fileName = "gps_export_".concat(new Date().toISOString().split('T')[0], ".json");
+                suffix = isAnonymized.value ? '_anonymized' : '';
+                fileName = "gps_export".concat(suffix, "_").concat(timestamp, ".json");
+                _c.label = 1;
+            case 1:
+                _c.trys.push([1, 3, , 5]);
+                return [4 /*yield*/, Filesystem.writeFile({
+                        path: fileName,
+                        data: exportData,
+                        directory: Directory.ExternalStorage,
+                        encoding: Encoding.UTF8,
+                    })];
+            case 2:
+                _c.sent();
+                exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
+                alert("\u2705 Exported ".concat(points.value.length, " ").concat(exportType, " points to Downloads/").concat(fileName));
+                return [3 /*break*/, 5];
+            case 3:
+                externalError_1 = _c.sent();
+                console.warn('External storage failed, trying Documents:', externalError_1);
+                // Fallback to Documents directory
                 return [4 /*yield*/, Filesystem.writeFile({
                         path: fileName,
                         data: exportData,
                         directory: Directory.Documents,
                         encoding: Encoding.UTF8,
                     })];
-            case 1:
-                _a.sent();
-                alert("GPS points exported to ".concat(fileName));
-                return [3 /*break*/, 3];
-            case 2:
-                error_1 = _a.sent();
+            case 4:
+                // Fallback to Documents directory
+                _c.sent();
+                exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
+                alert("\u2705 Exported ".concat(points.value.length, " ").concat(exportType, " points to Documents/").concat(fileName));
+                return [3 /*break*/, 5];
+            case 5: return [3 /*break*/, 7];
+            case 6:
+                error_1 = _c.sent();
                 console.error('Export failed:', error_1);
-                alert('Export failed. Please try again.');
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                // More detailed error messages
+                if ((_a = error_1.message) === null || _a === void 0 ? void 0 : _a.includes('permission')) {
+                    alert('❌ Export failed: Storage permission denied. Please check app permissions.');
+                }
+                else if ((_b = error_1.message) === null || _b === void 0 ? void 0 : _b.includes('space')) {
+                    alert('❌ Export failed: Not enough storage space.');
+                }
+                else {
+                    alert("\u274C Export failed: ".concat(error_1.message || 'Unknown error', ". Check console for details."));
+                }
+                return [3 /*break*/, 7];
+            case 7: return [2 /*return*/];
         }
     });
 }); };
@@ -452,13 +515,33 @@ var addGPSPoint = function (position) {
         console.warn('Received null position in addGPSPoint');
         return;
     }
+    var accuracy = position.coords.accuracy || 999;
+    currentAccuracy.value = accuracy;
+    // gpsSignalQuality.value = getSignalQuality(accuracy);
+    // Log GPS metadata for debugging
+    console.log('GPS Position:', {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        accuracy: accuracy,
+        speed: position.coords.speed || 'unknown',
+        heading: position.coords.heading || 'unknown',
+        quality: gpsSignalQuality.value
+    });
+    // Filter out low-accuracy points
+    if (accuracy > GPS_ACCURACY_THRESHOLD) {
+        console.warn("Skipping low-accuracy GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_ACCURACY_THRESHOLD, "m)"));
+        return;
+    }
     // Round coordinates to specified precision to save storage space
     var lat = Math.round(position.coords.latitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
     var lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
     var timestamp = Date.now();
     currentLat.value = lat;
     currentLon.value = lon;
-    points.value.push({ lat: lat, lon: lon, timestamp: timestamp });
+    // Create new point and apply smoothing
+    var newPoint = { lat: lat, lon: lon, timestamp: timestamp };
+    var smoothedPoint = smoothGPSPoints(newPoint);
+    points.value.push(smoothedPoint);
     calculateBounds(); // Recalculate bounds with the new point
     // Set anonymization origin if this is the first point and anonymization is enabled
     if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
@@ -516,8 +599,8 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 _a.label = 5;
             case 5: return [4 /*yield*/, Geolocation.watchPosition({
                     enableHighAccuracy: true,
-                    timeout: 10000, // Max time to wait for a position
-                    maximumAge: 3000 // How old a cached position can be
+                    timeout: 15000, // Increased timeout to allow more time for precise fix
+                    maximumAge: 1000 // Use fresher data (reduced from 3000ms)
                 }, function (position, err) {
                     if (err) {
                         console.error('GPS Error:', err.message, err.code);
@@ -629,6 +712,12 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
+__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status" }, { class: ("signal-".concat(__VLS_ctx.gpsSignalQuality)) }));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status-text" }));
+if (__VLS_ctx.currentAccuracy !== null) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-value" }));
+    (__VLS_ctx.currentAccuracy.toFixed(0));
+}
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -685,6 +774,9 @@ if (__VLS_ctx.showModal) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.closeModal) }, { class: "close-button-footer" }));
 }
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-status']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-status-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-value']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
@@ -733,6 +825,8 @@ var __VLS_self = (await import('vue')).defineComponent({
             points: points,
             showModal: showModal,
             isAnonymized: isAnonymized,
+            currentAccuracy: currentAccuracy,
+            gpsSignalQuality: gpsSignalQuality,
             displayPoints: displayPoints,
             toggleAnonymization: toggleAnonymization,
             closeModal: closeModal,

@@ -13,6 +13,17 @@
     />
     <!-- <div class="coordinates">lat {{ currentLat.toFixed(POINTS_PRECISION) }}, lon: {{ currentLon.toFixed(POINTS_PRECISION) }}</div> -->
     
+    <!-- GPS Accuracy Indicator -->
+    <div class="accuracy-status" :class="`signal-${gpsSignalQuality}`">
+      <div class="accuracy-status-text">
+        Accuracy
+        <!-- : {{ gpsSignalQuality.toUpperCase() }} -->
+        <span v-if="currentAccuracy !== null" class="accuracy-value">
+          ±{{ currentAccuracy.toFixed(0) }}m
+        </span>
+      </div>
+    </div>
+
     <!-- GPS Points List Button -->
     <button @click="showModal = true" class="gps-points-button">
       <span class="gps-points-button-text">Points ({{ points.length }})</span>
@@ -132,6 +143,12 @@ const lastDragY = ref(0);
 const currentLat = ref(0);
 const currentLon = ref(0);
 
+// GPS accuracy settings and state
+const GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
+const GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
+const currentAccuracy = ref<number | null>(null);
+const gpsSignalQuality = ref<'excellent' | 'good' | 'fair' | 'poor' | 'unknown'>('unknown');
+
 // Padding around the drawing within the canvas
 const DRAWING_PADDING = 40; // In logical pixels
 
@@ -229,6 +246,33 @@ const toggleAnonymization = () => {
   });
 };
 
+// GPS accuracy helper functions
+// const getSignalQuality = (accuracy: number): 'excellent' | 'good' | 'fair' | 'poor' => {
+//   if (accuracy <= 5) return 'excellent';
+//   if (accuracy <= 10) return 'good';
+//   if (accuracy <= 20) return 'fair';
+//   return 'poor';
+// };
+
+const smoothGPSPoints = (newPoint: Point): Point => {
+  if (points.value.length < GPS_SMOOTHING_WINDOW) {
+    return newPoint;
+  }
+  
+  // Get the last N points including the new one
+  const recentPoints = [...points.value.slice(-GPS_SMOOTHING_WINDOW + 1), newPoint];
+  
+  // Calculate moving average
+  const avgLat = recentPoints.reduce((sum, p) => sum + p.lat, 0) / recentPoints.length;
+  const avgLon = recentPoints.reduce((sum, p) => sum + p.lon, 0) / recentPoints.length;
+  
+  return {
+    lat: Math.round(avgLat * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
+    lon: Math.round(avgLon * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION),
+    timestamp: newPoint.timestamp
+  };
+};
+
 const savePointsToFile = async () => {
   try {
     await Filesystem.writeFile({
@@ -308,10 +352,22 @@ const formatTime = (timestamp: number, index: number, allPoints: Point[]): strin
 
 const exportPoints = async () => {
   try {
+    if (points.value.length === 0) {
+      alert('No GPS points to export');
+      return;
+    }
+
+    const currentTime = new Date();
+    const timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+    
     const dataToExport = {
-      exportDate: new Date().toISOString(),
+      exportDate: currentTime.toISOString(),
       totalPoints: points.value.length,
       isAnonymized: isAnonymized.value,
+      ...(isAnonymized.value && anonymizationOrigin.value && {
+        anonymizationOrigin: anonymizationOrigin.value,
+        note: "Coordinates are anonymized - showing relative distances from first point"
+      }),
       points: displayPoints.value.map((point, index) => ({
         index: index + 1,
         latitude: point.lat,
@@ -322,19 +378,46 @@ const exportPoints = async () => {
     };
 
     const exportData = JSON.stringify(dataToExport, null, 2);
-    const fileName = `gps_export_${new Date().toISOString().split('T')[0]}.json`;
+    const suffix = isAnonymized.value ? '_anonymized' : '';
+    const fileName = `gps_export${suffix}_${timestamp}.json`;
 
-    await Filesystem.writeFile({
-      path: fileName,
-      data: exportData,
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8,
-    });
-
-    alert(`GPS points exported to ${fileName}`);
-  } catch (error) {
+    // Try external storage first, fallback to data directory
+    try {
+      await Filesystem.writeFile({
+        path: fileName,
+        data: exportData,
+        directory: Directory.ExternalStorage,
+        encoding: Encoding.UTF8,
+      });
+      
+      const exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
+      alert(`✅ Exported ${points.value.length} ${exportType} points to Downloads/${fileName}`);
+    } catch (externalError) {
+      console.warn('External storage failed, trying Documents:', externalError);
+      
+      // Fallback to Documents directory
+      await Filesystem.writeFile({
+        path: fileName,
+        data: exportData,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+      });
+      
+      const exportType = isAnonymized.value ? 'anonymized' : 'real GPS';
+      alert(`✅ Exported ${points.value.length} ${exportType} points to Documents/${fileName}`);
+    }
+    
+  } catch (error: any) {
     console.error('Export failed:', error);
-    alert('Export failed. Please try again.');
+    
+    // More detailed error messages
+    if (error.message?.includes('permission')) {
+      alert('❌ Export failed: Storage permission denied. Please check app permissions.');
+    } else if (error.message?.includes('space')) {
+      alert('❌ Export failed: Not enough storage space.');
+    } else {
+      alert(`❌ Export failed: ${error.message || 'Unknown error'}. Check console for details.`);
+    }
   }
 };
 
@@ -520,9 +603,29 @@ const drawPath = () => {
   ctx.restore(); // Restore to the state before pan/zoom/DPR
 };
 
-const addGPSPoint = (position: { coords: { latitude: number; longitude: number } } | null) => {
+const addGPSPoint = (position: { coords: { latitude: number; longitude: number; accuracy?: number; speed?: number | null; heading?: number | null } } | null) => {
   if (!position) {
     console.warn('Received null position in addGPSPoint');
+    return;
+  }
+  
+  const accuracy = position.coords.accuracy || 999;
+  currentAccuracy.value = accuracy;
+  // gpsSignalQuality.value = getSignalQuality(accuracy);
+  
+  // Log GPS metadata for debugging
+  console.log('GPS Position:', {
+    lat: position.coords.latitude,
+    lon: position.coords.longitude,
+    accuracy: accuracy,
+    speed: position.coords.speed || 'unknown',
+    heading: position.coords.heading || 'unknown',
+    quality: gpsSignalQuality.value
+  });
+  
+  // Filter out low-accuracy points
+  if (accuracy > GPS_ACCURACY_THRESHOLD) {
+    console.warn(`Skipping low-accuracy GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_ACCURACY_THRESHOLD}m)`);
     return;
   }
   
@@ -534,7 +637,11 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number }
   currentLat.value = lat;
   currentLon.value = lon;
 
-  points.value.push({ lat, lon, timestamp });
+  // Create new point and apply smoothing
+  const newPoint: Point = { lat, lon, timestamp };
+  const smoothedPoint = smoothGPSPoints(newPoint);
+  
+  points.value.push(smoothedPoint);
   calculateBounds(); // Recalculate bounds with the new point
 
   // Set anonymization origin if this is the first point and anonymization is enabled
@@ -592,8 +699,8 @@ onMounted(async () => {
     watchId = await Geolocation.watchPosition(
       {
         enableHighAccuracy: true,
-        timeout: 10000, // Max time to wait for a position
-        maximumAge: 3000 // How old a cached position can be
+        timeout: 15000, // Increased timeout to allow more time for precise fix
+        maximumAge: 1000 // Use fresher data (reduced from 3000ms)
       },
       (position, err) => {
         if (err) {
@@ -744,6 +851,45 @@ body, html, #app {
   font-size: 14px;
   backdrop-filter: blur(10px);
   z-index: 10; /* Ensure it's above the canvas */
+}
+
+.accuracy-status {
+  position: absolute;
+  bottom: calc(50px + env(safe-area-inset-bottom));
+  left: 20px;
+  font-size: 14px;
+  z-index: 10;
+  transition: color 0.3s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.accuracy-status.signal-excellent {
+  color: #4CAF50;
+}
+
+.accuracy-status.signal-good {
+  color: #8BC34A;
+}
+
+.accuracy-status.signal-fair {
+  color: #FFC107;
+}
+
+.accuracy-status.signal-poor {
+  color: #F44336;
+}
+
+.accuracy-status.signal-unknown {
+  color: #9E9E9E;
+}
+
+.accuracy-status-text {
+  font-weight: 600;
+}
+
+.accuracy-value {
+  font-weight: normal;
+  opacity: 0.9;
 }
 
 .gps-points-button {
