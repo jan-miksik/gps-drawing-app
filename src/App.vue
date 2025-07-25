@@ -44,7 +44,7 @@
                 @change="toggleAnonymization"
                 class="toggle-checkbox"
               />
-              <span class="toggle-text">Real Position</span>
+              <span class="toggle-text">Geopoint</span>
             </label>
           </div>
           <button @click="closeModal" class="close-button">✕</button>
@@ -58,8 +58,9 @@
           <div v-else class="points-list">
             <div class="list-header">
               <div class="header-item index">Index</div>
-              <div class="header-item lat">{{ isAnonymized ? 'Rel. Lat' : 'Latitude' }}</div>
-              <div class="header-item lon">{{ isAnonymized ? 'Rel. Lon' : 'Longitude' }}</div>
+              <div v-if="!isAnonymized" class="header-item lat">Latitude</div>
+              <div v-if="!isAnonymized" class="header-item lon">Longitude</div>
+              <div v-if="isAnonymized" class="header-item distance">Distance (m)</div>
               <div class="header-item time">Time</div>
             </div>
             
@@ -71,8 +72,9 @@
                 :class="{ 'current-point': index === 0 }"
               >
                 <div class="row-item index">{{ points.length - index }}</div>
-                <div class="row-item lat">{{ point.lat.toFixed(POINTS_PRECISION) }}</div>
-                <div class="row-item lon">{{ point.lon.toFixed(POINTS_PRECISION) }}</div>
+                <div v-if="!isAnonymized" class="row-item lat">{{ point.lat.toFixed(POINTS_PRECISION) }}</div>
+                <div v-if="!isAnonymized" class="row-item lon">{{ point.lon.toFixed(POINTS_PRECISION) }}</div>
+                <div v-if="isAnonymized" class="row-item distance">{{ getDistanceFromOrigin(point).toFixed(1) }}m</div>
                 <div class="row-item time">{{ formatTime(point.timestamp, displayPoints.length - 1 - index, displayPoints) }}</div>
               </div>
             </div>
@@ -104,6 +106,15 @@ import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
 
 const POINTS_PRECISION = 5;
+const FILE_NAME = 'gps_points.json';
+// GPS accuracy settings and state
+const GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
+const GPS_DISTANCE_THRESHOLD = 10; // meters - minimum distance to add new point (for smoothing)
+const GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
+const GPS_TIMEOUT = 10000; // Reduced timeout for faster updates
+const GPS_MAXIMUM_AGE = 2000; // Collect every 2 seconds
+
+const CURRENT_POSITION_DOT_SIZE = 10;
 
 interface Point {
   lat: number;
@@ -143,9 +154,7 @@ const lastDragY = ref(0);
 const currentLat = ref(0);
 const currentLon = ref(0);
 
-// GPS accuracy settings and state
-const GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
-const GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
+
 const currentAccuracy = ref<number | null>(null);
 const gpsSignalQuality = ref<'excellent' | 'good' | 'fair' | 'poor' | 'unknown'>('unknown');
 
@@ -154,7 +163,47 @@ const DRAWING_PADDING = 40; // In logical pixels
 
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
-const FILE_NAME = 'gps_points.json';
+
+
+// Distance calculation function (Haversine formula)
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in meters
+};
+
+// Get distance from anonymization origin
+const getDistanceFromOrigin = (point: Point): number => {
+  if (!anonymizationOrigin.value) {
+    return 0;
+  }
+  
+  if (isAnonymized.value) {
+    // Point is already anonymized (relative coords), convert back to real coords for distance calc
+    const realLat = point.lat + anonymizationOrigin.value.lat;
+    const realLon = point.lon + anonymizationOrigin.value.lon;
+    return calculateDistance(
+      anonymizationOrigin.value.lat, 
+      anonymizationOrigin.value.lon, 
+      realLat, 
+      realLon
+    );
+  } else {
+    // Point is in real coordinates
+    return calculateDistance(
+      anonymizationOrigin.value.lat, 
+      anonymizationOrigin.value.lon, 
+      point.lat, 
+      point.lon
+    );
+  }
+};
 
 // Anonymization functions
 const setAnonymizationOrigin = () => {
@@ -548,11 +597,6 @@ const drawPath = () => {
   const currentDisplayPoints = displayPoints.value;
   const currentBounds = displayBounds.value;
 
-  if (currentDisplayPoints.length === 0 || !currentBounds) {
-    // console.log('No points or bounds to draw.');
-    return;
-  }
-
   ctx.save();
 
   // 1. Apply Device Pixel Ratio scaling (base transform)
@@ -570,7 +614,25 @@ const drawPath = () => {
   ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
 
   // --- Drawing logic ---
-  if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
+  if (currentDisplayPoints.length === 0) {
+    // Draw a cross in the center when no GPS points are available
+    const centerX = logicalWidth / 2;
+    const centerY = logicalHeight / 2;
+    const crossSize = 20 / scale.value; // Adjust cross size based on zoom level
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2 / (scale.value * dpr);
+    ctx.lineCap = 'round';
+    
+    ctx.beginPath();
+    // Horizontal line
+    ctx.moveTo(centerX - crossSize, centerY);
+    ctx.lineTo(centerX + crossSize, centerY);
+    // Vertical line
+    ctx.moveTo(centerX, centerY - crossSize);
+    ctx.lineTo(centerX, centerY + crossSize);
+    ctx.stroke();
+  } else if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
     ctx.beginPath();
     for (let i = 0; i < currentDisplayPoints.length; i++) {
       const { x, y } = project(currentDisplayPoints[i], currentBounds, logicalWidth, logicalHeight);
@@ -595,7 +657,7 @@ const drawPath = () => {
     const { x: lastX, y: lastY } = project(lastPoint, currentBounds, logicalWidth, logicalHeight);
     ctx.fillStyle = 'white';
     ctx.beginPath();
-    ctx.arc(lastX, lastY, 10 / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
+    ctx.arc(lastX, lastY, CURRENT_POSITION_DOT_SIZE / (scale.value * dpr), 0, 2 * Math.PI); // Adjust dot size
     ctx.fill();
   }
   // --- End Drawing logic ---
@@ -634,8 +696,24 @@ const addGPSPoint = (position: { coords: { latitude: number; longitude: number; 
   const lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
   const timestamp = Date.now();
 
+  // Always update current position for display
   currentLat.value = lat;
   currentLon.value = lon;
+
+  // Check distance threshold if we have previous points
+  if (points.value.length > 0) {
+    const lastPoint = points.value[points.value.length - 1];
+    const distance = calculateDistance(lastPoint.lat, lastPoint.lon, lat, lon);
+    
+    if (distance < GPS_DISTANCE_THRESHOLD) {
+      console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_DISTANCE_THRESHOLD}m threshold`);
+      return;
+    }
+    
+    console.log(`Adding GPS point: distance ${distance.toFixed(1)}m from last point`);
+  } else {
+    console.log('Adding first GPS point');
+  }
 
   // Create new point and apply smoothing
   const newPoint: Point = { lat, lon, timestamp };
@@ -699,8 +777,8 @@ onMounted(async () => {
     watchId = await Geolocation.watchPosition(
       {
         enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout to allow more time for precise fix
-        maximumAge: 1000 // Use fresher data (reduced from 3000ms)
+        timeout: GPS_TIMEOUT,
+        maximumAge: GPS_MAXIMUM_AGE
       },
       (position, err) => {
         if (err) {
@@ -894,7 +972,7 @@ body, html, #app {
 
 .gps-points-button {
   position: absolute;
-  bottom: calc(45px + env(safe-area-inset-bottom));
+  bottom: env(safe-area-inset-bottom);
   right: 20px;
   background-color: transparent;
   color: white;
@@ -1053,6 +1131,11 @@ body, html, #app {
   text-align: center;
 }
 
+.header-item.distance {
+  width: 100px;
+  text-align: center;
+}
+
 .header-item.time {
   width: 110px;
   text-align: center;
@@ -1095,6 +1178,12 @@ body, html, #app {
 
 .row-item.lat, .row-item.lon {
   width: 85px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.row-item.distance {
+  width: 100px;
   text-align: center;
   font-family: 'Courier New', monospace;
 }

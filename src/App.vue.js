@@ -79,6 +79,7 @@ var currentLat = ref(0);
 var currentLon = ref(0);
 // GPS accuracy settings and state
 var GPS_ACCURACY_THRESHOLD = 20; // meters - reject points with worse accuracy
+var GPS_DISTANCE_THRESHOLD = 10; // meters - minimum distance to add new point
 var GPS_SMOOTHING_WINDOW = 3; // number of points to average for smoothing
 var currentAccuracy = ref(null);
 var gpsSignalQuality = ref('unknown');
@@ -86,6 +87,33 @@ var gpsSignalQuality = ref('unknown');
 var DRAWING_PADDING = 40; // In logical pixels
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 var FILE_NAME = 'gps_points.json';
+// Distance calculation function (Haversine formula)
+var calculateDistance = function (lat1, lon1, lat2, lon2) {
+    var R = 6371000; // Earth's radius in meters
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in meters
+};
+// Get distance from anonymization origin
+var getDistanceFromOrigin = function (point) {
+    if (!anonymizationOrigin.value) {
+        return 0;
+    }
+    if (isAnonymized.value) {
+        // Point is already anonymized (relative coords), convert back to real coords for distance calc
+        var realLat = point.lat + anonymizationOrigin.value.lat;
+        var realLon = point.lon + anonymizationOrigin.value.lon;
+        return calculateDistance(anonymizationOrigin.value.lat, anonymizationOrigin.value.lon, realLat, realLon);
+    }
+    else {
+        // Point is in real coordinates
+        return calculateDistance(anonymizationOrigin.value.lat, anonymizationOrigin.value.lon, point.lat, point.lon);
+    }
+};
 // Anonymization functions
 var setAnonymizationOrigin = function () {
     if (points.value.length > 0) {
@@ -463,10 +491,6 @@ var drawPath = function () {
     ctx.restore();
     var currentDisplayPoints = displayPoints.value;
     var currentBounds = displayBounds.value;
-    if (currentDisplayPoints.length === 0 || !currentBounds) {
-        // console.log('No points or bounds to draw.');
-        return;
-    }
     ctx.save();
     // 1. Apply Device Pixel Ratio scaling (base transform)
     ctx.scale(dpr, dpr);
@@ -480,7 +504,24 @@ var drawPath = function () {
     // Translate back
     ctx.translate(-logicalWidth / 2, -logicalHeight / 2);
     // --- Drawing logic ---
-    if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
+    if (currentDisplayPoints.length === 0) {
+        // Draw a cross in the center when no GPS points are available
+        var centerX = logicalWidth / 2;
+        var centerY = logicalHeight / 2;
+        var crossSize = 20 / scale.value; // Adjust cross size based on zoom level
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 2 / (scale.value * dpr);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        // Horizontal line
+        ctx.moveTo(centerX - crossSize, centerY);
+        ctx.lineTo(centerX + crossSize, centerY);
+        // Vertical line
+        ctx.moveTo(centerX, centerY - crossSize);
+        ctx.lineTo(centerX, centerY + crossSize);
+        ctx.stroke();
+    }
+    else if (currentDisplayPoints.length >= 1 && currentBounds) { // Need at least one point to draw a dot
         ctx.beginPath();
         for (var i = 0; i < currentDisplayPoints.length; i++) {
             var _a = project(currentDisplayPoints[i], currentBounds, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
@@ -536,8 +577,22 @@ var addGPSPoint = function (position) {
     var lat = Math.round(position.coords.latitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
     var lon = Math.round(position.coords.longitude * Math.pow(10, POINTS_PRECISION)) / Math.pow(10, POINTS_PRECISION);
     var timestamp = Date.now();
+    // Always update current position for display
     currentLat.value = lat;
     currentLon.value = lon;
+    // Check distance threshold if we have previous points
+    if (points.value.length > 0) {
+        var lastPoint = points.value[points.value.length - 1];
+        var distance = calculateDistance(lastPoint.lat, lastPoint.lon, lat, lon);
+        if (distance < GPS_DISTANCE_THRESHOLD) {
+            console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_DISTANCE_THRESHOLD, "m threshold"));
+            return;
+        }
+        console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m from last point"));
+    }
+    else {
+        console.log('Adding first GPS point');
+    }
     // Create new point and apply smoothing
     var newPoint = { lat: lat, lon: lon, timestamp: timestamp };
     var smoothedPoint = smoothGPSPoints(newPoint);
@@ -599,8 +654,8 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 _a.label = 5;
             case 5: return [4 /*yield*/, Geolocation.watchPosition({
                     enableHighAccuracy: true,
-                    timeout: 15000, // Increased timeout to allow more time for precise fix
-                    maximumAge: 1000 // Use fresher data (reduced from 3000ms)
+                    timeout: 10000, // Reduced timeout for faster updates
+                    maximumAge: 2000 // Collect every 2 seconds
                 }, function (position, err) {
                     if (err) {
                         console.error('GPS Error:', err.message, err.code);
@@ -747,10 +802,15 @@ if (__VLS_ctx.showModal) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "points-list" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-header" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item index" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
-        (__VLS_ctx.isAnonymized ? 'Rel. Lat' : 'Latitude');
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
-        (__VLS_ctx.isAnonymized ? 'Rel. Lon' : 'Longitude');
+        if (!__VLS_ctx.isAnonymized) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
+        }
+        if (!__VLS_ctx.isAnonymized) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
+        }
+        if (__VLS_ctx.isAnonymized) {
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item distance" }));
+        }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item time" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-body" }));
         for (var _i = 0, _a = __VLS_getVForSourceType((__spreadArray([], __VLS_ctx.displayPoints, true).reverse())); _i < _a.length; _i++) {
@@ -758,10 +818,18 @@ if (__VLS_ctx.showModal) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign(__assign({ key: ("".concat(point.lat, "-").concat(point.lon, "-").concat(point.timestamp)) }, { class: "point-row" }), { class: ({ 'current-point': index === 0 }) }));
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item index" }));
             (__VLS_ctx.points.length - index);
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lat" }));
-            (point.lat.toFixed(__VLS_ctx.POINTS_PRECISION));
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
-            (point.lon.toFixed(__VLS_ctx.POINTS_PRECISION));
+            if (!__VLS_ctx.isAnonymized) {
+                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lat" }));
+                (point.lat.toFixed(__VLS_ctx.POINTS_PRECISION));
+            }
+            if (!__VLS_ctx.isAnonymized) {
+                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
+                (point.lon.toFixed(__VLS_ctx.POINTS_PRECISION));
+            }
+            if (__VLS_ctx.isAnonymized) {
+                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item distance" }));
+                (__VLS_ctx.getDistanceFromOrigin(point).toFixed(1));
+            }
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
             (__VLS_ctx.formatTime(point.timestamp, __VLS_ctx.displayPoints.length - 1 - index, __VLS_ctx.displayPoints));
         }
@@ -798,6 +866,8 @@ if (__VLS_ctx.showModal) {
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['lon']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['distance']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['point-row']} */ ;
@@ -808,6 +878,8 @@ if (__VLS_ctx.showModal) {
 /** @type {__VLS_StyleScopedClasses['lat']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['distance']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
@@ -827,6 +899,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             isAnonymized: isAnonymized,
             currentAccuracy: currentAccuracy,
             gpsSignalQuality: gpsSignalQuality,
+            getDistanceFromOrigin: getDistanceFromOrigin,
             displayPoints: displayPoints,
             toggleAnonymization: toggleAnonymization,
             closeModal: closeModal,

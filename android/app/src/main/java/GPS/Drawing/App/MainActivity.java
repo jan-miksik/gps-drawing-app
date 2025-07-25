@@ -16,25 +16,25 @@ public class MainActivity extends BridgeActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         
         // Hide system bars initially
-        hideSystemBars();
+        // hideSystemBars();
     }
 
     @Override
     public void onResume() {
         super.onResume();
         // Ensure system bars remain hidden when activity resumes
-        hideSystemBars();
+        // hideSystemBars();
     }
 
-    private void hideSystemBars() {
-        WindowInsetsControllerCompat windowInsetsController = 
-            WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+    // private void hideSystemBars() {
+    //     WindowInsetsControllerCompat windowInsetsController = 
+    //         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
             
-        // Configure the behavior of the hidden system bars
-        windowInsetsController.setSystemBarsBehavior(
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+    //     // Configure the behavior of the hidden system bars
+    //     windowInsetsController.setSystemBarsBehavior(
+    //         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 
-        // Hide both the status bar and the navigation bar
-        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
-    }
+    //     // Hide both the status bar and the navigation bar
+    //     windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+    // }
 }
