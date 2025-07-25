@@ -1,6 +1,6 @@
 # GPS Drawing
 
-This project explores surveillance and self-surveillance through minimalist GPS tracking. By reducing the interface to pure movement visualization.
+This app explores surveillance and self-surveillance through minimalist GPS tracking. By reducing the interface to pure movement visualization.
 
 Built with Vue 3 + Capacitor for cross-platform deployment with privacy-first, local data storage.
 
