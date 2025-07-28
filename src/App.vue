@@ -27,6 +27,7 @@
       :display-points="displayPoints"
       :is-anonymized="isAnonymized"
       :anonymization-origin="anonymizationOrigin"
+      :background-active="isBackgroundGPSActive"
       @close="showModal = false"
       @toggle-anonymization="toggleAnonymization"
       @export="handleExport"
@@ -39,6 +40,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import type { Point, AnonymizationOrigin } from './types/gps';
 import { useGPS } from './composables/useGPS';
+import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
@@ -54,6 +56,7 @@ const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
 
 // Composables
 const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, shouldAddPoint, processNewPoint } = useGPS();
+const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, exportPoints, clearAllData } = useFileOperations();
 const { 
@@ -104,6 +107,27 @@ const addGPSPoint = (newPoint: Point): void => {
   redrawCanvas();
 };
 
+// Background GPS point handler (for offline saves)
+const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
+  console.log('Background GPS point received:', newPoint);
+  
+  if (!shouldAddPoint(points.value, newPoint)) {
+    return;
+  }
+
+  const processedPoint = processNewPoint(points.value, newPoint);
+  points.value.push(processedPoint);
+
+  // Set anonymization origin if this is the first point
+  if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
+    anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+  }
+
+  // Save to file (this will handle both foreground and background points)
+  await savePointsToFile([processedPoint], true); // true = append mode
+  redrawCanvas();
+};
+
 const redrawCanvas = (): void => {
   nextTick(() => {
     drawPath(displayPoints.value, displayBounds.value);
@@ -149,15 +173,34 @@ onMounted(async () => {
   // Setup canvas resize listener
   window.addEventListener('resize', setupCanvas);
   
-  // Start GPS tracking
+  // Start regular GPS tracking (for immediate UI updates)
   startGPSTracking(addGPSPoint);
+  
+  // Initialize and start background GPS tracking (for offline capability)
+  try {
+    await initBackgroundGPS(addBackgroundGPSPoint);
+    console.log('Background GPS initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize background GPS:', error);
+  }
   
   // Initial draw
   redrawCanvas();
 });
 
-onUnmounted(() => {
+onUnmounted(async () => {
+  // Stop regular GPS tracking
   stopGPSTracking();
+  
+  // Stop and cleanup background GPS tracking
+  try {
+    await stopBackgroundGPS();
+    await removeBackgroundGPSListeners();
+    console.log('Background GPS stopped and cleaned up');
+  } catch (error) {
+    console.error('Error stopping background GPS:', error);
+  }
+  
   window.removeEventListener('resize', setupCanvas);
 });
 </script>

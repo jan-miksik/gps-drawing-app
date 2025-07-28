@@ -15,6 +15,7 @@
     "a": "npx cap run android -l --host $(ifconfig en0 | grep 'inet ' | awk '{print $2}')"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.25",
     "@capacitor/android": "^7.4.2",
     "@capacitor/cli": "^7.4.2",
     "@capacitor/core": "^7.4.2",

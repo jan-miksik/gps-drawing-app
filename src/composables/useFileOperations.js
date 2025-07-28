@@ -45,34 +45,61 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { FILE_CONFIG } from '../constants/gpsConstants';
 import { anonymizePoints, getDistanceFromOrigin } from '../utils/coordinateUtils';
 export function useFileOperations() {
     var _this = this;
-    var savePointsToFile = function (points) { return __awaiter(_this, void 0, void 0, function () {
-        var e_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, Filesystem.writeFile({
+    var savePointsToFile = function (points_1) {
+        var args_1 = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args_1[_i - 1] = arguments[_i];
+        }
+        return __awaiter(_this, __spreadArray([points_1], args_1, true), void 0, function (points, append) {
+            var dataToSave, existing, e_1;
+            if (append === void 0) { append = false; }
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 5, , 6]);
+                        dataToSave = void 0;
+                        if (!append) return [3 /*break*/, 2];
+                        return [4 /*yield*/, loadPointsFromFile()];
+                    case 1:
+                        existing = _a.sent();
+                        dataToSave = __spreadArray(__spreadArray([], existing, true), points, true);
+                        return [3 /*break*/, 3];
+                    case 2:
+                        // Replace all points
+                        dataToSave = points;
+                        _a.label = 3;
+                    case 3: return [4 /*yield*/, Filesystem.writeFile({
                             path: FILE_CONFIG.FILE_NAME,
-                            data: JSON.stringify(points),
+                            data: JSON.stringify(dataToSave),
                             directory: Directory.Data,
                             encoding: Encoding.UTF8,
                         })];
-                case 1:
-                    _a.sent();
-                    return [3 /*break*/, 3];
-                case 2:
-                    e_1 = _a.sent();
-                    console.error('Failed to save GPS points to file', e_1);
-                    return [3 /*break*/, 3];
-                case 3: return [2 /*return*/];
-            }
+                    case 4:
+                        _a.sent();
+                        return [3 /*break*/, 6];
+                    case 5:
+                        e_1 = _a.sent();
+                        console.error('Failed to save GPS points to file', e_1);
+                        return [3 /*break*/, 6];
+                    case 6: return [2 /*return*/];
+                }
+            });
         });
-    }); };
+    };
     var loadPointsFromFile = function () { return __awaiter(_this, void 0, void 0, function () {
         var result, dataString, e_2;
         return __generator(this, function (_a) {

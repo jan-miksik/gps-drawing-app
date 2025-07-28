@@ -3,7 +3,7 @@ export const GPS_CONFIG = {
   DISTANCE_THRESHOLD: 10, // meters - minimum distance to add new point
   SMOOTHING_WINDOW: 3, // number of points to average for smoothing
   TIMEOUT: 5000, // Reduced timeout for faster updates
-  MAXIMUM_AGE: 1000, // Collect every 1 second
+  MAXIMUM_AGE: 2000, // Collect every 2 second
   POINTS_PRECISION: 5, // Decimal precision for coordinates
 } as const;
 

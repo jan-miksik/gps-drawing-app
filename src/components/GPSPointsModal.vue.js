@@ -111,6 +111,7 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-left" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
     (__VLS_ctx.points.length);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-controls" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "toggle-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign(__assign({ onChange: function () {
             var _a = [];
@@ -123,6 +124,11 @@ if (__VLS_ctx.show) {
             __VLS_ctx.$emit('toggle-anonymization');
         } }, { type: "checkbox", checked: (!__VLS_ctx.isAnonymized) }), { class: "toggle-checkbox" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
+    if (__VLS_ctx.backgroundActive) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-gps-indicator" }, { title: "Background GPS tracking is active" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-icon" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-text" }));
+    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -202,9 +208,13 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-left']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-controls']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['background-gps-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['background-icon']} */ ;
+/** @type {__VLS_StyleScopedClasses['background-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-points']} */ ;

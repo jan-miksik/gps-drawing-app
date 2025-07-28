@@ -4,15 +4,25 @@
       <div class="modal-header">
         <div class="header-left">
           <h2>GPS Points ({{ points.length }})</h2>
-          <label class="toggle-label">
-            <input 
-              type="checkbox" 
-              :checked="!isAnonymized"
-              @change="$emit('toggle-anonymization')"
-              class="toggle-checkbox"
-            />
-            <span class="toggle-text">Geopoint</span>
-          </label>
+          <div class="header-controls">
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                :checked="!isAnonymized"
+                @change="$emit('toggle-anonymization')"
+                class="toggle-checkbox"
+              />
+              <span class="toggle-text">Geopoint</span>
+            </label>
+            
+            <div 
+              v-if="backgroundActive" 
+              class="background-gps-indicator"
+              title="Background GPS tracking is active"
+            >
+              <div class="background-text">Background drawing</div>
+            </div>
+          </div>
         </div>
         <button @click="$emit('close')" class="close-button">✕</button>
       </div>
@@ -79,6 +89,7 @@ interface Props {
   displayPoints: Point[];
   isAnonymized: boolean;
   anonymizationOrigin: AnonymizationOrigin | null;
+  backgroundActive: boolean;
 }
 
 interface Emits {
@@ -189,6 +200,13 @@ const handleClearAll = (): void => {
   gap: 8px;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;
@@ -208,6 +226,30 @@ const handleClearAll = (): void => {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   font-weight: normal;
+}
+
+.background-gps-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 15px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: rgb(255, 255, 255);
+  text-shadow: none;
+  backdrop-filter: blur(10px);
+}
+
+.background-icon {
+  font-size: 10px;
+  animation: rotate 2s linear infinite;
+}
+
+.background-text {
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .modal-header h2 {

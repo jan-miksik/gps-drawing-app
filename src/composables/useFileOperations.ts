@@ -4,11 +4,22 @@ import { FILE_CONFIG } from '../constants/gpsConstants';
 import { anonymizePoints, getDistanceFromOrigin } from '../utils/coordinateUtils';
 
 export function useFileOperations() {
-  const savePointsToFile = async (points: Point[]): Promise<void> => {
+  const savePointsToFile = async (points: Point[], append = false): Promise<void> => {
     try {
+      let dataToSave: Point[];
+      
+      if (append) {
+        // Load existing points and append new ones
+        const existing = await loadPointsFromFile();
+        dataToSave = [...existing, ...points];
+      } else {
+        // Replace all points
+        dataToSave = points;
+      }
+      
       await Filesystem.writeFile({
         path: FILE_CONFIG.FILE_NAME,
-        data: JSON.stringify(points),
+        data: JSON.stringify(dataToSave),
         directory: Directory.Data,
         encoding: Encoding.UTF8,
       });

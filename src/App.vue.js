@@ -56,6 +56,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGPS } from './composables/useGPS';
+import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
@@ -69,15 +70,16 @@ var isAnonymized = ref(true);
 var anonymizationOrigin = ref(null);
 // Composables
 var _a = useGPS(), currentAccuracy = _a.currentAccuracy, gpsSignalQuality = _a.gpsSignalQuality, startGPSTracking = _a.startGPSTracking, stopGPSTracking = _a.stopGPSTracking, shouldAddPoint = _a.shouldAddPoint, processNewPoint = _a.processNewPoint;
-var _b = useCanvas(), canvasEl = _b.canvasEl, setupCanvas = _b.setupCanvas, drawPath = _b.drawPath, calculateBounds = _b.calculateBounds, pan = _b.pan, zoom = _b.zoom;
-var _c = useFileOperations(), loadPointsFromFile = _c.loadPointsFromFile, savePointsToFile = _c.savePointsToFile, exportPoints = _c.exportPoints, clearAllData = _c.clearAllData;
-var _d = useInteractions(function (deltaX, deltaY) {
+var _b = useBackgroundGPS(), isBackgroundGPSActive = _b.isBackgroundGPSActive, initBackgroundGPS = _b.initBackgroundGPS, stopBackgroundGPS = _b.stopBackgroundGPS, removeBackgroundGPSListeners = _b.removeBackgroundGPSListeners;
+var _c = useCanvas(), canvasEl = _c.canvasEl, setupCanvas = _c.setupCanvas, drawPath = _c.drawPath, calculateBounds = _c.calculateBounds, pan = _c.pan, zoom = _c.zoom;
+var _d = useFileOperations(), loadPointsFromFile = _d.loadPointsFromFile, savePointsToFile = _d.savePointsToFile, exportPoints = _d.exportPoints, clearAllData = _d.clearAllData;
+var _e = useInteractions(function (deltaX, deltaY) {
     pan(deltaX, deltaY);
     redrawCanvas();
 }, function (deltaY) {
     zoom(deltaY);
     redrawCanvas();
-}), handleTouchStart = _d.handleTouchStart, handleTouchMove = _d.handleTouchMove, handleTouchEnd = _d.handleTouchEnd, handleMouseDown = _d.handleMouseDown, handleMouseMove = _d.handleMouseMove, handleMouseUp = _d.handleMouseUp, handleWheel = _d.handleWheel;
+}), handleTouchStart = _e.handleTouchStart, handleTouchMove = _e.handleTouchMove, handleTouchEnd = _e.handleTouchEnd, handleMouseDown = _e.handleMouseDown, handleMouseMove = _e.handleMouseMove, handleMouseUp = _e.handleMouseUp, handleWheel = _e.handleWheel;
 // Computed properties
 var displayPoints = computed(function () {
     return isAnonymized.value && anonymizationOrigin.value
@@ -101,6 +103,32 @@ var addGPSPoint = function (newPoint) {
     savePointsToFile(points.value);
     redrawCanvas();
 };
+// Background GPS point handler (for offline saves)
+var addBackgroundGPSPoint = function (newPoint) { return __awaiter(void 0, void 0, void 0, function () {
+    var processedPoint;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                console.log('Background GPS point received:', newPoint);
+                if (!shouldAddPoint(points.value, newPoint)) {
+                    return [2 /*return*/];
+                }
+                processedPoint = processNewPoint(points.value, newPoint);
+                points.value.push(processedPoint);
+                // Set anonymization origin if this is the first point
+                if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
+                    anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+                }
+                // Save to file (this will handle both foreground and background points)
+                return [4 /*yield*/, savePointsToFile([processedPoint], true)];
+            case 1:
+                // Save to file (this will handle both foreground and background points)
+                _a.sent(); // true = append mode
+                redrawCanvas();
+                return [2 /*return*/];
+        }
+    });
+}); };
 var redrawCanvas = function () {
     nextTick(function () {
         drawPath(displayPoints.value, displayBounds.value);
@@ -141,7 +169,7 @@ var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, func
 }); };
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var loadedPoints;
+    var loadedPoints, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -157,18 +185,55 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 }
                 // Setup canvas resize listener
                 window.addEventListener('resize', setupCanvas);
-                // Start GPS tracking
+                // Start regular GPS tracking (for immediate UI updates)
                 startGPSTracking(addGPSPoint);
+                _a.label = 2;
+            case 2:
+                _a.trys.push([2, 4, , 5]);
+                return [4 /*yield*/, initBackgroundGPS(addBackgroundGPSPoint)];
+            case 3:
+                _a.sent();
+                console.log('Background GPS initialized successfully');
+                return [3 /*break*/, 5];
+            case 4:
+                error_1 = _a.sent();
+                console.error('Failed to initialize background GPS:', error_1);
+                return [3 /*break*/, 5];
+            case 5:
                 // Initial draw
                 redrawCanvas();
                 return [2 /*return*/];
         }
     });
 }); });
-onUnmounted(function () {
-    stopGPSTracking();
-    window.removeEventListener('resize', setupCanvas);
-});
+onUnmounted(function () { return __awaiter(void 0, void 0, void 0, function () {
+    var error_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // Stop regular GPS tracking
+                stopGPSTracking();
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4 /*yield*/, stopBackgroundGPS()];
+            case 2:
+                _a.sent();
+                return [4 /*yield*/, removeBackgroundGPSListeners()];
+            case 3:
+                _a.sent();
+                console.log('Background GPS stopped and cleaned up');
+                return [3 /*break*/, 5];
+            case 4:
+                error_2 = _a.sent();
+                console.error('Error stopping background GPS:', error_2);
+                return [3 /*break*/, 5];
+            case 5:
+                window.removeEventListener('resize', setupCanvas);
+                return [2 /*return*/];
+        }
+    });
+}); });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -202,8 +267,8 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.
 (__VLS_ctx.points.length);
 /** @type {[typeof GPSPointsModal, ]} */ ;
 // @ts-ignore
-var __VLS_3 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin) })));
-var __VLS_4 = __VLS_3.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin) })], __VLS_functionalComponentArgsRest(__VLS_3), false));
+var __VLS_3 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive) })));
+var __VLS_4 = __VLS_3.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive) })], __VLS_functionalComponentArgsRest(__VLS_3), false));
 var __VLS_6;
 var __VLS_7;
 var __VLS_8;
@@ -242,6 +307,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             anonymizationOrigin: anonymizationOrigin,
             currentAccuracy: currentAccuracy,
             gpsSignalQuality: gpsSignalQuality,
+            isBackgroundGPSActive: isBackgroundGPSActive,
             canvasEl: canvasEl,
             handleTouchStart: handleTouchStart,
             handleTouchMove: handleTouchMove,
