@@ -45,7 +45,7 @@ export function useBackgroundGPS() {
     var isBackgroundGPSActive = ref(false);
     var isInitialized = ref(false);
     var watcherId = ref(null);
-    var initBackgroundGPS = function (onPoint) { return __awaiter(_this, void 0, void 0, function () {
+    var initBackgroundGPS = function (onPoint, onAccuracyUpdate) { return __awaiter(_this, void 0, void 0, function () {
         var id, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
@@ -84,8 +84,12 @@ export function useBackgroundGPS() {
                                     speed: location.speed,
                                     timestamp: location.time
                                 });
-                                // Apply accuracy filter similar to regular GPS
                                 var accuracy = location.accuracy || 999;
+                                // Always update current accuracy display (even for poor accuracy points)
+                                if (onAccuracyUpdate) {
+                                    onAccuracyUpdate(accuracy);
+                                }
+                                // Apply accuracy filter for recording points
                                 if (accuracy > GPS_CONFIG.ACCURACY_THRESHOLD) {
                                     console.warn("Skipping low-accuracy background GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.ACCURACY_THRESHOLD, "m)"));
                                     return;
@@ -96,9 +100,10 @@ export function useBackgroundGPS() {
                                 var point = {
                                     lat: lat,
                                     lon: lon,
-                                    timestamp: timestamp
+                                    timestamp: timestamp,
+                                    accuracy: accuracy
                                 };
-                                // Call the provided callback
+                                // Call the provided callback for point recording
                                 onPoint(point);
                             }
                         })];

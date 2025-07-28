@@ -19,16 +19,31 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { computed } from 'vue';
-import { GPS_CONFIG } from '../constants/gpsConstants';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
 var props = defineProps();
 var emit = defineEmits();
-var pointsPrecision = GPS_CONFIG.POINTS_PRECISION;
 var reversedDisplayPoints = computed(function () {
-    return __spreadArray([], props.displayPoints, true).reverse();
+    var reversed = __spreadArray([], props.displayPoints, true).reverse();
+    // logInfo('Table rendering points', { 
+    //   totalPoints: props.points.length, 
+    //   displayPoints: props.displayPoints.length,
+    //   reversedCount: reversed.length 
+    // });
+    return reversed;
 });
 var getPointDistance = function (point) {
     return getDistanceFromOrigin(point, props.anonymizationOrigin, props.isAnonymized);
+};
+var getAccuracy = function (point) {
+    // logInfo('getAccuracy called for point', { 
+    //   hasAccuracy: point.accuracy !== undefined, 
+    //   accuracy: point.accuracy,
+    //   timestamp: point.timestamp 
+    // });
+    if (point.accuracy !== undefined && point.accuracy !== null) {
+        return "".concat(Math.round(point.accuracy), "m");
+    }
+    return 'N/A';
 };
 var formatTime = function (timestamp, index, allPoints) {
     var date = new Date(timestamp);
@@ -78,16 +93,25 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['point-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['point-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['index']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lat']} */ ;
+/** @type {__VLS_StyleScopedClasses['latitude']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['longitude']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['x-distance']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['y-distance']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['distance']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-button']} */ ;
@@ -126,7 +150,6 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
     if (__VLS_ctx.backgroundActive) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-gps-indicator" }, { title: "Background GPS tracking is active" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-icon" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-text" }));
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
@@ -148,15 +171,16 @@ if (__VLS_ctx.show) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-header" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item index" }));
         if (!__VLS_ctx.isAnonymized) {
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lat" }));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item latitude" }));
         }
         if (!__VLS_ctx.isAnonymized) {
-            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item lon" }));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item longitude" }));
         }
         if (__VLS_ctx.isAnonymized) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item distance" }));
         }
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item time" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-item accuracy" }));
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "list-body" }));
         for (var _i = 0, _a = __VLS_getVForSourceType((__VLS_ctx.reversedDisplayPoints)); _i < _a.length; _i++) {
             var _b = _a[_i], point = _b[0], index = _b[1];
@@ -164,12 +188,12 @@ if (__VLS_ctx.show) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item index" }));
             (__VLS_ctx.points.length - index);
             if (!__VLS_ctx.isAnonymized) {
-                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lat" }));
-                (point.lat.toFixed(__VLS_ctx.pointsPrecision));
+                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item latitude" }));
+                (point.lat.toFixed(6));
             }
             if (!__VLS_ctx.isAnonymized) {
-                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item lon" }));
-                (point.lon.toFixed(__VLS_ctx.pointsPrecision));
+                __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item longitude" }));
+                (point.lon.toFixed(6));
             }
             if (__VLS_ctx.isAnonymized) {
                 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item distance" }));
@@ -177,6 +201,9 @@ if (__VLS_ctx.show) {
             }
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
             (__VLS_ctx.formatTime(point.timestamp, __VLS_ctx.reversedDisplayPoints.length - 1 - index, __VLS_ctx.reversedDisplayPoints));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item accuracy" }));
+            (__VLS_ctx.getAccuracy(point));
+            (point);
         }
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
@@ -213,7 +240,6 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['background-gps-indicator']} */ ;
-/** @type {__VLS_StyleScopedClasses['background-icon']} */ ;
 /** @type {__VLS_StyleScopedClasses['background-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
@@ -223,26 +249,30 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['index']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lat']} */ ;
+/** @type {__VLS_StyleScopedClasses['latitude']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['longitude']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['distance']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
+/** @type {__VLS_StyleScopedClasses['header-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['point-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['current-point']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['index']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lat']} */ ;
+/** @type {__VLS_StyleScopedClasses['latitude']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['lon']} */ ;
+/** @type {__VLS_StyleScopedClasses['longitude']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['distance']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
+/** @type {__VLS_StyleScopedClasses['row-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer-left']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-button']} */ ;
@@ -253,9 +283,9 @@ var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
-            pointsPrecision: pointsPrecision,
             reversedDisplayPoints: reversedDisplayPoints,
             getPointDistance: getPointDistance,
+            getAccuracy: getAccuracy,
             formatTime: formatTime,
             handleClearAll: handleClearAll,
         };

@@ -2,6 +2,7 @@ export interface Point {
   lat: number;
   lon: number;
   timestamp: number;
+  accuracy?: number; // GPS accuracy in meters
 }
 
 export interface Bounds {

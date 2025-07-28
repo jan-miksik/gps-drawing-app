@@ -3,6 +3,8 @@ import { Geolocation } from '@capacitor/geolocation';
 import type { Point, GPSSignalQuality, GPSPosition } from '../types/gps';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { calculateDistance, getSignalQuality, smoothGPSPoints, roundCoordinates } from '../utils/gpsUtils';
+import { useDevLogs } from './useDevLogs';
+const { logInfo } = useDevLogs();
 
 export function useGPS() {
   // GPS state
@@ -78,7 +80,7 @@ export function useGPS() {
     currentLon.value = lon;
 
     // Create new point
-    const newPoint: Point = { lat, lon, timestamp };
+    const newPoint: Point = { lat, lon, timestamp, accuracy };
     onPointAdded(newPoint);
   };
 
@@ -96,18 +98,27 @@ export function useGPS() {
     }
 
     const lastPoint = points[points.length - 1];
-    const distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
     
+    // Check time interval - minimum 5 seconds between points
+    const timeDiff = newPoint.timestamp - lastPoint.timestamp;
+    if (timeDiff < GPS_CONFIG.MIN_TIME_INTERVAL) {
+      console.log(`Skipping GPS point: time ${(timeDiff/1000).toFixed(1)}s < ${GPS_CONFIG.MIN_TIME_INTERVAL/1000}s threshold`);
+      return false;
+    }
+    
+    // Check distance - minimum 10 meters between points
+    const distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
     if (distance < GPS_CONFIG.DISTANCE_THRESHOLD) {
       console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_CONFIG.DISTANCE_THRESHOLD}m threshold`);
       return false;
     }
     
-    console.log(`Adding GPS point: distance ${distance.toFixed(1)}m from last point`);
+    console.log(`Adding GPS point: distance ${distance.toFixed(1)}m, time ${(timeDiff/1000).toFixed(1)}s from last point`);
     return true;
   };
 
   const processNewPoint = (points: Point[], newPoint: Point): Point => {
+    logInfo('processNewPoint', newPoint);
     return smoothGPSPoints(points, newPoint);
   };
 

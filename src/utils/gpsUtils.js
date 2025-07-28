@@ -40,7 +40,8 @@ export var smoothGPSPoints = function (points, newPoint) {
     return {
         lat: Math.round(avgLat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
         lon: Math.round(avgLon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
-        timestamp: newPoint.timestamp
+        timestamp: newPoint.timestamp,
+        accuracy: newPoint.accuracy
     };
 };
 export var roundCoordinates = function (lat, lon) {

@@ -13,7 +13,7 @@ export function useBackgroundGPS() {
   const isInitialized = ref(false);
   const watcherId = ref<string | null>(null);
 
-  const initBackgroundGPS = async (onPoint: (point: Point) => void): Promise<void> => {
+  const initBackgroundGPS = async (onPoint: (point: Point) => void, onAccuracyUpdate?: (accuracy: number) => void): Promise<void> => {
     if (!Capacitor.isNativePlatform()) {
       console.warn('Background GPS is only available on native platforms.');
       return;
@@ -53,8 +53,14 @@ export function useBackgroundGPS() {
             timestamp: location.time
           });
 
-          // Apply accuracy filter similar to regular GPS
           const accuracy = location.accuracy || 999;
+          
+          // Always update current accuracy display (even for poor accuracy points)
+          if (onAccuracyUpdate) {
+            onAccuracyUpdate(accuracy);
+          }
+
+          // Apply accuracy filter for recording points
           if (accuracy > GPS_CONFIG.ACCURACY_THRESHOLD) {
             console.warn(`Skipping low-accuracy background GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_CONFIG.ACCURACY_THRESHOLD}m)`);
             return;
@@ -67,10 +73,11 @@ export function useBackgroundGPS() {
           const point: Point = {
             lat,
             lon,
-            timestamp
+            timestamp,
+            accuracy
           };
 
-          // Call the provided callback
+          // Call the provided callback for point recording
           onPoint(point);
         }
       });

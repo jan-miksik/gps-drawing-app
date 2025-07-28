@@ -72,13 +72,16 @@ export function useFileOperations() {
         }),
         points: displayPoints.map((point, index) => ({
           index: index + 1,
-          latitude: point.lat,
-          longitude: point.lon,
+          ...(!isAnonymized && {
+            latitude: point.lat,
+            longitude: point.lon
+          }),
           ...(isAnonymized && anonymizationOrigin && {
             distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized)
           }),
           timestamp: point.timestamp,
-          time: new Date(point.timestamp).toISOString()
+          time: new Date(point.timestamp).toISOString(),
+          accuracy: point.accuracy !== undefined ? point.accuracy : null
         }))
       };
 

@@ -6,7 +6,8 @@ export const anonymizePoint = (point: Point, origin: AnonymizationOrigin): Point
   return {
     lat: point.lat - origin.lat,
     lon: point.lon - origin.lon,
-    timestamp: point.timestamp // Keep original timestamp
+    timestamp: point.timestamp, // Keep original timestamp
+    accuracy: point.accuracy
   };
 };
 
@@ -33,6 +34,60 @@ export const getDistanceFromOrigin = (
     // Point is in real coordinates
     return calculateDistance(origin.lat, origin.lon, point.lat, point.lon);
   }
+};
+
+// Calculate X (east-west) distance in meters from origin
+export const getXDistanceFromOrigin = (
+  point: Point, 
+  origin: AnonymizationOrigin | null, 
+  isAnonymized: boolean
+): number => {
+  if (!origin) {
+    return 0;
+  }
+  
+  let targetLon: number;
+  
+  if (isAnonymized) {
+    // Point is already anonymized (relative coords), convert back to real coords
+    targetLon = point.lon + origin.lon;
+  } else {
+    // Point is in real coordinates
+    targetLon = point.lon;
+  }
+  
+  // Calculate distance along longitude (X-axis) keeping latitude constant
+  const distance = calculateDistance(origin.lat, origin.lon, origin.lat, targetLon);
+  
+  // Return positive for east, negative for west
+  return targetLon >= origin.lon ? distance : -distance;
+};
+
+// Calculate Y (north-south) distance in meters from origin
+export const getYDistanceFromOrigin = (
+  point: Point, 
+  origin: AnonymizationOrigin | null, 
+  isAnonymized: boolean
+): number => {
+  if (!origin) {
+    return 0;
+  }
+  
+  let targetLat: number;
+  
+  if (isAnonymized) {
+    // Point is already anonymized (relative coords), convert back to real coords
+    targetLat = point.lat + origin.lat;
+  } else {
+    // Point is in real coordinates
+    targetLat = point.lat;
+  }
+  
+  // Calculate distance along latitude (Y-axis) keeping longitude constant
+  const distance = calculateDistance(origin.lat, origin.lon, targetLat, origin.lon);
+  
+  // Return positive for north, negative for south
+  return targetLat >= origin.lat ? distance : -distance;
 };
 
 export const createAnonymizationOrigin = (points: Point[]): AnonymizationOrigin | null => {

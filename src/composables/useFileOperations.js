@@ -142,9 +142,12 @@ export function useFileOperations() {
                     dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.length, isAnonymized: isAnonymized }, (isAnonymized && anonymizationOrigin && {
                         anonymizationOrigin: anonymizationOrigin,
                         note: "Coordinates are anonymized - showing relative distances from first point"
-                    })), { points: displayPoints.map(function (point, index) { return (__assign(__assign({ index: index + 1, latitude: point.lat, longitude: point.lon }, (isAnonymized && anonymizationOrigin && {
+                    })), { points: displayPoints.map(function (point, index) { return (__assign(__assign(__assign({ index: index + 1 }, (!isAnonymized && {
+                            latitude: point.lat,
+                            longitude: point.lon
+                        })), (isAnonymized && anonymizationOrigin && {
                             distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized)
-                        })), { timestamp: point.timestamp, time: new Date(point.timestamp).toISOString() })); }) });
+                        })), { timestamp: point.timestamp, time: new Date(point.timestamp).toISOString(), accuracy: point.accuracy !== undefined ? point.accuracy : null })); }) });
                     exportData = JSON.stringify(dataToExport, null, 2);
                     suffix = isAnonymized ? '_anonymized' : '';
                     fileName = "gps_export".concat(suffix, "_").concat(timestamp, ".json");

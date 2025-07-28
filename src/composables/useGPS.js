@@ -38,6 +38,8 @@ import { ref, computed } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { calculateDistance, getSignalQuality, smoothGPSPoints, roundCoordinates } from '../utils/gpsUtils';
+import { useDevLogs } from './useDevLogs';
+var logInfo = useDevLogs().logInfo;
 export function useGPS() {
     var _this = this;
     // GPS state
@@ -116,7 +118,7 @@ export function useGPS() {
         currentLat.value = lat;
         currentLon.value = lon;
         // Create new point
-        var newPoint = { lat: lat, lon: lon, timestamp: timestamp };
+        var newPoint = { lat: lat, lon: lon, timestamp: timestamp, accuracy: accuracy };
         onPointAdded(newPoint);
     };
     var stopGPSTracking = function () {
@@ -131,16 +133,34 @@ export function useGPS() {
             return true;
         }
         var lastPoint = points[points.length - 1];
+        // Check time interval - minimum 5 seconds between points
+        var timeDiff = newPoint.timestamp - lastPoint.timestamp;
+        if (timeDiff < GPS_CONFIG.MIN_TIME_INTERVAL) {
+            console.log("Skipping GPS point: time ".concat((timeDiff / 1000).toFixed(1), "s < ").concat(GPS_CONFIG.MIN_TIME_INTERVAL / 1000, "s threshold"));
+            return false;
+        }
+        // Check distance - minimum 10 meters between points
         var distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
         if (distance < GPS_CONFIG.DISTANCE_THRESHOLD) {
             console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_CONFIG.DISTANCE_THRESHOLD, "m threshold"));
             return false;
         }
-        console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m from last point"));
+        console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m, time ").concat((timeDiff / 1000).toFixed(1), "s from last point"));
         return true;
     };
     var processNewPoint = function (points, newPoint) {
-        return smoothGPSPoints(points, newPoint);
+        logInfo('processNewPoint input', {
+            hasAccuracy: newPoint.accuracy !== undefined,
+            accuracy: newPoint.accuracy,
+            point: newPoint
+        });
+        var processed = smoothGPSPoints(points, newPoint);
+        logInfo('processNewPoint output', {
+            hasAccuracy: processed.accuracy !== undefined,
+            accuracy: processed.accuracy,
+            point: processed
+        });
+        return processed;
     };
     return {
         // State

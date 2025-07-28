@@ -40,15 +40,15 @@ defineProps<Props>();
 }
 
 .accuracy-status.signal-fair {
-  color: rgba(255, 255, 255, 0.65); /* More transparent white */
+  color: rgba(255, 255, 255, 0.85); /* More transparent white */
 }
 
 .accuracy-status.signal-poor {
-  color: rgba(255, 255, 255, 0.65); /* Very dim/gray */
+  color: rgba(255, 255, 255, 0.85); /* Very dim/gray */
 }
 
 .accuracy-status.signal-unknown {
-  color: rgba(255, 255, 255, 0.65); /* Darkest - unknown state */
+  color: rgba(255, 255, 255, 0.85); /* Darkest - unknown state */
 }
 
 .accuracy-status-text {

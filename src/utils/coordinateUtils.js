@@ -4,7 +4,8 @@ export var anonymizePoint = function (point, origin) {
     return {
         lat: point.lat - origin.lat,
         lon: point.lon - origin.lon,
-        timestamp: point.timestamp // Keep original timestamp
+        timestamp: point.timestamp, // Keep original timestamp
+        accuracy: point.accuracy
     };
 };
 export var anonymizePoints = function (points, origin) {
@@ -26,6 +27,44 @@ export var getDistanceFromOrigin = function (point, origin, isAnonymized) {
         // Point is in real coordinates
         return calculateDistance(origin.lat, origin.lon, point.lat, point.lon);
     }
+};
+// Calculate X (east-west) distance in meters from origin
+export var getXDistanceFromOrigin = function (point, origin, isAnonymized) {
+    if (!origin) {
+        return 0;
+    }
+    var targetLon;
+    if (isAnonymized) {
+        // Point is already anonymized (relative coords), convert back to real coords
+        targetLon = point.lon + origin.lon;
+    }
+    else {
+        // Point is in real coordinates
+        targetLon = point.lon;
+    }
+    // Calculate distance along longitude (X-axis) keeping latitude constant
+    var distance = calculateDistance(origin.lat, origin.lon, origin.lat, targetLon);
+    // Return positive for east, negative for west
+    return targetLon >= origin.lon ? distance : -distance;
+};
+// Calculate Y (north-south) distance in meters from origin
+export var getYDistanceFromOrigin = function (point, origin, isAnonymized) {
+    if (!origin) {
+        return 0;
+    }
+    var targetLat;
+    if (isAnonymized) {
+        // Point is already anonymized (relative coords), convert back to real coords
+        targetLat = point.lat + origin.lat;
+    }
+    else {
+        // Point is in real coordinates
+        targetLat = point.lat;
+    }
+    // Calculate distance along latitude (Y-axis) keeping longitude constant
+    var distance = calculateDistance(origin.lat, origin.lon, targetLat, origin.lon);
+    // Return positive for north, negative for south
+    return targetLat >= origin.lat ? distance : -distance;
 };
 export var createAnonymizationOrigin = function (points) {
     if (points.length === 0)

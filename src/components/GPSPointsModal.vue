@@ -35,10 +35,11 @@
         <div v-else class="points-list">
           <div class="list-header">
             <div class="header-item index">Index</div>
-            <div v-if="!isAnonymized" class="header-item lat">Latitude</div>
-            <div v-if="!isAnonymized" class="header-item lon">Longitude</div>
-            <div v-if="isAnonymized" class="header-item distance">Distance (m)</div>
+            <div v-if="!isAnonymized" class="header-item latitude">Latitude</div>
+            <div v-if="!isAnonymized" class="header-item longitude">Longitude</div>
+            <div v-if="isAnonymized" class="header-item distance">Distance</div>
             <div class="header-item time">Time</div>
+            <div class="header-item accuracy">Accuracy</div>
           </div>
           
           <div class="list-body">
@@ -49,10 +50,11 @@
               :class="{ 'current-point': index === 0 }"
             >
               <div class="row-item index">{{ points.length - index }}</div>
-              <div v-if="!isAnonymized" class="row-item lat">{{ point.lat.toFixed(pointsPrecision) }}</div>
-              <div v-if="!isAnonymized" class="row-item lon">{{ point.lon.toFixed(pointsPrecision) }}</div>
-              <div v-if="isAnonymized" class="row-item distance">{{ getPointDistance(point).toFixed(1) }}m</div>
+              <div v-if="!isAnonymized" class="row-item latitude">{{ point.lat.toFixed(6) }}</div>
+              <div v-if="!isAnonymized" class="row-item longitude">{{ point.lon.toFixed(6) }}</div>
+              <div v-if="isAnonymized" class="row-item distance">{{ getPointDistance(point).toFixed(0) }}m</div>
               <div class="row-item time">{{ formatTime(point.timestamp, reversedDisplayPoints.length - 1 - index, reversedDisplayPoints) }}</div>
+              <div class="row-item accuracy">{{ getAccuracy(point) }}</div>
             </div>
           </div>
         </div>
@@ -64,7 +66,7 @@
             Export
           </button>
           <div @click="handleClearAll" class="clear-button-1">
-            Clear All
+            Clear
           </div>
         </div>
         <div class="footer-right">
@@ -80,7 +82,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Point, AnonymizationOrigin } from '../types/gps';
-import { GPS_CONFIG } from '../constants/gpsConstants';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
 
 interface Props {
@@ -102,14 +103,20 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const pointsPrecision = GPS_CONFIG.POINTS_PRECISION;
-
 const reversedDisplayPoints = computed(() => {
-  return [...props.displayPoints].reverse();
+  const reversed = [...props.displayPoints].reverse();
+  return reversed;
 });
 
 const getPointDistance = (point: Point): number => {
   return getDistanceFromOrigin(point, props.anonymizationOrigin, props.isAnonymized);
+};
+
+const getAccuracy = (point: Point): string => {
+  if (point.accuracy !== undefined && point.accuracy !== null) {
+    return `${Math.round(point.accuracy)}m`;
+  }
+  return 'N/A';
 };
 
 const formatTime = (timestamp: number, index: number, allPoints: Point[]): string => {
@@ -197,6 +204,7 @@ const handleClearAll = (): void => {
 .header-left {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -278,6 +286,7 @@ const handleClearAll = (): void => {
   flex-grow: 1;
   padding: 10px;
   overflow-y: auto;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -289,7 +298,8 @@ const handleClearAll = (): void => {
 
 .points-list {
   border-collapse: collapse;
-  width: 100%;
+  min-width: 500px;
+  width: max-content;
 }
 
 .list-header {
@@ -315,13 +325,23 @@ const handleClearAll = (): void => {
   text-align: center;
 }
 
-.header-item.lat, .header-item.lon {
+.header-item.latitude, .header-item.longitude {
+  width: 120px;
+  text-align: center;
+}
+
+.header-item.x-distance, .header-item.y-distance {
   width: 85px;
   text-align: center;
 }
 
 .header-item.distance {
   width: 100px;
+  text-align: center;
+}
+
+.header-item.accuracy {
+  width: 75px;
   text-align: center;
 }
 
@@ -361,7 +381,13 @@ const handleClearAll = (): void => {
   text-align: center;
 }
 
-.row-item.lat, .row-item.lon {
+.row-item.latitude, .row-item.longitude {
+  width: 120px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.row-item.x-distance, .row-item.y-distance {
   width: 85px;
   text-align: center;
   font-family: 'Courier New', monospace;
@@ -369,6 +395,12 @@ const handleClearAll = (): void => {
 
 .row-item.distance {
   width: 100px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.row-item.accuracy {
+  width: 75px;
   text-align: center;
   font-family: 'Courier New', monospace;
 }

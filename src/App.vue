@@ -13,11 +13,16 @@
     />
     
     <GPSStatusBar 
+      @click="showDevLogs"
       :gps-signal-quality="gpsSignalQuality"
       :current-accuracy="currentAccuracy"
     />
     
-    <button @click="showModal = true" class="gps-points-button">
+    <button 
+      @click="showModal = true" 
+      class="gps-points-button"
+      title="Click: Open GPS Points"
+    >
       <span class="gps-points-button-text">Points ({{ points.length }})</span>
     </button>
 
@@ -33,6 +38,14 @@
       @export="handleExport"
       @clear="handleClearAll"
     />
+
+    <DevLogsModal
+      :show="isDevLogsVisible"
+      :logs="logs"
+      :format-log-time="formatLogTime"
+      @close="hideDevLogs"
+      @clear="clearLogs"
+    />
   </div>
 </template>
 
@@ -44,9 +57,12 @@ import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
+import { useDevLogs } from './composables/useDevLogs';
 import GPSStatusBar from './components/GPSStatusBar.vue';
 import GPSPointsModal from './components/GPSPointsModal.vue';
+import DevLogsModal from './components/DevLogsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
+import { getSignalQuality } from './utils/gpsUtils';
 
 // State
 const showModal = ref(false);
@@ -59,6 +75,7 @@ const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, sh
 const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, exportPoints, clearAllData } = useFileOperations();
+const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, showDevLogs, hideDevLogs, formatLogTime } = useDevLogs();
 const { 
   handleTouchStart, 
   handleTouchMove, 
@@ -92,11 +109,16 @@ const displayBounds = computed(() => {
 // Methods
 const addGPSPoint = (newPoint: Point): void => {
   if (!shouldAddPoint(points.value, newPoint)) {
+    logInfo('GPS point filtered out', { 
+      reason: 'distance/time threshold', 
+      point: newPoint 
+    });
     return;
   }
 
-  const processedPoint = processNewPoint(points.value, newPoint);
-  points.value.push(processedPoint);
+  // const processedPoint = processNewPoint(points.value, newPoint);
+  points.value.push(newPoint);
+  logInfo('Foreground GPS point added', newPoint);
 
   // Set anonymization origin if this is the first point
   if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
@@ -107,15 +129,22 @@ const addGPSPoint = (newPoint: Point): void => {
   redrawCanvas();
 };
 
-// Background GPS point handler (for offline saves)
+// Background GPS accuracy handler (updates display for every GPS reading)
+const updateCurrentAccuracy = (accuracy: number): void => {
+  currentAccuracy.value = accuracy;
+  gpsSignalQuality.value = getSignalQuality(accuracy);
+};
+
+// Background GPS point handler
 const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
-  console.log('Background GPS point received:', newPoint);
+  logInfo('Background GPS point received', newPoint);
   
   if (!shouldAddPoint(points.value, newPoint)) {
     return;
   }
 
   const processedPoint = processNewPoint(points.value, newPoint);
+  logInfo('Background GPS point processedPoint', processedPoint);
   points.value.push(processedPoint);
 
   // Set anonymization origin if this is the first point
@@ -146,50 +175,72 @@ const toggleAnonymization = (): void => {
 };
 
 const handleExport = async (): Promise<void> => {
-  await exportPoints(points.value, isAnonymized.value, anonymizationOrigin.value);
+  try {
+    await exportPoints(points.value, isAnonymized.value, anonymizationOrigin.value);
+    logInfo('GPS points exported successfully', { 
+      count: points.value.length, 
+      anonymized: isAnonymized.value 
+    });
+  } catch (error) {
+    logError('Failed to export GPS points', error);
+  }
 };
 
 const handleClearAll = async (): Promise<void> => {
+  const pointCount = points.value.length;
   points.value = [];
   anonymizationOrigin.value = null;
   await clearAllData();
   redrawCanvas();
   showModal.value = false;
+  logInfo('All GPS points cleared', { clearedCount: pointCount });
 };
 
 // Lifecycle
 onMounted(async () => {
+  logInfo('App starting up');
+  
   setupCanvas();
   
   // Load existing points
   const loadedPoints = await loadPointsFromFile();
   if (loadedPoints.length > 0) {
     points.value = loadedPoints;
+    logInfo('Loaded existing GPS points', { count: loadedPoints.length });
     if (isAnonymized.value && !anonymizationOrigin.value) {
       anonymizationOrigin.value = createAnonymizationOrigin(points.value);
     }
+  } else {
+    logInfo('No existing GPS points found');
   }
   
   // Setup canvas resize listener
   window.addEventListener('resize', setupCanvas);
+  logInfo('Canvas setup completed');
   
-  // Start regular GPS tracking (for immediate UI updates)
-  startGPSTracking(addGPSPoint);
-  
-  // Initialize and start background GPS tracking (for offline capability)
+  // Use background GPS for all tracking (handles both foreground and background)
   try {
-    await initBackgroundGPS(addBackgroundGPSPoint);
-    console.log('Background GPS initialized successfully');
+    await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+    logInfo('Background GPS initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize background GPS:', error);
+    logError('Failed to initialize background GPS', error);
+    // Fallback to regular GPS if background GPS fails
+    logWarn('Falling back to regular GPS tracking');
+    try {
+      await startGPSTracking(addGPSPoint);
+      logInfo('Foreground GPS tracking started');
+    } catch (fallbackError) {
+      logError('Failed to start foreground GPS', fallbackError);
+    }
   }
   
   // Initial draw
   redrawCanvas();
+  logInfo('App initialization completed');
 });
 
 onUnmounted(async () => {
-  // Stop regular GPS tracking
+  // Stop GPS tracking
   stopGPSTracking();
   
   // Stop and cleanup background GPS tracking
