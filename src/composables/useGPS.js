@@ -149,18 +149,8 @@ export function useGPS() {
         return true;
     };
     var processNewPoint = function (points, newPoint) {
-        logInfo('processNewPoint input', {
-            hasAccuracy: newPoint.accuracy !== undefined,
-            accuracy: newPoint.accuracy,
-            point: newPoint
-        });
-        var processed = smoothGPSPoints(points, newPoint);
-        logInfo('processNewPoint output', {
-            hasAccuracy: processed.accuracy !== undefined,
-            accuracy: processed.accuracy,
-            point: processed
-        });
-        return processed;
+        logInfo('processNewPoint', newPoint);
+        return smoothGPSPoints(points, newPoint);
     };
     return {
         // State

@@ -15,13 +15,13 @@
               <span class="toggle-text">Geopoint</span>
             </label>
             
-            <div 
+            <!-- <div 
               v-if="backgroundActive" 
               class="background-gps-indicator"
               title="Background GPS tracking is active"
             >
               <div class="background-text">Background drawing</div>
-            </div>
+            </div> -->
           </div>
         </div>
         <button @click="$emit('close')" class="close-button">✕</button>
@@ -53,7 +53,10 @@
               <div v-if="!isAnonymized" class="row-item latitude">{{ point.lat.toFixed(6) }}</div>
               <div v-if="!isAnonymized" class="row-item longitude">{{ point.lon.toFixed(6) }}</div>
               <div v-if="isAnonymized" class="row-item distance">{{ getPointDistance(point).toFixed(0) }}m</div>
-              <div class="row-item time">{{ formatTime(point.timestamp, reversedDisplayPoints.length - 1 - index, reversedDisplayPoints) }}</div>
+              <div class="row-item time">
+                <div class="time-date">{{ getDateString(point.timestamp) }}</div>
+                <div class="time-time">{{ getTimeString(point.timestamp) }}</div>
+              </div>
               <div class="row-item accuracy">{{ getAccuracy(point) }}</div>
             </div>
           </div>
@@ -119,41 +122,33 @@ const getAccuracy = (point: Point): string => {
   return 'N/A';
 };
 
-const formatTime = (timestamp: number, index: number, allPoints: Point[]): string => {
+const getDateString = (timestamp: number): string => {
   const date = new Date(timestamp);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   
-  const isFirstPoint = index === 0;
-  const dateChanged = !isFirstPoint && 
-    new Date(allPoints[index - 1].timestamp).toDateString() !== date.toDateString();
-  
-  const timeString = date.toLocaleTimeString('en-US', { 
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    });
+  }
+};
+
+const getTimeString = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('en-US', { 
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
   });
-  
-  if (date.toDateString() === today.toDateString()) {
-    return `Today ${timeString}`;
-  }
-  
-  if (isFirstPoint || dateChanged) {
-    if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday ${timeString}`;
-    } else {
-      const dateString = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-      });
-      return `${dateString} ${timeString}`;
-    }
-  }
-  
-  return timeString;
 };
 
 const handleClearAll = (): void => {
@@ -286,7 +281,7 @@ const handleClearAll = (): void => {
   flex-grow: 1;
   padding: 10px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -298,8 +293,8 @@ const handleClearAll = (): void => {
 
 .points-list {
   border-collapse: collapse;
-  min-width: 500px;
-  width: max-content;
+  width: 100%;
+  max-width: 100%;
 }
 
 .list-header {
@@ -326,7 +321,7 @@ const handleClearAll = (): void => {
 }
 
 .header-item.latitude, .header-item.longitude {
-  width: 120px;
+  width: 100px;
   text-align: center;
 }
 
@@ -336,17 +331,17 @@ const handleClearAll = (): void => {
 }
 
 .header-item.distance {
-  width: 100px;
+  width: 90px;
   text-align: center;
 }
 
 .header-item.accuracy {
-  width: 75px;
+  width: 70px;
   text-align: center;
 }
 
 .header-item.time {
-  width: 110px;
+  width: 100px;
   text-align: center;
 }
 
@@ -382,7 +377,7 @@ const handleClearAll = (): void => {
 }
 
 .row-item.latitude, .row-item.longitude {
-  width: 120px;
+  width: 100px;
   text-align: center;
   font-family: 'Courier New', monospace;
 }
@@ -394,21 +389,38 @@ const handleClearAll = (): void => {
 }
 
 .row-item.distance {
-  width: 100px;
+  width: 90px;
   text-align: center;
   font-family: 'Courier New', monospace;
 }
 
 .row-item.accuracy {
-  width: 75px;
+  width: 70px;
   text-align: center;
   font-family: 'Courier New', monospace;
 }
 
 .row-item.time {
-  width: 110px;
+  width: 100px;
   text-align: center;
   font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.time-date {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: normal;
+}
+
+.time-time {
+  font-size: 11px;
+  color: white;
+  font-weight: normal;
 }
 
 .modal-footer {

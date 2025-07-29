@@ -12,7 +12,8 @@ export var CANVAS_CONFIG = {
     CURRENT_POSITION_DOT_SIZE: 10,
     CROSS_SIZE: 20, // Size of center cross when no points
     LINE_WIDTH: 2,
-    ZOOM_FACTOR: 0.1,
+    ZOOM_FACTOR: 0.05, // Reduced from 0.1 to 0.05 for slower zoom
+    PINCH_ZOOM_SENSITIVITY: 1, // Sensitivity multiplier for pinch-to-zoom (lower = slower)
     MIN_SCALE: 0.1,
     MAX_SCALE: 10,
 };

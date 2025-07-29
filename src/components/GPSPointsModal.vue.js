@@ -24,58 +24,44 @@ var props = defineProps();
 var emit = defineEmits();
 var reversedDisplayPoints = computed(function () {
     var reversed = __spreadArray([], props.displayPoints, true).reverse();
-    // logInfo('Table rendering points', { 
-    //   totalPoints: props.points.length, 
-    //   displayPoints: props.displayPoints.length,
-    //   reversedCount: reversed.length 
-    // });
     return reversed;
 });
 var getPointDistance = function (point) {
     return getDistanceFromOrigin(point, props.anonymizationOrigin, props.isAnonymized);
 };
 var getAccuracy = function (point) {
-    // logInfo('getAccuracy called for point', { 
-    //   hasAccuracy: point.accuracy !== undefined, 
-    //   accuracy: point.accuracy,
-    //   timestamp: point.timestamp 
-    // });
     if (point.accuracy !== undefined && point.accuracy !== null) {
         return "".concat(Math.round(point.accuracy), "m");
     }
     return 'N/A';
 };
-var formatTime = function (timestamp, index, allPoints) {
+var getDateString = function (timestamp) {
     var date = new Date(timestamp);
     var today = new Date();
     var yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    var isFirstPoint = index === 0;
-    var dateChanged = !isFirstPoint &&
-        new Date(allPoints[index - 1].timestamp).toDateString() !== date.toDateString();
-    var timeString = date.toLocaleTimeString('en-US', {
+    if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+    }
+    else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    }
+    else {
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+        });
+    }
+};
+var getTimeString = function (timestamp) {
+    var date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
     });
-    if (date.toDateString() === today.toDateString()) {
-        return "Today ".concat(timeString);
-    }
-    if (isFirstPoint || dateChanged) {
-        if (date.toDateString() === yesterday.toDateString()) {
-            return "Yesterday ".concat(timeString);
-        }
-        else {
-            var dateString = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-            });
-            return "".concat(dateString, " ").concat(timeString);
-        }
-    }
-    return timeString;
 };
 var handleClearAll = function () {
     if (confirm("Are you sure you want to delete all ".concat(props.points.length, " GPS points? This cannot be undone."))) {
@@ -148,10 +134,6 @@ if (__VLS_ctx.show) {
             __VLS_ctx.$emit('toggle-anonymization');
         } }, { type: "checkbox", checked: (!__VLS_ctx.isAnonymized) }), { class: "toggle-checkbox" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
-    if (__VLS_ctx.backgroundActive) {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-gps-indicator" }, { title: "Background GPS tracking is active" }));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "background-text" }));
-    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -197,13 +179,15 @@ if (__VLS_ctx.show) {
             }
             if (__VLS_ctx.isAnonymized) {
                 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item distance" }));
-                (__VLS_ctx.getPointDistance(point).toFixed(1));
+                (__VLS_ctx.getPointDistance(point).toFixed(0));
             }
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item time" }));
-            (__VLS_ctx.formatTime(point.timestamp, __VLS_ctx.reversedDisplayPoints.length - 1 - index, __VLS_ctx.reversedDisplayPoints));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "time-date" }));
+            (__VLS_ctx.getDateString(point.timestamp));
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "time-time" }));
+            (__VLS_ctx.getTimeString(point.timestamp));
             __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "row-item accuracy" }));
             (__VLS_ctx.getAccuracy(point));
-            (point);
         }
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
@@ -239,8 +223,6 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['toggle-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['background-gps-indicator']} */ ;
-/** @type {__VLS_StyleScopedClasses['background-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-points']} */ ;
@@ -271,6 +253,8 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['distance']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['time']} */ ;
+/** @type {__VLS_StyleScopedClasses['time-date']} */ ;
+/** @type {__VLS_StyleScopedClasses['time-time']} */ ;
 /** @type {__VLS_StyleScopedClasses['row-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['accuracy']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
@@ -286,7 +270,8 @@ var __VLS_self = (await import('vue')).defineComponent({
             reversedDisplayPoints: reversedDisplayPoints,
             getPointDistance: getPointDistance,
             getAccuracy: getAccuracy,
-            formatTime: formatTime,
+            getDateString: getDateString,
+            getTimeString: getTimeString,
             handleClearAll: handleClearAll,
         };
     },

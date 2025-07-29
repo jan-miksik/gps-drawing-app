@@ -26,6 +26,16 @@
       <span class="gps-points-button-text">Points ({{ points.length }})</span>
     </button>
 
+    <!-- Reset Zoom Button - appears when zoomed -->
+    <button 
+      v-if="scale !== 1 || viewOffsetX !== 0 || viewOffsetY !== 0"
+      @click="handleResetZoom" 
+      class="reset-zoom-button"
+      title="Reset zoom and center"
+    >
+      <span class="reset-zoom-icon">⌖</span>
+    </button>
+
     <GPSPointsModal
       :show="showModal"
       :points="points"
@@ -73,7 +83,7 @@ const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
 // Composables
 const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, shouldAddPoint, processNewPoint } = useGPS();
 const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
-const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom } = useCanvas();
+const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, exportPoints, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, showDevLogs, hideDevLogs, formatLogTime } = useDevLogs();
 const { 
@@ -91,6 +101,10 @@ const {
   },
   (deltaY: number) => {
     zoom(deltaY);
+    redrawCanvas();
+  },
+  () => {
+    resetView();
     redrawCanvas();
   }
 );
@@ -194,6 +208,12 @@ const handleClearAll = async (): Promise<void> => {
   redrawCanvas();
   showModal.value = false;
   logInfo('All GPS points cleared', { clearedCount: pointCount });
+};
+
+const handleResetZoom = (): void => {
+  resetView();
+  redrawCanvas();
+  logInfo('Zoom and view reset to default');
 };
 
 // Lifecycle

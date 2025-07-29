@@ -74,7 +74,7 @@ var anonymizationOrigin = ref(null);
 // Composables
 var _a = useGPS(), currentAccuracy = _a.currentAccuracy, gpsSignalQuality = _a.gpsSignalQuality, startGPSTracking = _a.startGPSTracking, stopGPSTracking = _a.stopGPSTracking, shouldAddPoint = _a.shouldAddPoint, processNewPoint = _a.processNewPoint;
 var _b = useBackgroundGPS(), isBackgroundGPSActive = _b.isBackgroundGPSActive, initBackgroundGPS = _b.initBackgroundGPS, stopBackgroundGPS = _b.stopBackgroundGPS, removeBackgroundGPSListeners = _b.removeBackgroundGPSListeners;
-var _c = useCanvas(), canvasEl = _c.canvasEl, setupCanvas = _c.setupCanvas, drawPath = _c.drawPath, calculateBounds = _c.calculateBounds, pan = _c.pan, zoom = _c.zoom;
+var _c = useCanvas(), canvasEl = _c.canvasEl, setupCanvas = _c.setupCanvas, drawPath = _c.drawPath, calculateBounds = _c.calculateBounds, pan = _c.pan, zoom = _c.zoom, resetView = _c.resetView, scale = _c.scale, viewOffsetX = _c.viewOffsetX, viewOffsetY = _c.viewOffsetY;
 var _d = useFileOperations(), loadPointsFromFile = _d.loadPointsFromFile, savePointsToFile = _d.savePointsToFile, exportPoints = _d.exportPoints, clearAllData = _d.clearAllData;
 var _e = useDevLogs(), logs = _e.logs, isDevLogsVisible = _e.isDevLogsVisible, logInfo = _e.logInfo, logWarn = _e.logWarn, logError = _e.logError, clearLogs = _e.clearLogs, showDevLogs = _e.showDevLogs, hideDevLogs = _e.hideDevLogs, formatLogTime = _e.formatLogTime;
 var _f = useInteractions(function (deltaX, deltaY) {
@@ -82,6 +82,9 @@ var _f = useInteractions(function (deltaX, deltaY) {
     redrawCanvas();
 }, function (deltaY) {
     zoom(deltaY);
+    redrawCanvas();
+}, function () {
+    resetView();
     redrawCanvas();
 }), handleTouchStart = _f.handleTouchStart, handleTouchMove = _f.handleTouchMove, handleTouchEnd = _f.handleTouchEnd, handleMouseDown = _f.handleMouseDown, handleMouseMove = _f.handleMouseMove, handleMouseUp = _f.handleMouseUp, handleWheel = _f.handleWheel;
 // Computed properties
@@ -95,11 +98,6 @@ var displayBounds = computed(function () {
 });
 // Methods
 var addGPSPoint = function (newPoint) {
-    logInfo('addGPSPoint called', {
-        hasAccuracy: newPoint.accuracy !== undefined,
-        accuracy: newPoint.accuracy,
-        point: newPoint
-    });
     if (!shouldAddPoint(points.value, newPoint)) {
         logInfo('GPS point filtered out', {
             reason: 'distance/time threshold',
@@ -107,17 +105,9 @@ var addGPSPoint = function (newPoint) {
         });
         return;
     }
-    var processedPoint = processNewPoint(points.value, newPoint);
-    logInfo('Point processed and about to be added', {
-        hasAccuracy: processedPoint.accuracy !== undefined,
-        accuracy: processedPoint.accuracy,
-        point: processedPoint
-    });
-    points.value.push(processedPoint);
-    logInfo('Foreground GPS point added to array', {
-        totalPoints: points.value.length,
-        lastPoint: points.value[points.value.length - 1]
-    });
+    // const processedPoint = processNewPoint(points.value, newPoint);
+    points.value.push(newPoint);
+    logInfo('Foreground GPS point added', newPoint);
     // Set anonymization origin if this is the first point
     if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
         anonymizationOrigin.value = createAnonymizationOrigin(points.value);
@@ -129,7 +119,6 @@ var addGPSPoint = function (newPoint) {
 var updateCurrentAccuracy = function (accuracy) {
     currentAccuracy.value = accuracy;
     gpsSignalQuality.value = getSignalQuality(accuracy);
-    logInfo('Current GPS accuracy updated', { accuracy: accuracy });
 };
 // Background GPS point handler
 var addBackgroundGPSPoint = function (newPoint) { return __awaiter(void 0, void 0, void 0, function () {
@@ -211,6 +200,11 @@ var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); };
+var handleResetZoom = function () {
+    resetView();
+    redrawCanvas();
+    logInfo('Zoom and view reset to default');
+};
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
     var loadedPoints, error_2, fallbackError_1;
@@ -329,6 +323,10 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     } }, { class: "gps-points-button" }), { title: "Click: Open GPS Points" }));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "gps-points-button-text" }));
 (__VLS_ctx.points.length);
+if (__VLS_ctx.scale !== 1 || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
+}
 /** @type {[typeof GPSPointsModal, ]} */ ;
 // @ts-ignore
 var __VLS_7 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive) })));
@@ -373,6 +371,8 @@ var __VLS_19;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['reset-zoom-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['reset-zoom-icon']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
@@ -388,6 +388,9 @@ var __VLS_self = (await import('vue')).defineComponent({
             gpsSignalQuality: gpsSignalQuality,
             isBackgroundGPSActive: isBackgroundGPSActive,
             canvasEl: canvasEl,
+            scale: scale,
+            viewOffsetX: viewOffsetX,
+            viewOffsetY: viewOffsetY,
             logs: logs,
             isDevLogsVisible: isDevLogsVisible,
             clearLogs: clearLogs,
@@ -405,6 +408,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             toggleAnonymization: toggleAnonymization,
             handleExport: handleExport,
             handleClearAll: handleClearAll,
+            handleResetZoom: handleResetZoom,
         };
     },
 });
