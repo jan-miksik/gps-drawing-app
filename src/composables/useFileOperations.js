@@ -55,8 +55,10 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { FILE_CONFIG } from '../constants/gpsConstants';
 import { anonymizePoints, getDistanceFromOrigin } from '../utils/coordinateUtils';
+import { project, calculateBounds } from '../utils/canvasUtils';
 export function useFileOperations() {
     var _this = this;
     var savePointsToFile = function (points_1) {
@@ -123,80 +125,331 @@ export function useFileOperations() {
             }
         });
     }); };
-    var exportPoints = function (points, isAnonymized, anonymizationOrigin) { return __awaiter(_this, void 0, void 0, function () {
-        var currentTime, timestamp, displayPoints, dataToExport, exportData, suffix, fileName, exportType, externalError_1, exportType, error_1;
-        var _a, _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+    var exportPoints = function (points, coordinateType, anonymizationOrigin) { return __awaiter(_this, void 0, void 0, function () {
+        var currentTime, timestamp, isAnonymized_1, displayPoints, dataToExport, exportData, suffix, fileName, error_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0:
-                    _c.trys.push([0, 6, , 7]);
+                    _a.trys.push([0, 2, , 3]);
                     if (points.length === 0) {
                         alert('No GPS points to export');
                         return [2 /*return*/];
                     }
                     currentTime = new Date();
                     timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
-                    displayPoints = isAnonymized && anonymizationOrigin
+                    isAnonymized_1 = coordinateType === 'relative';
+                    displayPoints = isAnonymized_1 && anonymizationOrigin
                         ? anonymizePoints(points, anonymizationOrigin)
                         : points;
-                    dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.length, isAnonymized: isAnonymized }, (isAnonymized && anonymizationOrigin && {
+                    dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.length, coordinateType: coordinateType, isAnonymized: isAnonymized_1 }, (isAnonymized_1 && anonymizationOrigin && {
                         anonymizationOrigin: anonymizationOrigin,
                         note: "Coordinates are anonymized - showing relative distances from first point"
-                    })), { points: displayPoints.map(function (point, index) { return (__assign(__assign(__assign({ index: index + 1 }, (!isAnonymized && {
+                    })), { points: displayPoints.map(function (point, index) { return (__assign(__assign(__assign({ index: index + 1 }, (!isAnonymized_1 && {
                             latitude: point.lat,
                             longitude: point.lon
-                        })), (isAnonymized && anonymizationOrigin && {
-                            distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized)
+                        })), (isAnonymized_1 && anonymizationOrigin && {
+                            distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized_1)
                         })), { timestamp: point.timestamp, time: new Date(point.timestamp).toISOString(), accuracy: point.accuracy !== undefined ? point.accuracy : null })); }) });
                     exportData = JSON.stringify(dataToExport, null, 2);
-                    suffix = isAnonymized ? '_anonymized' : '';
+                    suffix = isAnonymized_1 ? '_anonymized' : '_exact';
                     fileName = "gps_export".concat(suffix, "_").concat(timestamp, ".json");
-                    _c.label = 1;
+                    // Try multiple export methods for data
+                    return [4 /*yield*/, tryMultipleExportMethods(fileName, exportData, 'application/json', points.length, isAnonymized_1)];
                 case 1:
-                    _c.trys.push([1, 3, , 5]);
-                    return [4 /*yield*/, Filesystem.writeFile({
-                            path: fileName,
-                            data: exportData,
-                            directory: Directory.ExternalStorage,
-                            encoding: Encoding.UTF8,
-                        })];
+                    // Try multiple export methods for data
+                    _a.sent();
+                    return [3 /*break*/, 3];
                 case 2:
-                    _c.sent();
-                    exportType = isAnonymized ? 'anonymized' : 'real GPS';
-                    alert("\u2705 Exported ".concat(points.length, " ").concat(exportType, " points to Downloads/").concat(fileName));
-                    return [3 /*break*/, 5];
-                case 3:
-                    externalError_1 = _c.sent();
-                    console.warn('External storage failed, trying Documents:', externalError_1);
-                    return [4 /*yield*/, Filesystem.writeFile({
-                            path: fileName,
-                            data: exportData,
-                            directory: Directory.Documents,
-                            encoding: Encoding.UTF8,
-                        })];
-                case 4:
-                    _c.sent();
-                    exportType = isAnonymized ? 'anonymized' : 'real GPS';
-                    alert("\u2705 Exported ".concat(points.length, " ").concat(exportType, " points to Documents/").concat(fileName));
-                    return [3 /*break*/, 5];
-                case 5: return [3 /*break*/, 7];
-                case 6:
-                    error_1 = _c.sent();
-                    console.error('Export failed:', error_1);
-                    if ((_a = error_1.message) === null || _a === void 0 ? void 0 : _a.includes('permission')) {
-                        alert('❌ Export failed: Storage permission denied. Please check app permissions.');
-                    }
-                    else if ((_b = error_1.message) === null || _b === void 0 ? void 0 : _b.includes('space')) {
-                        alert('❌ Export failed: Not enough storage space.');
-                    }
-                    else {
-                        alert("\u274C Export failed: ".concat(error_1.message || 'Unknown error', ". Check console for details."));
-                    }
-                    return [3 /*break*/, 7];
-                case 7: return [2 /*return*/];
+                    error_1 = _a.sent();
+                    console.error('Data export failed:', error_1);
+                    handleExportError(error_1);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
             }
         });
     }); };
+    var exportCanvasAsImage = function (canvas, points, isAnonymized, anonymizationOrigin) { return __awaiter(_this, void 0, void 0, function () {
+        var currentTime, timestamp, fileName, ctx, dpr, logicalWidth, logicalHeight, svgContent, mimeType, error_2;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    currentTime = new Date();
+                    timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                    fileName = "gps_drawing_".concat(timestamp, ".svg");
+                    ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Failed to get canvas context');
+                    }
+                    dpr = window.devicePixelRatio || 1;
+                    logicalWidth = canvas.width / dpr;
+                    logicalHeight = canvas.height / dpr;
+                    svgContent = generateSVGFromCanvas(canvas, ctx, logicalWidth, logicalHeight, dpr, points, isAnonymized, anonymizationOrigin);
+                    mimeType = 'image/svg+xml';
+                    // Try multiple export methods for SVG
+                    return [4 /*yield*/, tryMultipleExportMethods(fileName, svgContent, mimeType, points.length, isAnonymized)];
+                case 1:
+                    // Try multiple export methods for SVG
+                    _a.sent();
+                    return [3 /*break*/, 3];
+                case 2:
+                    error_2 = _a.sent();
+                    console.error('SVG export failed:', error_2);
+                    handleExportError(error_2);
+                    return [3 /*break*/, 3];
+                case 3: return [2 /*return*/];
+            }
+        });
+    }); };
+    var tryMultipleExportMethods = function (fileName, content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, tryCapacitorShare(fileName, content, pointCount, isAnonymized)];
+                case 1:
+                    // Method 1: Try Capacitor Share plugin (most reliable for mobile)
+                    if (_a.sent()) {
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, tryWebShareWithFile(fileName, content, mimeType, pointCount, isAnonymized)];
+                case 2:
+                    // Method 2: Try Web Share API with File
+                    if (_a.sent()) {
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, tryWebShareWithURL(content, mimeType, pointCount, isAnonymized)];
+                case 3:
+                    // Method 3: Try Web Share API with URL
+                    if (_a.sent()) {
+                        return [2 /*return*/];
+                    }
+                    return [4 /*yield*/, tryDownloadLink(fileName, content, mimeType)];
+                case 4:
+                    // Method 4: Try download link (fallback for web)
+                    if (_a.sent()) {
+                        return [2 /*return*/];
+                    }
+                    // Method 5: Save to filesystem (final fallback)
+                    return [4 /*yield*/, saveToFilesystem(fileName, content, pointCount, isAnonymized)];
+                case 5:
+                    // Method 5: Save to filesystem (final fallback)
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    }); };
+    var tryCapacitorShare = function (fileName, content, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
+        var tempPath, fileUri, cleanupError_1, error_3;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 8, , 9]);
+                    // Check if Capacitor Share is available
+                    if (typeof Share === 'undefined' || !Share.share) {
+                        console.log('Capacitor Share not available');
+                        return [2 /*return*/, false];
+                    }
+                    tempPath = "temp_".concat(fileName);
+                    return [4 /*yield*/, Filesystem.writeFile({
+                            path: tempPath,
+                            data: content,
+                            directory: Directory.Cache,
+                            encoding: Encoding.UTF8,
+                        })];
+                case 1:
+                    _a.sent();
+                    return [4 /*yield*/, Filesystem.getUri({
+                            directory: Directory.Cache,
+                            path: tempPath
+                        })];
+                case 2:
+                    fileUri = _a.sent();
+                    // Share using Capacitor
+                    return [4 /*yield*/, Share.share({
+                            title: 'GPS Drawing',
+                            text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
+                            url: fileUri.uri,
+                            dialogTitle: 'Share GPS Drawing'
+                        })];
+                case 3:
+                    // Share using Capacitor
+                    _a.sent();
+                    _a.label = 4;
+                case 4:
+                    _a.trys.push([4, 6, , 7]);
+                    return [4 /*yield*/, Filesystem.deleteFile({
+                            path: tempPath,
+                            directory: Directory.Cache,
+                        })];
+                case 5:
+                    _a.sent();
+                    return [3 /*break*/, 7];
+                case 6:
+                    cleanupError_1 = _a.sent();
+                    console.warn('Failed to clean up temp file:', cleanupError_1);
+                    return [3 /*break*/, 7];
+                case 7:
+                    console.log('Successfully shared via Capacitor Share');
+                    return [2 /*return*/, true];
+                case 8:
+                    error_3 = _a.sent();
+                    console.warn('Capacitor Share failed:', error_3);
+                    return [2 /*return*/, false];
+                case 9: return [2 /*return*/];
+            }
+        });
+    }); };
+    var tryWebShareWithFile = function (fileName, content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
+        var blob, file, error_4;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    if (!navigator.share || !navigator.canShare) {
+                        console.log('Web Share API not available');
+                        return [2 /*return*/, false];
+                    }
+                    blob = new Blob([content], { type: mimeType });
+                    file = new File([blob], fileName, { type: mimeType });
+                    if (!navigator.canShare({ files: [file] })) {
+                        console.log('Web Share API cannot share this file type');
+                        return [2 /*return*/, false];
+                    }
+                    return [4 /*yield*/, navigator.share({
+                            title: 'GPS Drawing',
+                            text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
+                            files: [file]
+                        })];
+                case 1:
+                    _a.sent();
+                    console.log('Successfully shared via Web Share API with File');
+                    return [2 /*return*/, true];
+                case 2:
+                    error_4 = _a.sent();
+                    if (error_4.name === 'AbortError') {
+                        console.log('User cancelled share');
+                        return [2 /*return*/, true]; // Consider this a success since user chose to cancel
+                    }
+                    console.warn('Web Share with File failed:', error_4);
+                    return [2 /*return*/, false];
+                case 3: return [2 /*return*/];
+            }
+        });
+    }); };
+    var tryWebShareWithURL = function (content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
+        var blob, blobUrl_1, error_5;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    if (!navigator.share) {
+                        console.log('Web Share API not available');
+                        return [2 /*return*/, false];
+                    }
+                    blob = new Blob([content], { type: mimeType });
+                    blobUrl_1 = URL.createObjectURL(blob);
+                    return [4 /*yield*/, navigator.share({
+                            title: 'GPS Drawing',
+                            text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
+                            url: blobUrl_1
+                        })];
+                case 1:
+                    _a.sent();
+                    // Clean up blob URL after a delay
+                    setTimeout(function () {
+                        URL.revokeObjectURL(blobUrl_1);
+                    }, 1000);
+                    console.log('Successfully shared via Web Share API with URL');
+                    return [2 /*return*/, true];
+                case 2:
+                    error_5 = _a.sent();
+                    if (error_5.name === 'AbortError') {
+                        console.log('User cancelled share');
+                        return [2 /*return*/, true];
+                    }
+                    console.warn('Web Share with URL failed:', error_5);
+                    return [2 /*return*/, false];
+                case 3: return [2 /*return*/];
+            }
+        });
+    }); };
+    var tryDownloadLink = function (fileName, content, mimeType) { return __awaiter(_this, void 0, void 0, function () {
+        var blob, url_1, link;
+        return __generator(this, function (_a) {
+            try {
+                blob = new Blob([content], { type: mimeType });
+                url_1 = URL.createObjectURL(blob);
+                link = document.createElement('a');
+                link.href = url_1;
+                link.download = fileName;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                // Clean up
+                setTimeout(function () {
+                    URL.revokeObjectURL(url_1);
+                }, 1000);
+                alert("\u2705 Drawing downloaded as ".concat(fileName));
+                console.log('Successfully downloaded via download link');
+                return [2 /*return*/, true];
+            }
+            catch (error) {
+                console.warn('Download link method failed:', error);
+                return [2 /*return*/, false];
+            }
+            return [2 /*return*/];
+        });
+    }); };
+    var saveToFilesystem = function (fileName, content, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
+        var exportType, externalError_1, exportType;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 4]);
+                    return [4 /*yield*/, Filesystem.writeFile({
+                            path: fileName,
+                            data: content,
+                            directory: Directory.ExternalStorage,
+                            encoding: Encoding.UTF8,
+                        })];
+                case 1:
+                    _a.sent();
+                    exportType = isAnonymized ? 'anonymized' : 'exact';
+                    alert("\u2705 Drawing exported to Downloads/".concat(fileName, " (").concat(exportType, ", ").concat(pointCount, " points)"));
+                    return [3 /*break*/, 4];
+                case 2:
+                    externalError_1 = _a.sent();
+                    console.warn('External storage failed, trying Documents:', externalError_1);
+                    return [4 /*yield*/, Filesystem.writeFile({
+                            path: fileName,
+                            data: content,
+                            directory: Directory.Documents,
+                            encoding: Encoding.UTF8,
+                        })];
+                case 3:
+                    _a.sent();
+                    exportType = isAnonymized ? 'anonymized' : 'exact';
+                    alert("\u2705 Drawing exported to Documents/".concat(fileName, " (").concat(exportType, ", ").concat(pointCount, " points)"));
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
+            }
+        });
+    }); };
+    var handleExportError = function (error) {
+        var _a, _b, _c, _d;
+        if ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('permission')) {
+            alert('❌ Export failed: Storage permission denied. Please check app permissions.');
+        }
+        else if ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('space')) {
+            alert('❌ Export failed: Not enough storage space.');
+        }
+        else if (((_c = error.message) === null || _c === void 0 ? void 0 : _c.includes('network')) || ((_d = error.message) === null || _d === void 0 ? void 0 : _d.includes('fetch'))) {
+            alert('❌ Export failed: Network error. Please check your connection.');
+        }
+        else {
+            alert("\u274C Export failed: ".concat(error.message || 'Unknown error', ". Check console for details."));
+        }
+    };
     var clearAllData = function () { return __awaiter(_this, void 0, void 0, function () {
         var e_3;
         return __generator(this, function (_a) {
@@ -218,10 +471,43 @@ export function useFileOperations() {
             }
         });
     }); };
+    var generateSVGFromCanvas = function (_canvas, _ctx, logicalWidth, logicalHeight, _dpr, points, isAnonymized, anonymizationOrigin) {
+        // Create SVG header with clean styling (no text, only path and last point)
+        var svgHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg width=\"".concat(logicalWidth, "\" height=\"").concat(logicalHeight, "\" viewBox=\"0 0 ").concat(logicalWidth, " ").concat(logicalHeight, "\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <style>\n      .gps-path { stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }\n      .gps-point { fill: white; }\n    </style>\n  </defs>\n  <rect width=\"100%\" height=\"100%\" fill=\"black\"/>");
+        // Get display points (anonymized if needed)
+        var displayPoints = isAnonymized && anonymizationOrigin
+            ? anonymizePoints(points, anonymizationOrigin)
+            : points;
+        // Calculate bounds for projection
+        var bounds = calculateBounds(displayPoints);
+        // Generate SVG path from points
+        var pathElement = '';
+        var lastPointElement = '';
+        if (displayPoints.length > 0 && bounds) {
+            // Create path for the GPS track
+            if (displayPoints.length > 1) {
+                var pathData = displayPoints.map(function (point, index) {
+                    var _a = project(point, bounds, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
+                    return "".concat(index === 0 ? 'M' : 'L', " ").concat(x, " ").concat(y);
+                }).join(' ');
+                pathElement = "<path d=\"".concat(pathData, "\" class=\"gps-path\"/>");
+            }
+            // Create circle only for the last point
+            if (displayPoints.length > 0) {
+                var lastPoint = displayPoints[displayPoints.length - 1];
+                var _a = project(lastPoint, bounds, logicalWidth, logicalHeight), x = _a.x, y = _a.y;
+                lastPointElement = "<circle cx=\"".concat(x, "\" cy=\"").concat(y, "\" r=\"4\" class=\"gps-point\"/>");
+            }
+        }
+        // Complete SVG content (no metadata text, clean image)
+        var svgContent = "".concat(svgHeader, "\n  \n  <!-- GPS Path -->\n  ").concat(pathElement, "\n  \n  <!-- Last GPS Point -->\n  ").concat(lastPointElement, "\n</svg>");
+        return svgContent;
+    };
     return {
         savePointsToFile: savePointsToFile,
         loadPointsFromFile: loadPointsFromFile,
         exportPoints: exportPoints,
+        exportCanvasAsImage: exportCanvasAsImage,
         clearAllData: clearAllData
     };
 }

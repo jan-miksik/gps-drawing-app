@@ -45,8 +45,16 @@
       :background-active="isBackgroundGPSActive"
       @close="showModal = false"
       @toggle-anonymization="toggleAnonymization"
-      @export="handleExport"
+      @export="showExportModal = true"
       @clear="handleClearAll"
+    />
+
+    <ExportModal
+      :show="showExportModal"
+      :points="points"
+      @close="showExportModal = false"
+      @export-image="handleExportImage"
+      @export-data="handleExportData"
     />
 
     <DevLogsModal
@@ -70,12 +78,14 @@ import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
 import GPSStatusBar from './components/GPSStatusBar.vue';
 import GPSPointsModal from './components/GPSPointsModal.vue';
+import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { getSignalQuality } from './utils/gpsUtils';
 
 // State
 const showModal = ref(false);
+const showExportModal = ref(false);
 const points = ref<Point[]>([]);
 const isAnonymized = ref(true);
 const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
@@ -84,7 +94,7 @@ const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
 const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, shouldAddPoint, processNewPoint } = useGPS();
 const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
-const { loadPointsFromFile, savePointsToFile, exportPoints, clearAllData } = useFileOperations();
+const { loadPointsFromFile, savePointsToFile, exportPoints, exportCanvasAsImage, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, showDevLogs, hideDevLogs, formatLogTime } = useDevLogs();
 const { 
   handleTouchStart, 
@@ -188,12 +198,28 @@ const toggleAnonymization = (): void => {
   redrawCanvas();
 };
 
-const handleExport = async (): Promise<void> => {
+const handleExportImage = async (): Promise<void> => {
   try {
-    await exportPoints(points.value, isAnonymized.value, anonymizationOrigin.value);
+    if (!canvasEl.value) {
+      logError('Canvas element not available for image export');
+      return;
+    }
+    
+    await exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value);
+    showExportModal.value = false;
+    logInfo('Drawing exported as SVG successfully');
+  } catch (error) {
+    logError('Failed to export drawing as SVG', error);
+  }
+};
+
+const handleExportData = async (coordinateType: 'relative' | 'exact'): Promise<void> => {
+  try {
+    await exportPoints(points.value, coordinateType, anonymizationOrigin.value);
+    showExportModal.value = false;
     logInfo('GPS points exported successfully', { 
       count: points.value.length, 
-      anonymized: isAnonymized.value 
+      coordinateType 
     });
   } catch (error) {
     logError('Failed to export GPS points', error);

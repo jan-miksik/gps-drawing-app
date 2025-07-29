@@ -21,6 +21,9 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'light',
       backgroundColor: '#000000'
+    },
+    Share: {
+      // Share plugin configuration
     }
   }
 };
