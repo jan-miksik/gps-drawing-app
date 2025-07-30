@@ -8,6 +8,71 @@
       
       <div class="modal-body">
         <div class="settings-section">
+          <h3>Canvas Settings</h3>
+          
+          <div class="setting-item">
+            <label class="setting-label">Line Width</label>
+            <div class="setting-control">
+              <input 
+                type="number" 
+                v-model.number="localSettings.LINE_WIDTH"
+                min="1" 
+                max="10"
+                step="0.5"
+                class="setting-input"
+              />
+              <span class="setting-unit">px</span>
+            </div>
+            <div class="setting-description">Width of the GPS track line</div>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-label">Scale Range</label>
+            <div class="setting-control scale-range">
+              <div class="scale-input-group">
+                <label class="scale-label">Min</label>
+                <input 
+                  type="number" 
+                  v-model.number="localSettings.MIN_SCALE"
+                  min="0.01" 
+                  max="1"
+                  step="0.01"
+                  class="setting-input"
+                />
+              </div>
+              <div class="scale-input-group">
+                <label class="scale-label">Max</label>
+                <input 
+                  type="number" 
+                  v-model.number="localSettings.MAX_SCALE"
+                  min="1" 
+                  max="100"
+                  step="0.5"
+                  class="setting-input"
+                />
+              </div>
+            </div>
+            <div class="setting-description">Minimum and maximum zoom levels</div>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-label">Pinch Zoom Sensitivity</label>
+            <div class="setting-control">
+              <input 
+                type="number" 
+                v-model.number="localSettings.PINCH_ZOOM_SENSITIVITY"
+                min="0.1" 
+                max="5"
+                step="0.1"
+                class="setting-input"
+              />
+            </div>
+            <div class="setting-description">Sensitivity for pinch-to-zoom <br/>
+              (higher = faster)</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <h3>GPS Settings</h3>
           
           <div class="setting-item">
@@ -22,7 +87,8 @@
               />
               <span class="setting-unit">meters</span>
             </div>
-            <div class="setting-description">Reject GPS points with worse accuracy</div>
+            <div class="setting-description">Minimum accuracy to add GPS point <br/>
+              (lower = more accurate)</div>
           </div>
 
           <div class="setting-item">
@@ -55,75 +121,10 @@
             <div class="setting-description">Minimum time between GPS points</div>
           </div>
         </div>
-
-        <div class="settings-section">
-          <h3>Canvas Settings</h3>
-          
-          <div class="setting-item">
-            <label class="setting-label">Pinch Zoom Sensitivity</label>
-            <div class="setting-control">
-              <input 
-                type="number" 
-                v-model.number="localSettings.PINCH_ZOOM_SENSITIVITY"
-                min="0.1" 
-                max="5"
-                step="0.1"
-                class="setting-input"
-              />
-            </div>
-            <div class="setting-description">Sensitivity for pinch-to-zoom (lower = slower)</div>
-          </div>
-
-          <div class="setting-item">
-            <label class="setting-label">Min Scale</label>
-            <div class="setting-control">
-              <input 
-                type="number" 
-                v-model.number="localSettings.MIN_SCALE"
-                min="0.01" 
-                max="1"
-                step="0.01"
-                class="setting-input"
-              />
-            </div>
-            <div class="setting-description">Minimum zoom level</div>
-          </div>
-
-          <div class="setting-item">
-            <label class="setting-label">Max Scale</label>
-            <div class="setting-control">
-              <input 
-                type="number" 
-                v-model.number="localSettings.MAX_SCALE"
-                min="1" 
-                max="50"
-                step="0.5"
-                class="setting-input"
-              />
-            </div>
-            <div class="setting-description">Maximum zoom level</div>
-          </div>
-
-          <div class="setting-item">
-            <label class="setting-label">Line Width</label>
-            <div class="setting-control">
-              <input 
-                type="number" 
-                v-model.number="localSettings.LINE_WIDTH"
-                min="1" 
-                max="10"
-                step="0.5"
-                class="setting-input"
-              />
-              <span class="setting-unit">px</span>
-            </div>
-            <div class="setting-description">Width of the GPS track line</div>
-          </div>
-        </div>
       </div>
       
       <div class="modal-footer">
-        <button @click="handleReset" class="reset-button" :disabled="!hasChanges">
+        <button @click="handleReset" class="reset-button" :disabled="!hasChangesFromDefaults">
           Reset to Defaults
         </button>
         <div class="footer-right">
@@ -138,6 +139,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import { DEFAULT_GPS_CONFIG, DEFAULT_CANVAS_CONFIG } from '../constants/gpsConstants';
 
 interface Settings {
   ACCURACY_THRESHOLD: number;
@@ -162,15 +164,15 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Default values
+// Default values imported from constants
 const defaultSettings: Settings = {
-  ACCURACY_THRESHOLD: 20,
-  DISTANCE_THRESHOLD: 10,
-  MIN_TIME_INTERVAL: 5,
-  PINCH_ZOOM_SENSITIVITY: 1,
-  MIN_SCALE: 0.1,
-  MAX_SCALE: 10,
-  LINE_WIDTH: 2,
+  ACCURACY_THRESHOLD: DEFAULT_GPS_CONFIG.ACCURACY_THRESHOLD,
+  DISTANCE_THRESHOLD: DEFAULT_GPS_CONFIG.DISTANCE_THRESHOLD,
+  MIN_TIME_INTERVAL: DEFAULT_GPS_CONFIG.MIN_TIME_INTERVAL / 1000, // Convert from ms to seconds for UI
+  PINCH_ZOOM_SENSITIVITY: DEFAULT_CANVAS_CONFIG.PINCH_ZOOM_SENSITIVITY,
+  MIN_SCALE: DEFAULT_CANVAS_CONFIG.MIN_SCALE,
+  MAX_SCALE: DEFAULT_CANVAS_CONFIG.MAX_SCALE,
+  LINE_WIDTH: DEFAULT_CANVAS_CONFIG.LINE_WIDTH,
 };
 
 // Local copy of settings for editing
@@ -181,9 +183,14 @@ watch(() => props.settings, (newSettings) => {
   localSettings.value = { ...newSettings };
 }, { deep: true });
 
-// Check if settings have changed
+// Check if settings have changed from original
 const hasChanges = computed(() => {
   return JSON.stringify(localSettings.value) !== JSON.stringify(props.settings);
+});
+
+// Check if any value differs from defaults
+const hasChangesFromDefaults = computed(() => {
+  return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
 });
 
 const handleReset = (): void => {
@@ -277,7 +284,7 @@ const handleSave = (): void => {
 }
 
 .settings-section {
-  margin-bottom: 30px;
+  margin-bottom: 80px;
   text-align: left;
 }
 
@@ -330,6 +337,25 @@ const handleSave = (): void => {
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   min-width: 20px;
+}
+
+.scale-range {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.scale-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.scale-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .setting-description {

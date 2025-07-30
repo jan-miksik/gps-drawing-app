@@ -2,6 +2,6 @@ $ npx cap run android --target emulator-5554 --live-reload --host 172.31.99.45:3
 $ npx cap run android -l --host $(ifconfig en0 | grep "inet " | awk '{print $2}')
 
 $ adb reverse tcp:3000 tcp:3000 
-$ npx cap run android --target 87f9c85f --live-reload --host localhost
+$ adb reverse tcp:3000 tcp:3000 && npx cap run android --target 87f9c85f --live-reload --host localhost
 
 87f9c85f

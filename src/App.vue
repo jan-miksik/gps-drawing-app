@@ -40,7 +40,7 @@
       class="reset-zoom-button"
       title="Reset zoom and center"
     >
-      <span class="reset-zoom-icon">⌖</span>
+      <span class="reset-zoom-icon">⏮</span>
     </button>
 
     <GPSPointsModal
@@ -287,6 +287,9 @@ const handleSettingsSave = (newSettings: any): void => {
     MAX_SCALE: newSettings.MAX_SCALE,
     LINE_WIDTH: newSettings.LINE_WIDTH,
   });
+  
+  // Redraw canvas to apply visual changes immediately
+  redrawCanvas();
   
   logInfo('Settings updated', newSettings);
 };

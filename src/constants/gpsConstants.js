@@ -11,7 +11,7 @@ var __assign = (this && this.__assign) || function () {
 };
 import { ref } from 'vue';
 // Default values for GPS configuration
-var DEFAULT_GPS_CONFIG = {
+export var DEFAULT_GPS_CONFIG = {
     ACCURACY_THRESHOLD: 20, // meters - reject points with worse accuracy
     DISTANCE_THRESHOLD: 10, // meters - minimum distance to add new point
     SMOOTHING_WINDOW: 3, // number of points to average for smoothing
@@ -21,7 +21,7 @@ var DEFAULT_GPS_CONFIG = {
     POINTS_PRECISION: 5, // Decimal precision for coordinates
 };
 // Default values for Canvas configuration
-var DEFAULT_CANVAS_CONFIG = {
+export var DEFAULT_CANVAS_CONFIG = {
     DRAWING_PADDING: 40, // In logical pixels
     CURRENT_POSITION_DOT_SIZE: 10,
     CROSS_SIZE: 20, // Size of center cross when no points
