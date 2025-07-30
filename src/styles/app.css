@@ -110,4 +110,47 @@ body, html, #app {
   text-decoration-color: rgb(131, 131, 131);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
+}
+
+/* Permission Status Button */
+.permission-status-button {
+  position: absolute;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  left: 30px;
+  background-color: rgba(239, 68, 68, 0.9);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 16px;
+  z-index: 10;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  margin-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+.permission-status-button:hover {
+  background-color: rgba(239, 68, 68, 1);
+  transform: scale(1.1);
+}
+
+.permission-icon {
+  font-size: 18px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 } 

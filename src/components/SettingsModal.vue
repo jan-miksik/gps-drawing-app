@@ -8,7 +8,7 @@
       
       <div class="modal-body">
         <div class="settings-section">
-          <h3>Canvas Settings</h3>
+          <h3>Canvas</h3>
           
           <div class="setting-item">
             <label class="setting-label">Line Width</label>
@@ -73,7 +73,7 @@
         </div>
 
         <div class="settings-section">
-          <h3>GPS Settings</h3>
+          <h3>GPS</h3>
           
           <div class="setting-item">
             <label class="setting-label">Accuracy Threshold</label>
