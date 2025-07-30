@@ -1,12 +1,3 @@
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 import { GPS_CONFIG } from '../constants/gpsConstants';
 // Distance calculation function (Haversine formula)
 export var calculateDistance = function (lat1, lon1, lat2, lon2) {
@@ -28,18 +19,11 @@ export var getSignalQuality = function (accuracy) {
         return 'fair';
     return 'poor';
 };
-export var smoothGPSPoints = function (points, newPoint) {
-    if (points.length < GPS_CONFIG.SMOOTHING_WINDOW) {
-        return newPoint;
-    }
-    // Get the last N points including the new one
-    var recentPoints = __spreadArray(__spreadArray([], points.slice(-GPS_CONFIG.SMOOTHING_WINDOW + 1), true), [newPoint], false);
-    // Calculate moving average
-    var avgLat = recentPoints.reduce(function (sum, p) { return sum + p.lat; }, 0) / recentPoints.length;
-    var avgLon = recentPoints.reduce(function (sum, p) { return sum + p.lon; }, 0) / recentPoints.length;
+export var smoothGPSPoints = function (newPoint) {
+    // Smoothing disabled - return the new point with precision rounding
     return {
-        lat: Math.round(avgLat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
-        lon: Math.round(avgLon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+        lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+        lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
         timestamp: newPoint.timestamp,
         accuracy: newPoint.accuracy
     };

@@ -20,6 +20,10 @@ var handleExportRelativeData = function () {
 var handleExportExactData = function () {
     emit('export-data', 'exact');
 };
+var handleCancel = function () {
+    console.log('Cancel button clicked - closing modal without export');
+    emit('close');
+};
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -69,16 +73,7 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            if (!(__VLS_ctx.show))
-                return;
-            __VLS_ctx.$emit('close');
-        } }, { class: "close-button-footer" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleCancel) }, { class: "close-button-footer" }));
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
@@ -106,6 +101,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             handleExportImage: handleExportImage,
             handleExportRelativeData: handleExportRelativeData,
             handleExportExactData: handleExportExactData,
+            handleCancel: handleCancel,
         };
     },
     __typeEmits: {},

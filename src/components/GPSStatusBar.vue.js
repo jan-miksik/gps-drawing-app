@@ -23,13 +23,8 @@ var __VLS_directives;
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status" }, { class: ("signal-".concat(__VLS_ctx.gpsSignalQuality)) }));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-status-text" }));
-if (__VLS_ctx.currentAccuracy !== null) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-value" }));
-    (__VLS_ctx.currentAccuracy.toFixed(0));
-}
 /** @type {__VLS_StyleScopedClasses['accuracy-status']} */ ;
 /** @type {__VLS_StyleScopedClasses['accuracy-status-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['accuracy-value']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {

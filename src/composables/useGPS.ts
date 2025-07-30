@@ -98,6 +98,8 @@ export function useGPS() {
     }
 
     const lastPoint = points[points.length - 1];
+
+    logInfo('shouldAddPoint 1');
     
     // Check time interval - minimum 5 seconds between points
     const timeDiff = newPoint.timestamp - lastPoint.timestamp;
@@ -105,6 +107,8 @@ export function useGPS() {
       console.log(`Skipping GPS point: time ${(timeDiff/1000).toFixed(1)}s < ${GPS_CONFIG.MIN_TIME_INTERVAL/1000}s threshold`);
       return false;
     }
+
+    logInfo('shouldAddPoint 2');
     
     // Check distance - minimum 10 meters between points
     const distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
@@ -112,14 +116,16 @@ export function useGPS() {
       console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_CONFIG.DISTANCE_THRESHOLD}m threshold`);
       return false;
     }
+
+    logInfo('shouldAddPoint 3');
     
     console.log(`Adding GPS point: distance ${distance.toFixed(1)}m, time ${(timeDiff/1000).toFixed(1)}s from last point`);
     return true;
   };
 
-  const processNewPoint = (points: Point[], newPoint: Point): Point => {
+  const processNewPoint = (newPoint: Point): Point => {
     logInfo('processNewPoint', newPoint);
-    return smoothGPSPoints(points, newPoint);
+    return smoothGPSPoints(newPoint);
   };
 
   return {

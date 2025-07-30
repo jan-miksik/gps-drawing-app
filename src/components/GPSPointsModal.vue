@@ -5,15 +5,27 @@
         <div class="header-left">
           <h2>GPS Points ({{ points.length }})</h2>
           <div class="header-controls">
-            <label class="toggle-label">
-              <input 
-                type="checkbox" 
-                :checked="!isAnonymized"
-                @change="$emit('toggle-anonymization')"
-                class="toggle-checkbox"
-              />
-              <span class="toggle-text">Geopoint</span>
-            </label>
+            <div class="geopoint-section">
+              <label class="toggle-label">
+                <input 
+                  type="checkbox" 
+                  :checked="!isAnonymized"
+                  @change="$emit('toggle-anonymization')"
+                  class="toggle-checkbox"
+                />
+                <span class="toggle-text">Latitude - Longitude</span>
+              </label>
+              
+              <div class="accuracy-info">
+                <div class="accuracy-label">Current Accuracy:</div>
+                <div class="accuracy-value">
+                  <span v-if="currentAccuracy !== null" class="accuracy-text">
+                    {{ currentAccuracy.toFixed(0) }}m
+                  </span>
+                  <span v-else class="accuracy-text">Unknown</span>
+                </div>
+              </div>
+            </div>
             
             <!-- <div 
               v-if="backgroundActive" 
@@ -94,6 +106,7 @@ interface Props {
   isAnonymized: boolean;
   anonymizationOrigin: AnonymizationOrigin | null;
   backgroundActive: boolean;
+  currentAccuracy: number | null;
 }
 
 interface Emits {
@@ -461,5 +474,36 @@ const handleClearAll = (): void => {
 
 .export-button:hover, .clear-button-1:hover, .close-button-footer:hover {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+.geopoint-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accuracy-info {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  margin-left: 0px;
+}
+
+.accuracy-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.accuracy-value {
+  display: flex;
+  align-items: center;
+}
+
+.accuracy-text {
+  font-size: 11px;
+  color: white;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
 }
 </style> 

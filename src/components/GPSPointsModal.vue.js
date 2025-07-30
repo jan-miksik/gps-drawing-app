@@ -122,6 +122,7 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
     (__VLS_ctx.points.length);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "header-controls" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "geopoint-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "toggle-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign(__assign({ onChange: function () {
             var _a = [];
@@ -134,6 +135,16 @@ if (__VLS_ctx.show) {
             __VLS_ctx.$emit('toggle-anonymization');
         } }, { type: "checkbox", checked: (!__VLS_ctx.isAnonymized) }), { class: "toggle-checkbox" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "toggle-text" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-info" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "accuracy-value" }));
+    if (__VLS_ctx.currentAccuracy !== null) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-text" }));
+        (__VLS_ctx.currentAccuracy.toFixed(0));
+    }
+    else {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-text" }));
+    }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -220,9 +231,15 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-left']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-controls']} */ ;
+/** @type {__VLS_StyleScopedClasses['geopoint-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-info']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-value']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['accuracy-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-points']} */ ;

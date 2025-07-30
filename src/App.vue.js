@@ -61,7 +61,7 @@ import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
-import GPSStatusBar from './components/GPSStatusBar.vue';
+// import GPSStatusBar from './components/GPSStatusBar.vue';
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
@@ -78,7 +78,7 @@ var _a = useGPS(), currentAccuracy = _a.currentAccuracy, gpsSignalQuality = _a.g
 var _b = useBackgroundGPS(), isBackgroundGPSActive = _b.isBackgroundGPSActive, initBackgroundGPS = _b.initBackgroundGPS, stopBackgroundGPS = _b.stopBackgroundGPS, removeBackgroundGPSListeners = _b.removeBackgroundGPSListeners;
 var _c = useCanvas(), canvasEl = _c.canvasEl, setupCanvas = _c.setupCanvas, drawPath = _c.drawPath, calculateBounds = _c.calculateBounds, pan = _c.pan, zoom = _c.zoom, resetView = _c.resetView, scale = _c.scale, viewOffsetX = _c.viewOffsetX, viewOffsetY = _c.viewOffsetY;
 var _d = useFileOperations(), loadPointsFromFile = _d.loadPointsFromFile, savePointsToFile = _d.savePointsToFile, exportPoints = _d.exportPoints, exportCanvasAsImage = _d.exportCanvasAsImage, clearAllData = _d.clearAllData;
-var _e = useDevLogs(), logs = _e.logs, isDevLogsVisible = _e.isDevLogsVisible, logInfo = _e.logInfo, logWarn = _e.logWarn, logError = _e.logError, clearLogs = _e.clearLogs, showDevLogs = _e.showDevLogs, hideDevLogs = _e.hideDevLogs, formatLogTime = _e.formatLogTime;
+var _e = useDevLogs(), logs = _e.logs, isDevLogsVisible = _e.isDevLogsVisible, logInfo = _e.logInfo, logWarn = _e.logWarn, logError = _e.logError, clearLogs = _e.clearLogs, hideDevLogs = _e.hideDevLogs, formatLogTime = _e.formatLogTime;
 var _f = useInteractions(function (deltaX, deltaY) {
     pan(deltaX, deltaY);
     redrawCanvas();
@@ -132,7 +132,7 @@ var addBackgroundGPSPoint = function (newPoint) { return __awaiter(void 0, void 
                 if (!shouldAddPoint(points.value, newPoint)) {
                     return [2 /*return*/];
                 }
-                processedPoint = processNewPoint(points.value, newPoint);
+                processedPoint = processNewPoint(newPoint);
                 logInfo('Background GPS point processedPoint', processedPoint);
                 points.value.push(processedPoint);
                 // Set anonymization origin if this is the first point
@@ -162,8 +162,31 @@ var toggleAnonymization = function () {
     }
     redrawCanvas();
 };
-var handleExportImage = function () { return __awaiter(void 0, void 0, void 0, function () {
+var handleDirectExport = function () { return __awaiter(void 0, void 0, void 0, function () {
     var error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                if (!canvasEl.value) {
+                    logError('Canvas element not available for image export');
+                    return [2 /*return*/];
+                }
+                return [4 /*yield*/, exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value)];
+            case 1:
+                _a.sent();
+                logInfo('Drawing exported as SVG successfully');
+                return [3 /*break*/, 3];
+            case 2:
+                error_1 = _a.sent();
+                logError('Failed to export drawing as SVG', error_1);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+var handleExportImage = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var error_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -179,15 +202,15 @@ var handleExportImage = function () { return __awaiter(void 0, void 0, void 0, f
                 logInfo('Drawing exported as SVG successfully');
                 return [3 /*break*/, 3];
             case 2:
-                error_1 = _a.sent();
-                logError('Failed to export drawing as SVG', error_1);
+                error_2 = _a.sent();
+                logError('Failed to export drawing as SVG', error_2);
                 return [3 /*break*/, 3];
             case 3: return [2 /*return*/];
         }
     });
 }); };
 var handleExportData = function (coordinateType) { return __awaiter(void 0, void 0, void 0, function () {
-    var error_2;
+    var error_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -202,8 +225,8 @@ var handleExportData = function (coordinateType) { return __awaiter(void 0, void
                 });
                 return [3 /*break*/, 3];
             case 2:
-                error_2 = _a.sent();
-                logError('Failed to export GPS points', error_2);
+                error_3 = _a.sent();
+                logError('Failed to export GPS points', error_3);
                 return [3 /*break*/, 3];
             case 3: return [2 /*return*/];
         }
@@ -234,7 +257,7 @@ var handleResetZoom = function () {
 };
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var loadedPoints, error_3, fallbackError_1;
+    var loadedPoints, error_4, fallbackError_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -265,8 +288,8 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 logInfo('Background GPS initialized successfully');
                 return [3 /*break*/, 9];
             case 4:
-                error_3 = _a.sent();
-                logError('Failed to initialize background GPS', error_3);
+                error_4 = _a.sent();
+                logError('Failed to initialize background GPS', error_4);
                 // Fallback to regular GPS if background GPS fails
                 logWarn('Falling back to regular GPS tracking');
                 _a.label = 5;
@@ -291,7 +314,7 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
     });
 }); });
 onUnmounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var error_4;
+    var error_5;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -309,8 +332,8 @@ onUnmounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 console.log('Background GPS stopped and cleaned up');
                 return [3 /*break*/, 5];
             case 4:
-                error_4 = _a.sent();
-                console.error('Error stopping background GPS:', error_4);
+                error_5 = _a.sent();
+                console.error('Error stopping background GPS:', error_5);
                 return [3 /*break*/, 5];
             case 5:
                 window.removeEventListener('resize', setupCanvas);
@@ -329,17 +352,6 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-/** @type {[typeof GPSStatusBar, ]} */ ;
-// @ts-ignore
-var __VLS_0 = __VLS_asFunctionalComponent(GPSStatusBar, new GPSStatusBar(__assign({ 'onClick': {} }, { gpsSignalQuality: (__VLS_ctx.gpsSignalQuality), currentAccuracy: (__VLS_ctx.currentAccuracy) })));
-var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { gpsSignalQuality: (__VLS_ctx.gpsSignalQuality), currentAccuracy: (__VLS_ctx.currentAccuracy) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
-var __VLS_3;
-var __VLS_4;
-var __VLS_5;
-var __VLS_6 = {
-    onClick: (__VLS_ctx.showDevLogs)
-};
-var __VLS_2;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -350,18 +362,20 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     } }, { class: "gps-points-button" }), { title: "Click: Open GPS Points" }));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "gps-points-button-text" }));
 (__VLS_ctx.points.length);
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleDirectExport) }, { class: "export-button-main" }), { title: "Export drawing as image" }));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "export-button-text" }));
 if (__VLS_ctx.scale !== 1 || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
 }
 /** @type {[typeof GPSPointsModal, ]} */ ;
 // @ts-ignore
-var __VLS_7 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive) })));
-var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive) })], __VLS_functionalComponentArgsRest(__VLS_7), false));
-var __VLS_10;
-var __VLS_11;
-var __VLS_12;
-var __VLS_13 = {
+var __VLS_0 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive), currentAccuracy: (__VLS_ctx.currentAccuracy) })));
+var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), backgroundActive: (__VLS_ctx.isBackgroundGPSActive), currentAccuracy: (__VLS_ctx.currentAccuracy) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+var __VLS_3;
+var __VLS_4;
+var __VLS_5;
+var __VLS_6 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -371,10 +385,10 @@ var __VLS_13 = {
         __VLS_ctx.showModal = false;
     }
 };
-var __VLS_14 = {
+var __VLS_7 = {
     onToggleAnonymization: (__VLS_ctx.toggleAnonymization)
 };
-var __VLS_15 = {
+var __VLS_8 = {
     onExport: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -384,18 +398,18 @@ var __VLS_15 = {
         __VLS_ctx.showExportModal = true;
     }
 };
-var __VLS_16 = {
+var __VLS_9 = {
     onClear: (__VLS_ctx.handleClearAll)
 };
-var __VLS_9;
+var __VLS_2;
 /** @type {[typeof ExportModal, ]} */ ;
 // @ts-ignore
-var __VLS_17 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
-var __VLS_18 = __VLS_17.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_17), false));
-var __VLS_20;
-var __VLS_21;
-var __VLS_22;
-var __VLS_23 = {
+var __VLS_10 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
+var __VLS_11 = __VLS_10.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_10), false));
+var __VLS_13;
+var __VLS_14;
+var __VLS_15;
+var __VLS_16 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -405,37 +419,38 @@ var __VLS_23 = {
         __VLS_ctx.showExportModal = false;
     }
 };
-var __VLS_24 = {
+var __VLS_17 = {
     onExportImage: (__VLS_ctx.handleExportImage)
 };
-var __VLS_25 = {
+var __VLS_18 = {
     onExportData: (__VLS_ctx.handleExportData)
 };
-var __VLS_19;
+var __VLS_12;
 /** @type {[typeof DevLogsModal, ]} */ ;
 // @ts-ignore
-var __VLS_26 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })));
-var __VLS_27 = __VLS_26.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })], __VLS_functionalComponentArgsRest(__VLS_26), false));
-var __VLS_29;
-var __VLS_30;
-var __VLS_31;
-var __VLS_32 = {
+var __VLS_19 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })));
+var __VLS_20 = __VLS_19.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })], __VLS_functionalComponentArgsRest(__VLS_19), false));
+var __VLS_22;
+var __VLS_23;
+var __VLS_24;
+var __VLS_25 = {
     onClose: (__VLS_ctx.hideDevLogs)
 };
-var __VLS_33 = {
+var __VLS_26 = {
     onClear: (__VLS_ctx.clearLogs)
 };
-var __VLS_28;
+var __VLS_21;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['export-button-main']} */ ;
+/** @type {__VLS_StyleScopedClasses['export-button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-zoom-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-zoom-icon']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
-            GPSStatusBar: GPSStatusBar,
             GPSPointsModal: GPSPointsModal,
             ExportModal: ExportModal,
             DevLogsModal: DevLogsModal,
@@ -445,7 +460,6 @@ var __VLS_self = (await import('vue')).defineComponent({
             isAnonymized: isAnonymized,
             anonymizationOrigin: anonymizationOrigin,
             currentAccuracy: currentAccuracy,
-            gpsSignalQuality: gpsSignalQuality,
             isBackgroundGPSActive: isBackgroundGPSActive,
             canvasEl: canvasEl,
             scale: scale,
@@ -454,7 +468,6 @@ var __VLS_self = (await import('vue')).defineComponent({
             logs: logs,
             isDevLogsVisible: isDevLogsVisible,
             clearLogs: clearLogs,
-            showDevLogs: showDevLogs,
             hideDevLogs: hideDevLogs,
             formatLogTime: formatLogTime,
             handleTouchStart: handleTouchStart,
@@ -466,6 +479,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             handleWheel: handleWheel,
             displayPoints: displayPoints,
             toggleAnonymization: toggleAnonymization,
+            handleDirectExport: handleDirectExport,
             handleExportImage: handleExportImage,
             handleExportData: handleExportData,
             handleClearAll: handleClearAll,

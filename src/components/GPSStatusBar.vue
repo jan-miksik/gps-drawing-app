@@ -1,10 +1,7 @@
 <template>
   <div class="accuracy-status" :class="`signal-${gpsSignalQuality}`">
     <div class="accuracy-status-text">
-      Accuracy
-      <span v-if="currentAccuracy !== null" class="accuracy-value">
-        ±{{ currentAccuracy.toFixed(0) }}m
-      </span>
+      GPS
     </div>
   </div>
 </template>
@@ -14,7 +11,6 @@ import type { GPSSignalQuality } from '../types/gps';
 
 interface Props {
   gpsSignalQuality: GPSSignalQuality;
-  currentAccuracy: number | null;
 }
 
 defineProps<Props>();

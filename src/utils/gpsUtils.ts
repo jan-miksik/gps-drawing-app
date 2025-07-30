@@ -21,21 +21,11 @@ export const getSignalQuality = (accuracy: number): GPSSignalQuality => {
   return 'poor';
 };
 
-export const smoothGPSPoints = (points: Point[], newPoint: Point): Point => {
-  if (points.length < GPS_CONFIG.SMOOTHING_WINDOW) {
-    return newPoint;
-  }
-  
-  // Get the last N points including the new one
-  const recentPoints = [...points.slice(-GPS_CONFIG.SMOOTHING_WINDOW + 1), newPoint];
-  
-  // Calculate moving average
-  const avgLat = recentPoints.reduce((sum, p) => sum + p.lat, 0) / recentPoints.length;
-  const avgLon = recentPoints.reduce((sum, p) => sum + p.lon, 0) / recentPoints.length;
-  
+export const smoothGPSPoints = (newPoint: Point): Point => {
+  // Smoothing disabled - return the new point with precision rounding
   return {
-    lat: Math.round(avgLat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
-    lon: Math.round(avgLon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+    lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+    lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
     timestamp: newPoint.timestamp,
     accuracy: newPoint.accuracy
   };

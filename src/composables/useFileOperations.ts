@@ -143,27 +143,22 @@ export function useFileOperations() {
     pointCount: number,
     isAnonymized: boolean
   ): Promise<void> => {
-    // Method 1: Try Capacitor Share plugin (most reliable for mobile)
+    // Method 1: Try Capacitor Share plugin (includes Web Share API with cancellation handling)
     if (await tryCapacitorShare(fileName, content, pointCount, isAnonymized)) {
       return;
     }
 
-    // Method 2: Try Web Share API with File
-    if (await tryWebShareWithFile(fileName, content, mimeType, pointCount, isAnonymized)) {
-      return;
-    }
-
-    // Method 3: Try Web Share API with URL
+    // Method 2: Try Web Share API with URL
     if (await tryWebShareWithURL(content, mimeType, pointCount, isAnonymized)) {
       return;
     }
 
-    // Method 4: Try download link (fallback for web)
+    // Method 3: Try download link (fallback for web)
     if (await tryDownloadLink(fileName, content, mimeType)) {
       return;
     }
 
-    // Method 5: Save to filesystem (final fallback)
+    // Method 4: Save to filesystem (final fallback)
     await saveToFilesystem(fileName, content, pointCount, isAnonymized);
   };
 
@@ -180,15 +175,37 @@ export function useFileOperations() {
         return false;
       }
 
-      // Save file temporarily first
-      const tempPath = `temp_${fileName}`;
-      let dataToWrite: string;
+      // Create blob and file for sharing (don't save to filesystem yet)
+      const blob = new Blob([content], { type: 'image/svg+xml' });
+      const file = new File([blob], fileName, { type: 'image/svg+xml' });
 
-      dataToWrite = content;
+      // Try Web Share API first (it has better cancellation handling)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'GPS Drawing',
+            text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
+            files: [file]
+          });
+          console.log('Successfully shared via Web Share API');
+          return true;
+        } catch (shareError: any) {
+          if (shareError.name === 'AbortError') {
+            console.log('User cancelled share');
+            return true; // Consider this a success since user chose to cancel
+          }
+          console.warn('Web Share failed, falling back to Capacitor Share:', shareError);
+        }
+      }
 
+      // For Capacitor Share, we need to save the file temporarily
+      // But we'll use a unique timestamp to avoid conflicts and clean up immediately
+      const timestamp = Date.now();
+      const tempPath = `temp_${timestamp}_${fileName}`;
+      
       await Filesystem.writeFile({
         path: tempPath,
-        data: dataToWrite,
+        data: content,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
       });
@@ -199,71 +216,78 @@ export function useFileOperations() {
         path: tempPath
       });
 
-      // Share using Capacitor
-      await Share.share({
-        title: 'GPS Drawing',
-        text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
-        url: fileUri.uri,
-        dialogTitle: 'Share GPS Drawing'
-      });
-
-      // Clean up temp file
       try {
-        await Filesystem.deleteFile({
-          path: tempPath,
-          directory: Directory.Cache,
+        // Share using Capacitor
+        await Share.share({
+          title: 'GPS Drawing',
+          text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
+          url: fileUri.uri,
+          dialogTitle: 'Share GPS Drawing'
         });
-      } catch (cleanupError) {
-        console.warn('Failed to clean up temp file:', cleanupError);
-      }
 
-      console.log('Successfully shared via Capacitor Share');
-      return true;
+        console.log('Successfully shared via Capacitor Share');
+        return true;
+      } catch (shareError: any) {
+        console.log('User cancelled Capacitor Share or share failed');
+        // Even if cancelled, we consider it a success since user chose to cancel
+        return true;
+      } finally {
+        // Always clean up temp file, regardless of success or cancellation
+        try {
+          await Filesystem.deleteFile({
+            path: tempPath,
+            directory: Directory.Cache,
+          });
+          console.log('Temporary file cleaned up');
+        } catch (cleanupError) {
+          console.warn('Failed to clean up temp file:', cleanupError);
+        }
+      }
     } catch (error: any) {
       console.warn('Capacitor Share failed:', error);
       return false;
     }
   };
 
-  const tryWebShareWithFile = async (
-    fileName: string,
-    content: string,
-    mimeType: string,
-    pointCount: number,
-    isAnonymized: boolean
-  ): Promise<boolean> => {
-    try {
-      if (!navigator.share || !navigator.canShare) {
-        console.log('Web Share API not available');
-        return false;
-      }
+  // const tryWebShareWithFile = async (
+  //   fileName: string,
+  //   content: string,
+  //   mimeType: string,
+  //   pointCount: number,
+  //   isAnonymized: boolean
+  // ): Promise<boolean> => {
+  //   try {
+  //     if (!navigator.share || !navigator.canShare) {
+  //       console.log('Web Share API not available');
+  //       return false;
+  //     }
 
-      // Create blob and file
-      const blob = new Blob([content], { type: mimeType });
-      const file = new File([blob], fileName, { type: mimeType });
+  //     // Create blob and file
+  //     const blob = new Blob([content], { type: mimeType });
+  //     const file = new File([blob], fileName, { type: mimeType });
 
-      if (!navigator.canShare({ files: [file] })) {
-        console.log('Web Share API cannot share this file type');
-        return false;
-      }
+  //     if (!navigator.canShare({ files: [file] })) {
+  //       console.log('Web Share API cannot share this file type');
+  //       return false;
+  //     }
 
-      await navigator.share({
-        title: 'GPS Drawing',
-        text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
-        files: [file]
-      });
+  //     await navigator.share({
+  //       title: 'GPS Drawing',
+  //       text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
+  //       files: [file]
+  //     });
 
-      console.log('Successfully shared via Web Share API with File');
-      return true;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log('User cancelled share');
-        return true; // Consider this a success since user chose to cancel
-      }
-      console.warn('Web Share with File failed:', error);
-      return false;
-    }
-  };
+  //     console.log('Successfully shared via Web Share API with File');
+  //     return true;
+  //   } catch (error: any) {
+  //     if (error.name === 'AbortError') {
+  //       console.log('User cancelled share');
+  //       return true; // Consider this a success since user chose to cancel
+  //     }
+  //     console.warn('Web Share with File failed:', error);
+  //     return false;
+  //   }
+  // };
 
   const tryWebShareWithURL = async (
     content: string,

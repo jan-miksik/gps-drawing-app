@@ -33,7 +33,7 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="$emit('close')" class="close-button-footer">
+        <button @click="handleCancel" class="close-button-footer">
           Cancel
         </button>
       </div>
@@ -67,6 +67,11 @@ const handleExportRelativeData = (): void => {
 
 const handleExportExactData = (): void => {
   emit('export-data', 'exact');
+};
+
+const handleCancel = (): void => {
+  console.log('Cancel button clicked - closing modal without export');
+  emit('close');
 };
 </script>
 

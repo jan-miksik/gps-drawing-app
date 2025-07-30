@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   // Only add server config for development
   ...(process.env.NODE_ENV === 'development' && {
     server: {
-      url: 'http://192.168.1.48:3000',
+      // url: 'http://192.168.1.48:3000',
+      url: 'http://localhost:3000',
       cleartext: true,
       androidScheme: 'http'
     }

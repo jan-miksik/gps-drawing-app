@@ -12,18 +12,25 @@
       @wheel="handleWheel"
     />
     
-    <GPSStatusBar 
+    <!-- <GPSStatusBar 
       @click="showDevLogs"
       :gps-signal-quality="gpsSignalQuality"
-      :current-accuracy="currentAccuracy"
-    />
+    /> -->
     
     <button 
       @click="showModal = true" 
       class="gps-points-button"
       title="Click: Open GPS Points"
     >
-      <span class="gps-points-button-text">Pointsa ({{ points.length }})</span>
+      <span class="gps-points-button-text">Points ({{ points.length }})</span>
+    </button>
+
+    <button 
+      @click="handleDirectExport" 
+      class="export-button-main"
+      title="Export drawing as image"
+    >
+      <span class="export-button-text">Export</span>
     </button>
 
     <!-- Reset Zoom Button - appears when zoomed -->
@@ -43,6 +50,7 @@
       :is-anonymized="isAnonymized"
       :anonymization-origin="anonymizationOrigin"
       :background-active="isBackgroundGPSActive"
+      :current-accuracy="currentAccuracy"
       @close="showModal = false"
       @toggle-anonymization="toggleAnonymization"
       @export="showExportModal = true"
@@ -76,7 +84,7 @@ import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
-import GPSStatusBar from './components/GPSStatusBar.vue';
+// import GPSStatusBar from './components/GPSStatusBar.vue';
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
@@ -95,7 +103,7 @@ const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, sh
 const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, exportPoints, exportCanvasAsImage, clearAllData } = useFileOperations();
-const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, showDevLogs, hideDevLogs, formatLogTime } = useDevLogs();
+const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
 const { 
   handleTouchStart, 
   handleTouchMove, 
@@ -167,7 +175,7 @@ const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
     return;
   }
 
-  const processedPoint = processNewPoint(points.value, newPoint);
+  const processedPoint = processNewPoint(newPoint);
   logInfo('Background GPS point processedPoint', processedPoint);
   points.value.push(processedPoint);
 
@@ -196,6 +204,20 @@ const toggleAnonymization = (): void => {
   }
   
   redrawCanvas();
+};
+
+const handleDirectExport = async (): Promise<void> => {
+  try {
+    if (!canvasEl.value) {
+      logError('Canvas element not available for image export');
+      return;
+    }
+    
+    await exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value);
+    logInfo('Drawing exported as SVG successfully');
+  } catch (error) {
+    logError('Failed to export drawing as SVG', error);
+  }
 };
 
 const handleExportImage = async (): Promise<void> => {

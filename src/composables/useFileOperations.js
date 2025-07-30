@@ -206,65 +206,85 @@ export function useFileOperations() {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, tryCapacitorShare(fileName, content, pointCount, isAnonymized)];
                 case 1:
-                    // Method 1: Try Capacitor Share plugin (most reliable for mobile)
-                    if (_a.sent()) {
-                        return [2 /*return*/];
-                    }
-                    return [4 /*yield*/, tryWebShareWithFile(fileName, content, mimeType, pointCount, isAnonymized)];
-                case 2:
-                    // Method 2: Try Web Share API with File
+                    // Method 1: Try Capacitor Share plugin (includes Web Share API with cancellation handling)
                     if (_a.sent()) {
                         return [2 /*return*/];
                     }
                     return [4 /*yield*/, tryWebShareWithURL(content, mimeType, pointCount, isAnonymized)];
-                case 3:
-                    // Method 3: Try Web Share API with URL
+                case 2:
+                    // Method 2: Try Web Share API with URL
                     if (_a.sent()) {
                         return [2 /*return*/];
                     }
                     return [4 /*yield*/, tryDownloadLink(fileName, content, mimeType)];
-                case 4:
-                    // Method 4: Try download link (fallback for web)
+                case 3:
+                    // Method 3: Try download link (fallback for web)
                     if (_a.sent()) {
                         return [2 /*return*/];
                     }
-                    // Method 5: Save to filesystem (final fallback)
+                    // Method 4: Save to filesystem (final fallback)
                     return [4 /*yield*/, saveToFilesystem(fileName, content, pointCount, isAnonymized)];
-                case 5:
-                    // Method 5: Save to filesystem (final fallback)
+                case 4:
+                    // Method 4: Save to filesystem (final fallback)
                     _a.sent();
                     return [2 /*return*/];
             }
         });
     }); };
     var tryCapacitorShare = function (fileName, content, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
-        var tempPath, dataToWrite, fileUri, cleanupError_1, error_3;
+        var blob, file, shareError_1, timestamp, tempPath, fileUri, shareError_2, cleanupError_1, error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 8, , 9]);
+                    _a.trys.push([0, 15, , 16]);
                     // Check if Capacitor Share is available
                     if (typeof Share === 'undefined' || !Share.share) {
                         console.log('Capacitor Share not available');
                         return [2 /*return*/, false];
                     }
-                    tempPath = "temp_".concat(fileName);
-                    dataToWrite = void 0;
-                    dataToWrite = content;
+                    blob = new Blob([content], { type: 'image/svg+xml' });
+                    file = new File([blob], fileName, { type: 'image/svg+xml' });
+                    if (!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }))) return [3 /*break*/, 4];
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 4]);
+                    return [4 /*yield*/, navigator.share({
+                            title: 'GPS Drawing',
+                            text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
+                            files: [file]
+                        })];
+                case 2:
+                    _a.sent();
+                    console.log('Successfully shared via Web Share API');
+                    return [2 /*return*/, true];
+                case 3:
+                    shareError_1 = _a.sent();
+                    if (shareError_1.name === 'AbortError') {
+                        console.log('User cancelled share');
+                        return [2 /*return*/, true]; // Consider this a success since user chose to cancel
+                    }
+                    console.warn('Web Share failed, falling back to Capacitor Share:', shareError_1);
+                    return [3 /*break*/, 4];
+                case 4:
+                    timestamp = Date.now();
+                    tempPath = "temp_".concat(timestamp, "_").concat(fileName);
                     return [4 /*yield*/, Filesystem.writeFile({
                             path: tempPath,
-                            data: dataToWrite,
+                            data: content,
                             directory: Directory.Cache,
                             encoding: Encoding.UTF8,
                         })];
-                case 1:
+                case 5:
                     _a.sent();
                     return [4 /*yield*/, Filesystem.getUri({
                             directory: Directory.Cache,
                             path: tempPath
                         })];
-                case 2:
+                case 6:
                     fileUri = _a.sent();
+                    _a.label = 7;
+                case 7:
+                    _a.trys.push([7, 9, 10, 14]);
                     // Share using Capacitor
                     return [4 /*yield*/, Share.share({
                             title: 'GPS Drawing',
@@ -272,73 +292,77 @@ export function useFileOperations() {
                             url: fileUri.uri,
                             dialogTitle: 'Share GPS Drawing'
                         })];
-                case 3:
+                case 8:
                     // Share using Capacitor
                     _a.sent();
-                    _a.label = 4;
-                case 4:
-                    _a.trys.push([4, 6, , 7]);
+                    console.log('Successfully shared via Capacitor Share');
+                    return [2 /*return*/, true];
+                case 9:
+                    shareError_2 = _a.sent();
+                    console.log('User cancelled Capacitor Share or share failed');
+                    // Even if cancelled, we consider it a success since user chose to cancel
+                    return [2 /*return*/, true];
+                case 10:
+                    _a.trys.push([10, 12, , 13]);
                     return [4 /*yield*/, Filesystem.deleteFile({
                             path: tempPath,
                             directory: Directory.Cache,
                         })];
-                case 5:
+                case 11:
                     _a.sent();
-                    return [3 /*break*/, 7];
-                case 6:
+                    console.log('Temporary file cleaned up');
+                    return [3 /*break*/, 13];
+                case 12:
                     cleanupError_1 = _a.sent();
                     console.warn('Failed to clean up temp file:', cleanupError_1);
-                    return [3 /*break*/, 7];
-                case 7:
-                    console.log('Successfully shared via Capacitor Share');
-                    return [2 /*return*/, true];
-                case 8:
+                    return [3 /*break*/, 13];
+                case 13: return [7 /*endfinally*/];
+                case 14: return [3 /*break*/, 16];
+                case 15:
                     error_3 = _a.sent();
                     console.warn('Capacitor Share failed:', error_3);
                     return [2 /*return*/, false];
-                case 9: return [2 /*return*/];
+                case 16: return [2 /*return*/];
             }
         });
     }); };
-    var tryWebShareWithFile = function (fileName, content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
-        var blob, file, error_4;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    if (!navigator.share || !navigator.canShare) {
-                        console.log('Web Share API not available');
-                        return [2 /*return*/, false];
-                    }
-                    blob = new Blob([content], { type: mimeType });
-                    file = new File([blob], fileName, { type: mimeType });
-                    if (!navigator.canShare({ files: [file] })) {
-                        console.log('Web Share API cannot share this file type');
-                        return [2 /*return*/, false];
-                    }
-                    return [4 /*yield*/, navigator.share({
-                            title: 'GPS Drawing',
-                            text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
-                            files: [file]
-                        })];
-                case 1:
-                    _a.sent();
-                    console.log('Successfully shared via Web Share API with File');
-                    return [2 /*return*/, true];
-                case 2:
-                    error_4 = _a.sent();
-                    if (error_4.name === 'AbortError') {
-                        console.log('User cancelled share');
-                        return [2 /*return*/, true]; // Consider this a success since user chose to cancel
-                    }
-                    console.warn('Web Share with File failed:', error_4);
-                    return [2 /*return*/, false];
-                case 3: return [2 /*return*/];
-            }
-        });
-    }); };
+    // const tryWebShareWithFile = async (
+    //   fileName: string,
+    //   content: string,
+    //   mimeType: string,
+    //   pointCount: number,
+    //   isAnonymized: boolean
+    // ): Promise<boolean> => {
+    //   try {
+    //     if (!navigator.share || !navigator.canShare) {
+    //       console.log('Web Share API not available');
+    //       return false;
+    //     }
+    //     // Create blob and file
+    //     const blob = new Blob([content], { type: mimeType });
+    //     const file = new File([blob], fileName, { type: mimeType });
+    //     if (!navigator.canShare({ files: [file] })) {
+    //       console.log('Web Share API cannot share this file type');
+    //       return false;
+    //     }
+    //     await navigator.share({
+    //       title: 'GPS Drawing',
+    //       text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
+    //       files: [file]
+    //     });
+    //     console.log('Successfully shared via Web Share API with File');
+    //     return true;
+    //   } catch (error: any) {
+    //     if (error.name === 'AbortError') {
+    //       console.log('User cancelled share');
+    //       return true; // Consider this a success since user chose to cancel
+    //     }
+    //     console.warn('Web Share with File failed:', error);
+    //     return false;
+    //   }
+    // };
     var tryWebShareWithURL = function (content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
-        var blob, blobUrl_1, error_5;
+        var blob, blobUrl_1, error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -363,12 +387,12 @@ export function useFileOperations() {
                     console.log('Successfully shared via Web Share API with URL');
                     return [2 /*return*/, true];
                 case 2:
-                    error_5 = _a.sent();
-                    if (error_5.name === 'AbortError') {
+                    error_4 = _a.sent();
+                    if (error_4.name === 'AbortError') {
                         console.log('User cancelled share');
                         return [2 /*return*/, true];
                     }
-                    console.warn('Web Share with URL failed:', error_5);
+                    console.warn('Web Share with URL failed:', error_4);
                     return [2 /*return*/, false];
                 case 3: return [2 /*return*/];
             }

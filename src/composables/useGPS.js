@@ -133,24 +133,27 @@ export function useGPS() {
             return true;
         }
         var lastPoint = points[points.length - 1];
+        logInfo('shouldAddPoint 1');
         // Check time interval - minimum 5 seconds between points
         var timeDiff = newPoint.timestamp - lastPoint.timestamp;
         if (timeDiff < GPS_CONFIG.MIN_TIME_INTERVAL) {
             console.log("Skipping GPS point: time ".concat((timeDiff / 1000).toFixed(1), "s < ").concat(GPS_CONFIG.MIN_TIME_INTERVAL / 1000, "s threshold"));
             return false;
         }
+        logInfo('shouldAddPoint 2');
         // Check distance - minimum 10 meters between points
         var distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
         if (distance < GPS_CONFIG.DISTANCE_THRESHOLD) {
             console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_CONFIG.DISTANCE_THRESHOLD, "m threshold"));
             return false;
         }
+        logInfo('shouldAddPoint 3');
         console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m, time ").concat((timeDiff / 1000).toFixed(1), "s from last point"));
         return true;
     };
-    var processNewPoint = function (points, newPoint) {
+    var processNewPoint = function (newPoint) {
         logInfo('processNewPoint', newPoint);
-        return smoothGPSPoints(points, newPoint);
+        return smoothGPSPoints(newPoint);
     };
     return {
         // State
