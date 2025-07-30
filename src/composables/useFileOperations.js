@@ -57,7 +57,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { FILE_CONFIG } from '../constants/gpsConstants';
-import { anonymizePoints, getDistanceFromOrigin } from '../utils/coordinateUtils';
+import { anonymizePoints } from '../utils/coordinateUtils';
 import { project, calculateBounds } from '../utils/canvasUtils';
 export function useFileOperations() {
     var _this = this;
@@ -142,13 +142,13 @@ export function useFileOperations() {
                         ? anonymizePoints(points, anonymizationOrigin)
                         : points;
                     dataToExport = __assign(__assign({ exportDate: currentTime.toISOString(), totalPoints: points.length, coordinateType: coordinateType, isAnonymized: isAnonymized_1 }, (isAnonymized_1 && anonymizationOrigin && {
-                        anonymizationOrigin: anonymizationOrigin,
-                        note: "Coordinates are anonymized - showing relative distances from first point"
+                        note: "Coordinates are anonymized - showing relative x,y coordinates from first point"
                     })), { points: displayPoints.map(function (point, index) { return (__assign(__assign(__assign({ index: index + 1 }, (!isAnonymized_1 && {
                             latitude: point.lat,
                             longitude: point.lon
-                        })), (isAnonymized_1 && anonymizationOrigin && {
-                            distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized_1)
+                        })), (isAnonymized_1 && {
+                            x: point.lon, // Relative x coordinate (longitude offset - horizontal)
+                            y: point.lat // Relative y coordinate (latitude offset - vertical)
                         })), { timestamp: point.timestamp, time: new Date(point.timestamp).toISOString(), accuracy: point.accuracy !== undefined ? point.accuracy : null })); }) });
                     exportData = JSON.stringify(dataToExport, null, 2);
                     suffix = isAnonymized_1 ? '_anonymized' : '_exact';
@@ -238,7 +238,7 @@ export function useFileOperations() {
         });
     }); };
     var tryCapacitorShare = function (fileName, content, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
-        var tempPath, fileUri, cleanupError_1, error_3;
+        var tempPath, dataToWrite, fileUri, cleanupError_1, error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -249,9 +249,11 @@ export function useFileOperations() {
                         return [2 /*return*/, false];
                     }
                     tempPath = "temp_".concat(fileName);
+                    dataToWrite = void 0;
+                    dataToWrite = content;
                     return [4 /*yield*/, Filesystem.writeFile({
                             path: tempPath,
-                            data: content,
+                            data: dataToWrite,
                             directory: Directory.Cache,
                             encoding: Encoding.UTF8,
                         })];
@@ -401,37 +403,41 @@ export function useFileOperations() {
         });
     }); };
     var saveToFilesystem = function (fileName, content, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
-        var exportType, externalError_1, exportType;
+        var dataToWrite, encoding, exportType, externalError_1, exportType;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 4]);
+                    dataToWrite = content;
+                    encoding = Encoding.UTF8;
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 5]);
                     return [4 /*yield*/, Filesystem.writeFile({
                             path: fileName,
-                            data: content,
+                            data: dataToWrite,
                             directory: Directory.ExternalStorage,
-                            encoding: Encoding.UTF8,
+                            encoding: encoding,
                         })];
-                case 1:
+                case 2:
                     _a.sent();
                     exportType = isAnonymized ? 'anonymized' : 'exact';
                     alert("\u2705 Drawing exported to Downloads/".concat(fileName, " (").concat(exportType, ", ").concat(pointCount, " points)"));
-                    return [3 /*break*/, 4];
-                case 2:
+                    return [3 /*break*/, 5];
+                case 3:
                     externalError_1 = _a.sent();
                     console.warn('External storage failed, trying Documents:', externalError_1);
                     return [4 /*yield*/, Filesystem.writeFile({
                             path: fileName,
-                            data: content,
+                            data: dataToWrite,
                             directory: Directory.Documents,
-                            encoding: Encoding.UTF8,
+                            encoding: encoding,
                         })];
-                case 3:
+                case 4:
                     _a.sent();
                     exportType = isAnonymized ? 'anonymized' : 'exact';
                     alert("\u2705 Drawing exported to Documents/".concat(fileName, " (").concat(exportType, ", ").concat(pointCount, " points)"));
-                    return [3 /*break*/, 4];
-                case 4: return [2 /*return*/];
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     }); };
@@ -472,8 +478,8 @@ export function useFileOperations() {
         });
     }); };
     var generateSVGFromCanvas = function (_canvas, _ctx, logicalWidth, logicalHeight, _dpr, points, isAnonymized, anonymizationOrigin) {
-        // Create SVG header with clean styling (no text, only path and last point)
-        var svgHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg width=\"".concat(logicalWidth, "\" height=\"").concat(logicalHeight, "\" viewBox=\"0 0 ").concat(logicalWidth, " ").concat(logicalHeight, "\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <style>\n      .gps-path { stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }\n      .gps-point { fill: white; }\n    </style>\n  </defs>\n  <rect width=\"100%\" height=\"100%\" fill=\"black\"/>");
+        // Create SVG header optimized for Google Drive preview
+        var svgHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg width=\"".concat(logicalWidth, "\" height=\"").concat(logicalHeight, "\" viewBox=\"0 0 ").concat(logicalWidth, " ").concat(logicalHeight, "\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n  <defs>\n    <style type=\"text/css\">\n      .gps-path { stroke: #ffffff; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }\n      .gps-point { fill: #ffffff; }\n    </style>\n  </defs>\n  <rect width=\"").concat(logicalWidth, "\" height=\"").concat(logicalHeight, "\" fill=\"#000000\"/>");
         // Get display points (anonymized if needed)
         var displayPoints = isAnonymized && anonymizationOrigin
             ? anonymizePoints(points, anonymizationOrigin)
@@ -499,8 +505,8 @@ export function useFileOperations() {
                 lastPointElement = "<circle cx=\"".concat(x, "\" cy=\"").concat(y, "\" r=\"4\" class=\"gps-point\"/>");
             }
         }
-        // Complete SVG content (no metadata text, clean image)
-        var svgContent = "".concat(svgHeader, "\n  \n  <!-- GPS Path -->\n  ").concat(pathElement, "\n  \n  <!-- Last GPS Point -->\n  ").concat(lastPointElement, "\n</svg>");
+        // Complete SVG content with minimal metadata for better preview
+        var svgContent = "".concat(svgHeader, "\n  \n  <!-- GPS Path -->\n  ").concat(pathElement, "\n  \n  <!-- Last GPS Point -->\n  ").concat(lastPointElement, "\n  \n  <!-- Metadata for preview systems -->\n  <metadata>\n    <title>GPS Drawing</title>\n    <description>GPS movement visualization with ").concat(displayPoints.length, " points</description>\n  </metadata>\n</svg>");
         return svgContent;
     };
     return {

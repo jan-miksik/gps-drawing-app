@@ -23,7 +23,7 @@
       class="gps-points-button"
       title="Click: Open GPS Points"
     >
-      <span class="gps-points-button-text">Points ({{ points.length }})</span>
+      <span class="gps-points-button-text">Pointsa ({{ points.length }})</span>
     </button>
 
     <!-- Reset Zoom Button - appears when zoomed -->

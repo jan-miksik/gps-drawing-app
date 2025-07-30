@@ -2,7 +2,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import type { Point, AnonymizationOrigin } from '../types/gps';
 import { FILE_CONFIG } from '../constants/gpsConstants';
-import { anonymizePoints, getDistanceFromOrigin } from '../utils/coordinateUtils';
+import { anonymizePoints } from '../utils/coordinateUtils';
 import { project, calculateBounds } from '../utils/canvasUtils';
 
 export function useFileOperations() {
@@ -72,8 +72,7 @@ export function useFileOperations() {
         coordinateType,
         isAnonymized,
         ...(isAnonymized && anonymizationOrigin && {
-          anonymizationOrigin,
-          note: "Coordinates are anonymized - showing relative distances from first point"
+          note: "Coordinates are anonymized - showing relative x,y coordinates from first point"
         }),
         points: displayPoints.map((point, index) => ({
           index: index + 1,
@@ -81,8 +80,9 @@ export function useFileOperations() {
             latitude: point.lat,
             longitude: point.lon
           }),
-          ...(isAnonymized && anonymizationOrigin && {
-            distanceFromOrigin: getDistanceFromOrigin(point, anonymizationOrigin, isAnonymized)
+          ...(isAnonymized && {
+            x: point.lon, // Relative x coordinate (longitude offset - horizontal)
+            y: point.lat  // Relative y coordinate (latitude offset - vertical)
           }),
           timestamp: point.timestamp,
           time: new Date(point.timestamp).toISOString(),
@@ -182,10 +182,13 @@ export function useFileOperations() {
 
       // Save file temporarily first
       const tempPath = `temp_${fileName}`;
+      let dataToWrite: string;
+
+      dataToWrite = content;
 
       await Filesystem.writeFile({
         path: tempPath,
-        data: content,
+        data: dataToWrite,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
       });
@@ -339,12 +342,15 @@ export function useFileOperations() {
     pointCount: number,
     isAnonymized: boolean
   ): Promise<void> => {
+    const dataToWrite = content;
+    const encoding = Encoding.UTF8;
+
     try {
       await Filesystem.writeFile({
         path: fileName,
-        data: content,
+        data: dataToWrite,
         directory: Directory.ExternalStorage,
-        encoding: Encoding.UTF8,
+        encoding: encoding,
       });
       
       const exportType = isAnonymized ? 'anonymized' : 'exact';
@@ -352,12 +358,12 @@ export function useFileOperations() {
     } catch (externalError) {
       console.warn('External storage failed, trying Documents:', externalError);
       
-      await Filesystem.writeFile({
-        path: fileName,
-        data: content,
-        directory: Directory.Documents,
-        encoding: Encoding.UTF8,
-      });
+              await Filesystem.writeFile({
+          path: fileName,
+          data: dataToWrite,
+          directory: Directory.Documents,
+          encoding: encoding,
+        });
       
       const exportType = isAnonymized ? 'anonymized' : 'exact';
       alert(`✅ Drawing exported to Documents/${fileName} (${exportType}, ${pointCount} points)`);
@@ -397,16 +403,16 @@ export function useFileOperations() {
     isAnonymized: boolean,
     anonymizationOrigin: AnonymizationOrigin | null
   ): string => {
-    // Create SVG header with clean styling (no text, only path and last point)
+    // Create SVG header optimized for Google Drive preview
     const svgHeader = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${logicalWidth}" height="${logicalHeight}" viewBox="0 0 ${logicalWidth} ${logicalHeight}" xmlns="http://www.w3.org/2000/svg">
+<svg width="${logicalWidth}" height="${logicalHeight}" viewBox="0 0 ${logicalWidth} ${logicalHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
-    <style>
-      .gps-path { stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .gps-point { fill: white; }
+    <style type="text/css">
+      .gps-path { stroke: #ffffff; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .gps-point { fill: #ffffff; }
     </style>
   </defs>
-  <rect width="100%" height="100%" fill="black"/>`;
+  <rect width="${logicalWidth}" height="${logicalHeight}" fill="#000000"/>`;
 
     // Get display points (anonymized if needed)
     const displayPoints = isAnonymized && anonymizationOrigin 
@@ -439,7 +445,7 @@ export function useFileOperations() {
       }
     }
 
-    // Complete SVG content (no metadata text, clean image)
+    // Complete SVG content with minimal metadata for better preview
     const svgContent = `${svgHeader}
   
   <!-- GPS Path -->
@@ -447,6 +453,12 @@ export function useFileOperations() {
   
   <!-- Last GPS Point -->
   ${lastPointElement}
+  
+  <!-- Metadata for preview systems -->
+  <metadata>
+    <title>GPS Drawing</title>
+    <description>GPS movement visualization with ${displayPoints.length} points</description>
+  </metadata>
 </svg>`;
 
     return svgContent;

@@ -12,7 +12,7 @@ Built with Vue 3 + Capacitor for cross-platform deployment with privacy-first, l
 - **Export Options**: 
   - **SVG Export**: Save the current drawing as a scalable SVG file
   - **Data Export**: Export GPS coordinates with two options:
-    - **Relative Coordinates**: Anonymized version showing distances from starting point
+    - **Relative Coordinates**: Anonymized version showing x,y coordinates relative to starting point
     - **Exact Coordinates**: Real GPS coordinates (latitude/longitude)
 
 ## License

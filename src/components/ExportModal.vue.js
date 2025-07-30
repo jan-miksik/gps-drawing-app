@@ -58,13 +58,16 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportImage) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "button-text" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportRelativeData) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "button-text" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportExactData) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "button-text" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
             var _a = [];
@@ -84,12 +87,15 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-option-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['button-text-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-option-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['button-text-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-option-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['button-text-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button-footer']} */ ;

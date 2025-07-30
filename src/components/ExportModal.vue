@@ -11,20 +11,23 @@
 
           <button @click="handleExportImage" class="export-option-button">
             <!-- <span class="button-icon">📐</span> -->
-            <span class="button-text">Export GPS Drawing as SVG image</span>
+            <div class="button-text-title">Image</div>
+            <div class="button-text">GPS Drawing as SVG image</div>
           </button>
         </div>
 
         <div class="export-section">
             <button @click="handleExportRelativeData" class="export-option-button">
               <!-- <span class="button-icon">🔒</span> -->
-              <span class="button-text">Export Relative Coordinates (Anonymized)</span>
+              <div class="button-text-title">JSON - relative</div>
+              <div class="button-text">Relative Coordinates (Anonymized)</div>
             </button>
           </div>
         <div class="export-section">
           <button @click="handleExportExactData" class="export-option-button">
             <!-- <span class="button-icon">📍</span> -->
-            <span class="button-text">Export Exact Coordinates (Latitude/Longitude)</span>
+            <div class="button-text-title">JSON - exact</div>
+            <div class="button-text">Exact Coordinates (Latitude/Longitude)</div>
           </button>
         </div>
       </div>
@@ -147,12 +150,13 @@ const handleExportExactData = (): void => {
 
 .export-option-button {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
   background-color: rgba(255, 255, 255, 0.2);
   color: white;
   padding: 15px 20px;
-  border-radius: 8px;
+  border-radius: 3px;
   font-size: 14px;
   backdrop-filter: blur(10px);
   border: none;
@@ -174,6 +178,14 @@ const handleExportExactData = (): void => {
 
 .button-text {
   font-weight: 500;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.button-text-title {
+  font-weight: 500;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .modal-footer {
