@@ -18,10 +18,18 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
+import SettingsModal from './SettingsModal.vue';
 var props = defineProps();
 var emit = defineEmits();
+// Settings modal state
+var showSettingsModal = ref(false);
+// Current settings from props
+var currentSettings = computed(function () { return props.settings; });
+var handleSettingsSave = function (settings) {
+    emit('settings-save', settings);
+};
 var reversedDisplayPoints = computed(function () {
     var reversed = __spreadArray([], props.displayPoints, true).reverse();
     return reversed;
@@ -72,6 +80,7 @@ debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
 var __VLS_directives;
+/** @type {__VLS_StyleScopedClasses['settings-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
@@ -145,7 +154,7 @@ if (__VLS_ctx.show) {
     else {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "accuracy-text" }));
     }
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 _a[_i] = arguments[_i];
@@ -153,8 +162,8 @@ if (__VLS_ctx.show) {
             var $event = _a[0];
             if (!(__VLS_ctx.show))
                 return;
-            __VLS_ctx.$emit('close');
-        } }, { class: "close-button" }));
+            __VLS_ctx.showSettingsModal = true;
+        } }, { class: "settings-button" }), { title: "Settings" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
     if (__VLS_ctx.points.length === 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "no-points" }));
@@ -225,6 +234,29 @@ if (__VLS_ctx.show) {
                 return;
             __VLS_ctx.$emit('close');
         } }, { class: "close-button-footer" }));
+    /** @type {[typeof SettingsModal, ]} */ ;
+    // @ts-ignore
+    var __VLS_0 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings) })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_3 = void 0;
+    var __VLS_4 = void 0;
+    var __VLS_5 = void 0;
+    var __VLS_6 = {
+        onClose: function () {
+            var _a = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _a[_i] = arguments[_i];
+            }
+            var $event = _a[0];
+            if (!(__VLS_ctx.show))
+                return;
+            __VLS_ctx.showSettingsModal = false;
+        }
+    };
+    var __VLS_7 = {
+        onSave: (__VLS_ctx.handleSettingsSave)
+    };
+    var __VLS_2;
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
@@ -240,7 +272,7 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['accuracy-value']} */ ;
 /** @type {__VLS_StyleScopedClasses['accuracy-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['accuracy-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['close-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['settings-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-points']} */ ;
 /** @type {__VLS_StyleScopedClasses['points-list']} */ ;
@@ -284,6 +316,10 @@ var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
+            SettingsModal: SettingsModal,
+            showSettingsModal: showSettingsModal,
+            currentSettings: currentSettings,
+            handleSettingsSave: handleSettingsSave,
             reversedDisplayPoints: reversedDisplayPoints,
             getPointDistance: getPointDistance,
             getAccuracy: getAccuracy,

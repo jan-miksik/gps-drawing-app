@@ -3,14 +3,14 @@ export var project = function (point, currentBounds, canvasLogicalWidth, canvasL
     // If only one point exists (or bounds indicate no range), center it.
     if (currentBounds.minLat === currentBounds.maxLat || currentBounds.minLon === currentBounds.maxLon) {
         return {
-            x: (canvasLogicalWidth - 2 * CANVAS_CONFIG.DRAWING_PADDING) / 2 + CANVAS_CONFIG.DRAWING_PADDING,
-            y: (canvasLogicalHeight - 2 * CANVAS_CONFIG.DRAWING_PADDING) / 2 + CANVAS_CONFIG.DRAWING_PADDING,
+            x: (canvasLogicalWidth - 2 * CANVAS_CONFIG.value.DRAWING_PADDING) / 2 + CANVAS_CONFIG.value.DRAWING_PADDING,
+            y: (canvasLogicalHeight - 2 * CANVAS_CONFIG.value.DRAWING_PADDING) / 2 + CANVAS_CONFIG.value.DRAWING_PADDING,
         };
     }
     var latRange = currentBounds.maxLat - currentBounds.minLat;
     var lonRange = currentBounds.maxLon - currentBounds.minLon;
-    var drawableWidth = canvasLogicalWidth - 2 * CANVAS_CONFIG.DRAWING_PADDING;
-    var drawableHeight = canvasLogicalHeight - 2 * CANVAS_CONFIG.DRAWING_PADDING;
+    var drawableWidth = canvasLogicalWidth - 2 * CANVAS_CONFIG.value.DRAWING_PADDING;
+    var drawableHeight = canvasLogicalHeight - 2 * CANVAS_CONFIG.value.DRAWING_PADDING;
     // Handle potential division by zero if range is extremely small (though bounds check helps)
     var scaleX = lonRange > 1e-9 ? drawableWidth / lonRange : 1;
     var scaleY = latRange > 1e-9 ? drawableHeight / latRange : 1;
@@ -20,8 +20,8 @@ export var project = function (point, currentBounds, canvasLogicalWidth, canvasL
     var centerXLatLon = (currentBounds.minLat + currentBounds.maxLat) / 2;
     var centerYLatLon = (currentBounds.minLon + currentBounds.maxLon) / 2;
     // Calculate the center of the drawable area on canvas
-    var canvasCenterX = drawableWidth / 2 + CANVAS_CONFIG.DRAWING_PADDING;
-    var canvasCenterY = drawableHeight / 2 + CANVAS_CONFIG.DRAWING_PADDING;
+    var canvasCenterX = drawableWidth / 2 + CANVAS_CONFIG.value.DRAWING_PADDING;
+    var canvasCenterY = drawableHeight / 2 + CANVAS_CONFIG.value.DRAWING_PADDING;
     // Project the point:
     // 1. Get offset from the center of the bounds (in lat/lon units, scaled by baseScale)
     // 2. Add to canvas center
@@ -57,9 +57,9 @@ export var calculateBounds = function (points) {
 export var drawCenterCross = function (ctx, logicalWidth, logicalHeight, scale, dpr) {
     var centerX = logicalWidth / 2;
     var centerY = logicalHeight / 2;
-    var crossSize = CANVAS_CONFIG.CROSS_SIZE / scale;
+    var crossSize = CANVAS_CONFIG.value.CROSS_SIZE / scale;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = CANVAS_CONFIG.LINE_WIDTH / (scale * dpr);
+    ctx.lineWidth = CANVAS_CONFIG.value.LINE_WIDTH / (scale * dpr);
     ctx.lineCap = 'round';
     ctx.beginPath();
     // Horizontal line

@@ -22,14 +22,14 @@ export var getSignalQuality = function (accuracy) {
 export var smoothGPSPoints = function (newPoint) {
     // Smoothing disabled - return the new point with precision rounding
     return {
-        lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
-        lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+        lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+        lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
         timestamp: newPoint.timestamp,
         accuracy: newPoint.accuracy
     };
 };
 export var roundCoordinates = function (lat, lon) {
-    var precision = Math.pow(10, GPS_CONFIG.POINTS_PRECISION);
+    var precision = Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION);
     return {
         lat: Math.round(lat * precision) / precision,
         lon: Math.round(lon * precision) / precision

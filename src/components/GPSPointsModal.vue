@@ -36,7 +36,9 @@
             </div> -->
           </div>
         </div>
-        <button @click="$emit('close')" class="close-button">✕</button>
+        <button @click="showSettingsModal = true" class="settings-button" title="Settings">
+          ⚙️
+        </button>
       </div>
       
       <div class="modal-body">
@@ -91,13 +93,21 @@
         </div>
       </div>
     </div>
+    
+    <SettingsModal
+      :show="showSettingsModal"
+      :settings="currentSettings"
+      @close="showSettingsModal = false"
+      @save="handleSettingsSave"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Point, AnonymizationOrigin } from '../types/gps';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
+import SettingsModal from './SettingsModal.vue';
 
 interface Props {
   show: boolean;
@@ -107,6 +117,7 @@ interface Props {
   anonymizationOrigin: AnonymizationOrigin | null;
   backgroundActive: boolean;
   currentAccuracy: number | null;
+  settings: any;
 }
 
 interface Emits {
@@ -114,10 +125,21 @@ interface Emits {
   (e: 'toggle-anonymization'): void;
   (e: 'export'): void;
   (e: 'clear'): void;
+  (e: 'settings-save', settings: any): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Settings modal state
+const showSettingsModal = ref(false);
+
+// Current settings from props
+const currentSettings = computed(() => props.settings);
+
+const handleSettingsSave = (settings: any): void => {
+  emit('settings-save', settings);
+};
 
 const reversedDisplayPoints = computed(() => {
   const reversed = [...props.displayPoints].reverse();
@@ -221,6 +243,23 @@ const handleClearAll = (): void => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.settings-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.settings-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
 .toggle-label {

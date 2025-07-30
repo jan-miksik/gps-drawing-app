@@ -33,8 +33,8 @@ export function useGPS() {
       watchId = await Geolocation.watchPosition(
         {
           enableHighAccuracy: true,
-          timeout: GPS_CONFIG.TIMEOUT,
-          maximumAge: GPS_CONFIG.MAXIMUM_AGE
+            timeout: GPS_CONFIG.value.TIMEOUT,
+  maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
         },
         (position, err) => {
           if (err) {
@@ -66,8 +66,8 @@ export function useGPS() {
     });
     
     // Filter out low-accuracy points
-    if (accuracy > GPS_CONFIG.ACCURACY_THRESHOLD) {
-      console.warn(`Skipping low-accuracy GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_CONFIG.ACCURACY_THRESHOLD}m)`);
+    if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
+      console.warn(`Skipping low-accuracy GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_CONFIG.value.ACCURACY_THRESHOLD}m)`);
       return;
     }
     
@@ -103,8 +103,8 @@ export function useGPS() {
     
     // Check time interval - minimum 5 seconds between points
     const timeDiff = newPoint.timestamp - lastPoint.timestamp;
-    if (timeDiff < GPS_CONFIG.MIN_TIME_INTERVAL) {
-      console.log(`Skipping GPS point: time ${(timeDiff/1000).toFixed(1)}s < ${GPS_CONFIG.MIN_TIME_INTERVAL/1000}s threshold`);
+    if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
+      console.log(`Skipping GPS point: time ${(timeDiff/1000).toFixed(1)}s < ${GPS_CONFIG.value.MIN_TIME_INTERVAL/1000}s threshold`);
       return false;
     }
 
@@ -112,8 +112,8 @@ export function useGPS() {
     
     // Check distance - minimum 10 meters between points
     const distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
-    if (distance < GPS_CONFIG.DISTANCE_THRESHOLD) {
-      console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_CONFIG.DISTANCE_THRESHOLD}m threshold`);
+    if (distance < GPS_CONFIG.value.DISTANCE_THRESHOLD) {
+      console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_CONFIG.value.DISTANCE_THRESHOLD}m threshold`);
       return false;
     }
 

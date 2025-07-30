@@ -51,10 +51,12 @@
       :anonymization-origin="anonymizationOrigin"
       :background-active="isBackgroundGPSActive"
       :current-accuracy="currentAccuracy"
+      :settings="settings"
       @close="showModal = false"
       @toggle-anonymization="toggleAnonymization"
       @export="showExportModal = true"
       @clear="handleClearAll"
+      @settings-save="handleSettingsSave"
     />
 
     <ExportModal
@@ -84,6 +86,7 @@ import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
+import { GPS_CONFIG, CANVAS_CONFIG, updateGPSConfig, updateCanvasConfig } from './constants/gpsConstants';
 // import GPSStatusBar from './components/GPSStatusBar.vue';
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
@@ -97,6 +100,17 @@ const showExportModal = ref(false);
 const points = ref<Point[]>([]);
 const isAnonymized = ref(true);
 const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
+
+// Settings state - use computed to sync with actual configs
+const settings = computed(() => ({
+  ACCURACY_THRESHOLD: GPS_CONFIG.value.ACCURACY_THRESHOLD,
+  DISTANCE_THRESHOLD: GPS_CONFIG.value.DISTANCE_THRESHOLD,
+  MIN_TIME_INTERVAL: GPS_CONFIG.value.MIN_TIME_INTERVAL / 1000, // Convert to seconds for UI
+  PINCH_ZOOM_SENSITIVITY: CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY,
+  MIN_SCALE: CANVAS_CONFIG.value.MIN_SCALE,
+  MAX_SCALE: CANVAS_CONFIG.value.MAX_SCALE,
+  LINE_WIDTH: CANVAS_CONFIG.value.LINE_WIDTH,
+}));
 
 // Composables
 const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, shouldAddPoint, processNewPoint } = useGPS();
@@ -256,6 +270,25 @@ const handleClearAll = async (): Promise<void> => {
   redrawCanvas();
   showModal.value = false;
   logInfo('All GPS points cleared', { clearedCount: pointCount });
+};
+
+const handleSettingsSave = (newSettings: any): void => {
+  // Update GPS config
+  updateGPSConfig({
+    ACCURACY_THRESHOLD: newSettings.ACCURACY_THRESHOLD,
+    DISTANCE_THRESHOLD: newSettings.DISTANCE_THRESHOLD,
+    MIN_TIME_INTERVAL: newSettings.MIN_TIME_INTERVAL * 1000, // Convert back to milliseconds
+  });
+  
+  // Update Canvas config
+  updateCanvasConfig({
+    PINCH_ZOOM_SENSITIVITY: newSettings.PINCH_ZOOM_SENSITIVITY,
+    MIN_SCALE: newSettings.MIN_SCALE,
+    MAX_SCALE: newSettings.MAX_SCALE,
+    LINE_WIDTH: newSettings.LINE_WIDTH,
+  });
+  
+  logInfo('Settings updated', newSettings);
 };
 
 const handleResetZoom = (): void => {

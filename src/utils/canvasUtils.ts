@@ -10,16 +10,16 @@ export const project = (
   // If only one point exists (or bounds indicate no range), center it.
   if (currentBounds.minLat === currentBounds.maxLat || currentBounds.minLon === currentBounds.maxLon) {
     return {
-      x: (canvasLogicalWidth - 2 * CANVAS_CONFIG.DRAWING_PADDING) / 2 + CANVAS_CONFIG.DRAWING_PADDING,
-      y: (canvasLogicalHeight - 2 * CANVAS_CONFIG.DRAWING_PADDING) / 2 + CANVAS_CONFIG.DRAWING_PADDING,
+        x: (canvasLogicalWidth - 2 * CANVAS_CONFIG.value.DRAWING_PADDING) / 2 + CANVAS_CONFIG.value.DRAWING_PADDING,
+  y: (canvasLogicalHeight - 2 * CANVAS_CONFIG.value.DRAWING_PADDING) / 2 + CANVAS_CONFIG.value.DRAWING_PADDING,
     };
   }
 
   const latRange = currentBounds.maxLat - currentBounds.minLat;
   const lonRange = currentBounds.maxLon - currentBounds.minLon;
 
-  const drawableWidth = canvasLogicalWidth - 2 * CANVAS_CONFIG.DRAWING_PADDING;
-  const drawableHeight = canvasLogicalHeight - 2 * CANVAS_CONFIG.DRAWING_PADDING;
+  const drawableWidth = canvasLogicalWidth - 2 * CANVAS_CONFIG.value.DRAWING_PADDING;
+  const drawableHeight = canvasLogicalHeight - 2 * CANVAS_CONFIG.value.DRAWING_PADDING;
 
   // Handle potential division by zero if range is extremely small (though bounds check helps)
   const scaleX = lonRange > 1e-9 ? drawableWidth / lonRange : 1;
@@ -33,8 +33,8 @@ export const project = (
   const centerYLatLon = (currentBounds.minLon + currentBounds.maxLon) / 2;
 
   // Calculate the center of the drawable area on canvas
-  const canvasCenterX = drawableWidth / 2 + CANVAS_CONFIG.DRAWING_PADDING;
-  const canvasCenterY = drawableHeight / 2 + CANVAS_CONFIG.DRAWING_PADDING;
+  const canvasCenterX = drawableWidth / 2 + CANVAS_CONFIG.value.DRAWING_PADDING;
+  const canvasCenterY = drawableHeight / 2 + CANVAS_CONFIG.value.DRAWING_PADDING;
 
   // Project the point:
   // 1. Get offset from the center of the bounds (in lat/lon units, scaled by baseScale)
@@ -83,10 +83,10 @@ export const drawCenterCross = (
 ): void => {
   const centerX = logicalWidth / 2;
   const centerY = logicalHeight / 2;
-  const crossSize = CANVAS_CONFIG.CROSS_SIZE / scale;
+  const crossSize = CANVAS_CONFIG.value.CROSS_SIZE / scale;
   
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.lineWidth = CANVAS_CONFIG.LINE_WIDTH / (scale * dpr);
+  ctx.lineWidth = CANVAS_CONFIG.value.LINE_WIDTH / (scale * dpr);
   ctx.lineCap = 'round';
   
   ctx.beginPath();

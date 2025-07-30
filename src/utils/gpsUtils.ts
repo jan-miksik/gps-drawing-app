@@ -24,15 +24,15 @@ export const getSignalQuality = (accuracy: number): GPSSignalQuality => {
 export const smoothGPSPoints = (newPoint: Point): Point => {
   // Smoothing disabled - return the new point with precision rounding
   return {
-    lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
-    lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.POINTS_PRECISION),
+    lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+    lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
     timestamp: newPoint.timestamp,
     accuracy: newPoint.accuracy
   };
 };
 
 export const roundCoordinates = (lat: number, lon: number): { lat: number; lon: number } => {
-  const precision = Math.pow(10, GPS_CONFIG.POINTS_PRECISION);
+  const precision = Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION);
   return {
     lat: Math.round(lat * precision) / precision,
     lon: Math.round(lon * precision) / precision

@@ -71,8 +71,8 @@ export function useGPS() {
                     _a.label = 3;
                 case 3: return [4 /*yield*/, Geolocation.watchPosition({
                         enableHighAccuracy: true,
-                        timeout: GPS_CONFIG.TIMEOUT,
-                        maximumAge: GPS_CONFIG.MAXIMUM_AGE
+                        timeout: GPS_CONFIG.value.TIMEOUT,
+                        maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
                     }, function (position, err) {
                         if (err) {
                             console.error('GPS Error:', err.message, err.code);
@@ -107,8 +107,8 @@ export function useGPS() {
             quality: gpsSignalQuality.value
         });
         // Filter out low-accuracy points
-        if (accuracy > GPS_CONFIG.ACCURACY_THRESHOLD) {
-            console.warn("Skipping low-accuracy GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.ACCURACY_THRESHOLD, "m)"));
+        if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
+            console.warn("Skipping low-accuracy GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.value.ACCURACY_THRESHOLD, "m)"));
             return;
         }
         // Round coordinates to specified precision
@@ -136,15 +136,15 @@ export function useGPS() {
         logInfo('shouldAddPoint 1');
         // Check time interval - minimum 5 seconds between points
         var timeDiff = newPoint.timestamp - lastPoint.timestamp;
-        if (timeDiff < GPS_CONFIG.MIN_TIME_INTERVAL) {
-            console.log("Skipping GPS point: time ".concat((timeDiff / 1000).toFixed(1), "s < ").concat(GPS_CONFIG.MIN_TIME_INTERVAL / 1000, "s threshold"));
+        if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
+            console.log("Skipping GPS point: time ".concat((timeDiff / 1000).toFixed(1), "s < ").concat(GPS_CONFIG.value.MIN_TIME_INTERVAL / 1000, "s threshold"));
             return false;
         }
         logInfo('shouldAddPoint 2');
         // Check distance - minimum 10 meters between points
         var distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
-        if (distance < GPS_CONFIG.DISTANCE_THRESHOLD) {
-            console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_CONFIG.DISTANCE_THRESHOLD, "m threshold"));
+        if (distance < GPS_CONFIG.value.DISTANCE_THRESHOLD) {
+            console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_CONFIG.value.DISTANCE_THRESHOLD, "m threshold"));
             return false;
         }
         logInfo('shouldAddPoint 3');

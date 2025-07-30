@@ -67,7 +67,7 @@ export function useBackgroundGPS() {
                             backgroundTitle: "GPS Drawing Active",
                             requestPermissions: true,
                             stale: false,
-                            distanceFilter: GPS_CONFIG.DISTANCE_THRESHOLD
+                            distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD
                         }, function (location, error) {
                             if (error) {
                                 console.error('Background GPS error:', error);
@@ -90,8 +90,8 @@ export function useBackgroundGPS() {
                                     onAccuracyUpdate(accuracy);
                                 }
                                 // Apply accuracy filter for recording points
-                                if (accuracy > GPS_CONFIG.ACCURACY_THRESHOLD) {
-                                    console.warn("Skipping low-accuracy background GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.ACCURACY_THRESHOLD, "m)"));
+                                if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
+                                    console.warn("Skipping low-accuracy background GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.value.ACCURACY_THRESHOLD, "m)"));
                                     return;
                                 }
                                 // Round coordinates to specified precision

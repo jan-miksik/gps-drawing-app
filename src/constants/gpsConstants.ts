@@ -1,4 +1,7 @@
-export const GPS_CONFIG = {
+import { ref } from 'vue';
+
+// Default values for GPS configuration
+const DEFAULT_GPS_CONFIG = {
   ACCURACY_THRESHOLD: 20, // meters - reject points with worse accuracy
   DISTANCE_THRESHOLD: 10, // meters - minimum distance to add new point
   SMOOTHING_WINDOW: 3, // number of points to average for smoothing
@@ -8,17 +11,75 @@ export const GPS_CONFIG = {
   POINTS_PRECISION: 5, // Decimal precision for coordinates
 } as const;
 
-export const CANVAS_CONFIG = {
+// Default values for Canvas configuration
+const DEFAULT_CANVAS_CONFIG = {
   DRAWING_PADDING: 40, // In logical pixels
   CURRENT_POSITION_DOT_SIZE: 10,
   CROSS_SIZE: 20, // Size of center cross when no points
   LINE_WIDTH: 2,
   ZOOM_FACTOR: 0.05, // Reduced from 0.1 to 0.05 for slower zoom
   PINCH_ZOOM_SENSITIVITY: 1, // Sensitivity multiplier for pinch-to-zoom (lower = slower)
-  MIN_SCALE: 0.1,
-  MAX_SCALE: 10,
+  MIN_SCALE: 0.01,
+  MAX_SCALE: 100,
 } as const;
 
+// Reactive GPS configuration
+export const GPS_CONFIG = ref<{
+  ACCURACY_THRESHOLD: number;
+  DISTANCE_THRESHOLD: number;
+  SMOOTHING_WINDOW: number;
+  TIMEOUT: number;
+  MAXIMUM_AGE: number;
+  MIN_TIME_INTERVAL: number;
+  POINTS_PRECISION: number;
+}>({ ...DEFAULT_GPS_CONFIG });
+
+// Reactive Canvas configuration
+export const CANVAS_CONFIG = ref<{
+  DRAWING_PADDING: number;
+  CURRENT_POSITION_DOT_SIZE: number;
+  CROSS_SIZE: number;
+  LINE_WIDTH: number;
+  ZOOM_FACTOR: number;
+  PINCH_ZOOM_SENSITIVITY: number;
+  MIN_SCALE: number;
+  MAX_SCALE: number;
+}>({ ...DEFAULT_CANVAS_CONFIG });
+
+// Static file configuration (doesn't need to be reactive)
 export const FILE_CONFIG = {
   FILE_NAME: 'gps_points.json',
-} as const; 
+} as const;
+
+// Function to reset configurations to defaults
+export const resetConfigsToDefaults = (): void => {
+  GPS_CONFIG.value = { ...DEFAULT_GPS_CONFIG };
+  CANVAS_CONFIG.value = { ...DEFAULT_CANVAS_CONFIG };
+};
+
+// Function to update GPS configuration
+export const updateGPSConfig = (newConfig: Partial<{
+  ACCURACY_THRESHOLD: number;
+  DISTANCE_THRESHOLD: number;
+  SMOOTHING_WINDOW: number;
+  TIMEOUT: number;
+  MAXIMUM_AGE: number;
+  MIN_TIME_INTERVAL: number;
+  POINTS_PRECISION: number;
+}>): void => {
+  GPS_CONFIG.value = { ...GPS_CONFIG.value, ...newConfig };
+};
+
+// Function to update Canvas configuration
+export const updateCanvasConfig = (newConfig: Partial<{
+  DRAWING_PADDING: number;
+  CURRENT_POSITION_DOT_SIZE: number;
+  CROSS_SIZE: number;
+  LINE_WIDTH: number;
+  ZOOM_FACTOR: number;
+  PINCH_ZOOM_SENSITIVITY: number;
+  MIN_SCALE: number;
+  MAX_SCALE: number;
+}>): void => {
+  CANVAS_CONFIG.value = { ...CANVAS_CONFIG.value, ...newConfig };
+}; 

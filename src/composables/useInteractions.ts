@@ -108,7 +108,7 @@ export function useInteractions(
       const touchCenter = getTouchCenter(e.touches[0], e.touches[1]);
       
       // Convert scale change to zoom delta
-      const zoomDelta = (scaleChange - 1) * CANVAS_CONFIG.PINCH_ZOOM_SENSITIVITY;
+      const zoomDelta = (scaleChange - 1) * CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY;
       onZoom(-zoomDelta, touchCenter.x, touchCenter.y); // Pass focal point
       
       initialPinchDistance.value = currentDistance;

@@ -90,7 +90,7 @@ export function useInteractions(onPan, onZoom, onReset) {
             // Get the center point between the two fingers
             var touchCenter = getTouchCenter(e.touches[0], e.touches[1]);
             // Convert scale change to zoom delta
-            var zoomDelta = (scaleChange - 1) * CANVAS_CONFIG.PINCH_ZOOM_SENSITIVITY;
+            var zoomDelta = (scaleChange - 1) * CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY;
             onZoom(-zoomDelta, touchCenter.x, touchCenter.y); // Pass focal point
             initialPinchDistance.value = currentDistance;
         }

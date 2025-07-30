@@ -70,7 +70,7 @@ export function useCanvas() {
                 }
             }
             ctx.strokeStyle = 'white';
-            ctx.lineWidth = CANVAS_CONFIG.LINE_WIDTH / (scale.value * dpr);
+            ctx.lineWidth = CANVAS_CONFIG.value.LINE_WIDTH / (scale.value * dpr);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.stroke();
@@ -80,15 +80,15 @@ export function useCanvas() {
         var _b = project(lastPoint, bounds, logicalWidth, logicalHeight), lastX = _b.x, lastY = _b.y;
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.arc(lastX, lastY, CANVAS_CONFIG.CURRENT_POSITION_DOT_SIZE / (scale.value * dpr), 0, 2 * Math.PI);
+        ctx.arc(lastX, lastY, CANVAS_CONFIG.value.CURRENT_POSITION_DOT_SIZE / (scale.value * dpr), 0, 2 * Math.PI);
         ctx.fill();
     };
     var zoom = function (deltaY, focalX, focalY) {
         var oldScale = scale.value;
         var newScale = deltaY < 0
-            ? scale.value * (1 + CANVAS_CONFIG.ZOOM_FACTOR) // Zoom in
-            : scale.value / (1 + CANVAS_CONFIG.ZOOM_FACTOR); // Zoom out
-        var clampedScale = Math.max(CANVAS_CONFIG.MIN_SCALE, Math.min(newScale, CANVAS_CONFIG.MAX_SCALE));
+            ? scale.value * (1 + CANVAS_CONFIG.value.ZOOM_FACTOR) // Zoom in
+            : scale.value / (1 + CANVAS_CONFIG.value.ZOOM_FACTOR); // Zoom out
+        var clampedScale = Math.max(CANVAS_CONFIG.value.MIN_SCALE, Math.min(newScale, CANVAS_CONFIG.value.MAX_SCALE));
         // If focal point is provided, adjust view offset to zoom towards that point
         if (focalX !== undefined && focalY !== undefined && canvasEl.value) {
             var rect = canvasEl.value.getBoundingClientRect();
