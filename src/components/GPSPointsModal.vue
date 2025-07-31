@@ -100,8 +100,14 @@
     <SettingsModal
       :show="showSettingsModal"
       :settings="currentSettings"
+      :location-permission="'granted'"
+      :background-location-permission="'granted'"
+      :is-native-platform="true"
       @close="showSettingsModal = false"
       @save="handleSettingsSave"
+      @request-location="() => {}"
+      @request-background="() => {}"
+      @open-settings="() => {}"
     />
   </div>
 </template>
@@ -118,7 +124,6 @@ interface Props {
   displayPoints: Point[];
   isAnonymized: boolean;
   anonymizationOrigin: AnonymizationOrigin | null;
-  backgroundActive: boolean;
   currentAccuracy: number | null;
   settings: any;
 }

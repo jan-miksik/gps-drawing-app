@@ -34,132 +34,192 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 import { ref, computed } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
-import { registerPlugin } from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
+import { registerPlugin } from '@capacitor/core';
+import { App } from '@capacitor/app';
 var BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+// Debug toggle for production builds
+var DEBUG = false;
+var log = function () {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+    }
+    if (DEBUG)
+        console.log.apply(console, __spreadArray(['[Permissions]'], args, false));
+};
 export function usePermissions() {
     var _this = this;
     var locationPermission = ref('prompt');
-    var backgroundLocationPermission = ref('prompt');
+    var backgroundLocationPermission = ref('not-needed');
     var isCheckingPermissions = ref(false);
+    // Singleton flag for app state listener
+    var appStateListenerInitialized = false;
     // Computed properties
     var hasLocationPermission = computed(function () { return locationPermission.value === 'granted'; });
-    var hasBackgroundLocationPermission = computed(function () { return backgroundLocationPermission.value === 'granted'; });
+    var hasBackgroundLocationPermission = computed(function () {
+        return backgroundLocationPermission.value === 'granted' || backgroundLocationPermission.value === 'not-needed';
+    });
     var needsLocationPermission = computed(function () { return !hasLocationPermission.value; });
-    var needsBackgroundLocationPermission = computed(function () { return hasLocationPermission.value && !hasBackgroundLocationPermission.value; });
+    var needsBackgroundLocationPermission = computed(function () {
+        return hasLocationPermission.value &&
+            Capacitor.isNativePlatform() &&
+            backgroundLocationPermission.value !== 'granted';
+    });
     var canTrackGPS = computed(function () { return hasLocationPermission.value; });
     var canTrackBackgroundGPS = computed(function () { return hasLocationPermission.value && hasBackgroundLocationPermission.value; });
     // Check current permissions
     var checkPermissions = function () { return __awaiter(_this, void 0, void 0, function () {
-        var locationStatus, testWatcherId, removeError_1, error_1, error_2;
+        var locationStatus, position, locationError_1, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    if (isCheckingPermissions.value)
+                        return [2 /*return*/];
                     isCheckingPermissions.value = true;
-                    _a.label = 1;
+                    // 🕒 Let UI breathe before blocking it with async ops
+                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 50); })];
                 case 1:
-                    _a.trys.push([1, 14, 15, 16]);
-                    return [4 /*yield*/, Geolocation.checkPermissions()];
+                    // 🕒 Let UI breathe before blocking it with async ops
+                    _a.sent();
+                    _a.label = 2;
                 case 2:
+                    _a.trys.push([2, 10, 11, 12]);
+                    log('Checking permissions...');
+                    return [4 /*yield*/, Geolocation.checkPermissions()];
+                case 3:
                     locationStatus = _a.sent();
                     locationPermission.value = locationStatus.location || 'prompt';
-                    if (!Capacitor.isNativePlatform()) return [3 /*break*/, 12];
-                    _a.label = 3;
-                case 3:
-                    _a.trys.push([3, 10, , 11]);
-                    return [4 /*yield*/, BackgroundGeolocation.addWatcher({
-                            backgroundMessage: "Testing background permission",
-                            backgroundTitle: "GPS Drawing",
-                            requestPermissions: false, // Don't request, just test
-                            stale: false,
-                            distanceFilter: 1000 // Large distance to avoid triggering
-                        }, function (location, error) {
-                            if (error) {
-                                console.log('Background permission test error:', error);
-                                if (error.code === "NOT_AUTHORIZED") {
-                                    backgroundLocationPermission.value = 'denied';
-                                }
-                            }
-                            else if (location) {
-                                backgroundLocationPermission.value = 'granted';
-                            }
-                        })];
+                    log('Location permission status:', locationPermission.value);
+                    if (!Capacitor.isNativePlatform()) return [3 /*break*/, 8];
+                    _a.label = 4;
                 case 4:
-                    testWatcherId = _a.sent();
-                    // Wait a bit to see if we get an error
-                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 1000); })];
+                    _a.trys.push([4, 6, , 7]);
+                    return [4 /*yield*/, Geolocation.getCurrentPosition({
+                            enableHighAccuracy: true,
+                            timeout: 5000
+                        })];
                 case 5:
-                    // Wait a bit to see if we get an error
-                    _a.sent();
-                    _a.label = 6;
-                case 6:
-                    _a.trys.push([6, 8, , 9]);
-                    return [4 /*yield*/, BackgroundGeolocation.removeWatcher({ id: testWatcherId })];
-                case 7:
-                    _a.sent();
-                    return [3 /*break*/, 9];
-                case 8:
-                    removeError_1 = _a.sent();
-                    console.log('Error removing test watcher (expected):', removeError_1);
-                    return [3 /*break*/, 9];
-                case 9:
-                    // If we still don't know the status, assume prompt
-                    if (backgroundLocationPermission.value === 'prompt') {
+                    position = _a.sent();
+                    if (position) {
+                        log('Location access working, checking background...');
+                        // For background permission, we'll use a simple approach:
+                        // If we can get location and the app is working, assume background is available
+                        // The actual background permission will be tested when we try to use it
+                        backgroundLocationPermission.value = 'granted';
+                    }
+                    else {
                         backgroundLocationPermission.value = 'prompt';
                     }
-                    return [3 /*break*/, 11];
-                case 10:
-                    error_1 = _a.sent();
-                    console.log('Background location permission check failed:', error_1);
-                    backgroundLocationPermission.value = 'prompt';
-                    return [3 /*break*/, 11];
-                case 11: return [3 /*break*/, 13];
-                case 12:
-                    backgroundLocationPermission.value = 'denied'; // Not available on web
-                    _a.label = 13;
-                case 13:
-                    console.log('Permission status:', {
+                    return [3 /*break*/, 7];
+                case 6:
+                    locationError_1 = _a.sent();
+                    log('Location test failed:', locationError_1);
+                    // If location permission is granted but we can't get position,
+                    // background permission might be the issue
+                    if (locationPermission.value === 'granted') {
+                        backgroundLocationPermission.value = 'denied';
+                    }
+                    else {
+                        backgroundLocationPermission.value = 'prompt';
+                    }
+                    return [3 /*break*/, 7];
+                case 7: return [3 /*break*/, 9];
+                case 8:
+                    backgroundLocationPermission.value = 'not-needed'; // Not available on web
+                    _a.label = 9;
+                case 9:
+                    log('Final permission status:', {
                         location: locationPermission.value,
                         backgroundLocation: backgroundLocationPermission.value
                     });
-                    return [3 /*break*/, 16];
-                case 14:
-                    error_2 = _a.sent();
-                    console.error('Error checking permissions:', error_2);
-                    return [3 /*break*/, 16];
-                case 15:
+                    return [3 /*break*/, 12];
+                case 10:
+                    error_1 = _a.sent();
+                    console.error('Error checking permissions:', error_1);
+                    // Set default states on error
+                    locationPermission.value = 'prompt';
+                    backgroundLocationPermission.value = 'prompt';
+                    return [3 /*break*/, 12];
+                case 11:
                     isCheckingPermissions.value = false;
                     return [7 /*endfinally*/];
-                case 16: return [2 /*return*/];
+                case 12: return [2 /*return*/];
             }
         });
     }); };
     // Request location permission
     var requestLocationPermission = function () { return __awaiter(_this, void 0, void 0, function () {
-        var status_1, error_3;
+        var timeoutPromise, status_1, newPermissionState, result, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, Geolocation.requestPermissions()];
+                    _a.trys.push([0, 3, , 4]);
+                    log('🔄 Requesting location permission...');
+                    log('📊 Current permission state before request:', locationPermission.value);
+                    // Use requestAnimationFrame to let UI complete paint before opening system dialog
+                    return [4 /*yield*/, new Promise(function (resolve) {
+                            if ('requestAnimationFrame' in window) {
+                                requestAnimationFrame(function () { return setTimeout(resolve, 30); });
+                            }
+                            else {
+                                setTimeout(resolve, 30);
+                            }
+                        })];
                 case 1:
-                    status_1 = _a.sent();
-                    locationPermission.value = status_1.location || 'denied';
-                    return [2 /*return*/, hasLocationPermission.value];
+                    // Use requestAnimationFrame to let UI complete paint before opening system dialog
+                    _a.sent();
+                    timeoutPromise = new Promise(function (_, reject) {
+                        setTimeout(function () { return reject(new Error('Permission request timeout after 15 seconds')); }, 15000);
+                    });
+                    log('📱 Calling Geolocation.requestPermissions()...');
+                    return [4 /*yield*/, Promise.race([
+                            Geolocation.requestPermissions(),
+                            timeoutPromise
+                        ])];
                 case 2:
-                    error_3 = _a.sent();
-                    console.error('Error requesting location permission:', error_3);
+                    status_1 = _a.sent();
+                    log('✅ Permission request completed:', status_1);
+                    log('📊 Status.location:', status_1.location);
+                    newPermissionState = status_1.location || 'denied';
+                    locationPermission.value = newPermissionState;
+                    log('🔄 Updated locationPermission.value to:', locationPermission.value);
+                    result = locationPermission.value === 'granted';
+                    log('📊 Returning result:', result);
+                    return [2 /*return*/, result];
+                case 3:
+                    error_2 = _a.sent();
+                    console.error('❌ Error requesting location permission:', error_2);
+                    // Set to denied on any error
                     locationPermission.value = 'denied';
+                    log('🔄 Set locationPermission.value to denied due to error');
+                    // Log specific error details
+                    if (error_2 instanceof Error) {
+                        console.error('❌ Error details:', error_2.message);
+                        if (error_2.message.includes('timeout')) {
+                            log('⏰ Permission request timed out - user may have taken too long to respond');
+                        }
+                    }
                     return [2 /*return*/, false];
-                case 3: return [2 /*return*/];
+                case 4: return [2 /*return*/];
             }
         });
     }); };
-    // Request background location permission
+    // Request background location permission - now opens settings directly
     var requestBackgroundLocationPermission = function () { return __awaiter(_this, void 0, void 0, function () {
-        var watcherId, removeError_2, error_4;
+        var locationGranted, appStateListener_1, settingsError_1, fallbackError_1, error_3;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -169,61 +229,109 @@ export function usePermissions() {
                     }
                     _a.label = 1;
                 case 1:
-                    _a.trys.push([1, 9, , 10]);
+                    _a.trys.push([1, 12, , 13]);
+                    console.log('Opening device settings for background location permission...');
+                    if (!!hasLocationPermission.value) return [3 /*break*/, 3];
+                    console.log('Location permission not granted, requesting first...');
+                    return [4 /*yield*/, requestLocationPermission()];
+                case 2:
+                    locationGranted = _a.sent();
+                    if (!locationGranted) {
+                        console.log('Location permission denied, cannot request background permission');
+                        return [2 /*return*/, false];
+                    }
+                    _a.label = 3;
+                case 3:
+                    _a.trys.push([3, 6, , 11]);
+                    return [4 /*yield*/, BackgroundGeolocation.openSettings()];
+                case 4:
+                    _a.sent();
+                    console.log('Settings opened successfully');
+                    return [4 /*yield*/, App.addListener('appStateChange', function (_a) { return __awaiter(_this, [_a], void 0, function (_b) {
+                            var _this = this;
+                            var isActive = _b.isActive;
+                            return __generator(this, function (_c) {
+                                if (isActive) {
+                                    console.log('App became active, checking permissions...');
+                                    // Wait a bit for settings to take effect
+                                    setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
+                                        return __generator(this, function (_a) {
+                                            switch (_a.label) {
+                                                case 0: return [4 /*yield*/, checkPermissions()];
+                                                case 1:
+                                                    _a.sent();
+                                                    // Remove the listener after checking
+                                                    return [4 /*yield*/, appStateListener_1.remove()];
+                                                case 2:
+                                                    // Remove the listener after checking
+                                                    _a.sent();
+                                                    return [2 /*return*/];
+                                            }
+                                        });
+                                    }); }, 1000);
+                                }
+                                return [2 /*return*/];
+                            });
+                        }); })];
+                case 5:
+                    appStateListener_1 = _a.sent();
+                    return [2 /*return*/, true]; // Settings opened successfully
+                case 6:
+                    settingsError_1 = _a.sent();
+                    console.error('Error opening settings:', settingsError_1);
+                    _a.label = 7;
+                case 7:
+                    _a.trys.push([7, 9, , 10]);
+                    // This might work on some devices
                     return [4 /*yield*/, BackgroundGeolocation.addWatcher({
-                            backgroundMessage: "Requesting background location permission",
-                            backgroundTitle: "GPS Drawing",
+                            backgroundMessage: "GPS Drawing needs background location access",
+                            backgroundTitle: "Background Permission Required",
                             requestPermissions: true,
                             stale: false,
-                            distanceFilter: 10
+                            distanceFilter: 1000
                         }, function (location, error) {
-                            if (error) {
-                                console.error('Background location permission error:', error);
-                                if (error.code === "NOT_AUTHORIZED") {
-                                    backgroundLocationPermission.value = 'denied';
-                                }
-                            }
-                            else if (location) {
-                                backgroundLocationPermission.value = 'granted';
-                            }
+                            console.log('Background permission attempt:', { location: !!location, error: error });
                         })];
-                case 2:
-                    watcherId = _a.sent();
-                    // Wait a bit for the permission request to be processed
-                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 2000); })];
-                case 3:
-                    // Wait a bit for the permission request to be processed
-                    _a.sent();
-                    _a.label = 4;
-                case 4:
-                    _a.trys.push([4, 6, , 7]);
-                    return [4 /*yield*/, BackgroundGeolocation.removeWatcher({ id: watcherId })];
-                case 5:
-                    _a.sent();
-                    return [3 /*break*/, 7];
-                case 6:
-                    removeError_2 = _a.sent();
-                    console.log('Error removing background watcher (expected):', removeError_2);
-                    return [3 /*break*/, 7];
-                case 7: 
-                // Re-check permissions after the request
-                return [4 /*yield*/, checkPermissions()];
                 case 8:
-                    // Re-check permissions after the request
+                    // This might work on some devices
                     _a.sent();
-                    return [2 /*return*/, hasBackgroundLocationPermission.value];
+                    // Wait and then remove
+                    setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
+                        var removeError_1;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    _a.trys.push([0, 2, , 3]);
+                                    return [4 /*yield*/, BackgroundGeolocation.removeWatcher({ id: 'temp' })];
+                                case 1:
+                                    _a.sent();
+                                    return [3 /*break*/, 3];
+                                case 2:
+                                    removeError_1 = _a.sent();
+                                    console.log('Error removing temp watcher:', removeError_1);
+                                    return [3 /*break*/, 3];
+                                case 3: return [2 /*return*/];
+                            }
+                        });
+                    }); }, 2000);
+                    return [2 /*return*/, true];
                 case 9:
-                    error_4 = _a.sent();
-                    console.error('Error requesting background location permission:', error_4);
-                    backgroundLocationPermission.value = 'denied';
+                    fallbackError_1 = _a.sent();
+                    console.error('Fallback method also failed:', fallbackError_1);
                     return [2 /*return*/, false];
-                case 10: return [2 /*return*/];
+                case 10: return [3 /*break*/, 11];
+                case 11: return [3 /*break*/, 13];
+                case 12:
+                    error_3 = _a.sent();
+                    console.error('Error requesting background location permission:', error_3);
+                    return [2 /*return*/, false];
+                case 13: return [2 /*return*/];
             }
         });
     }); };
     // Open app settings (for manual permission enabling)
     var openAppSettings = function () { return __awaiter(_this, void 0, void 0, function () {
-        var error_5;
+        var error_4;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -238,28 +346,55 @@ export function usePermissions() {
                     _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
-                    error_5 = _a.sent();
-                    console.error('Error opening app settings:', error_5);
+                    error_4 = _a.sent();
+                    console.error('Error opening app settings:', error_4);
                     // Fallback: show instructions to user
-                    alert('Please go to your device settings and enable location permissions for this app.');
+                    alert('Please go to your device settings > Apps > GPS Drawing > Permissions and enable "Allow all the time" for location access.');
                     return [3 /*break*/, 4];
                 case 4: return [3 /*break*/, 6];
                 case 5:
                     // On web, show instructions
-                    alert('Please enable location permissions in your browser settings and refresh the page.');
+                    alert('Please enable location permissions in your browser settings.');
                     _a.label = 6;
                 case 6: return [2 /*return*/];
             }
         });
     }); };
-    // Initialize permissions check
+    // Initialize permissions and set up app state monitoring
     var initPermissions = function () { return __awaiter(_this, void 0, void 0, function () {
+        var error_5;
+        var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, checkPermissions()];
                 case 1:
                     _a.sent();
-                    return [2 /*return*/];
+                    if (!(!appStateListenerInitialized && Capacitor.isNativePlatform())) return [3 /*break*/, 5];
+                    _a.label = 2;
+                case 2:
+                    _a.trys.push([2, 4, , 5]);
+                    appStateListenerInitialized = true;
+                    return [4 /*yield*/, App.addListener('appStateChange', function (_a) { return __awaiter(_this, [_a], void 0, function (_b) {
+                            var isActive = _b.isActive;
+                            return __generator(this, function (_c) {
+                                if (isActive) {
+                                    log('App became active, refreshing permissions...');
+                                    // Small delay to let system state settle
+                                    setTimeout(function () {
+                                        checkPermissions();
+                                    }, 500);
+                                }
+                                return [2 /*return*/];
+                            });
+                        }); })];
+                case 3:
+                    _a.sent();
+                    return [3 /*break*/, 5];
+                case 4:
+                    error_5 = _a.sent();
+                    console.error('Error setting up app state listener:', error_5);
+                    return [3 /*break*/, 5];
+                case 5: return [2 /*return*/];
             }
         });
     }); };
@@ -268,7 +403,7 @@ export function usePermissions() {
         locationPermission: locationPermission,
         backgroundLocationPermission: backgroundLocationPermission,
         isCheckingPermissions: isCheckingPermissions,
-        // Computed
+        // Computed properties
         hasLocationPermission: hasLocationPermission,
         hasBackgroundLocationPermission: hasBackgroundLocationPermission,
         needsLocationPermission: needsLocationPermission,

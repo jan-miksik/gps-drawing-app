@@ -112,45 +112,82 @@ body, html, #app {
   text-underline-offset: 4px;
 }
 
-/* Permission Status Button */
-.permission-status-button {
-  position: absolute;
-  bottom: calc(70px + env(safe-area-inset-bottom));
-  left: 30px;
-  background-color: rgba(239, 68, 68, 0.9);
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 16px;
-  z-index: 10;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-  margin-bottom: env(safe-area-inset-bottom);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: pulse 2s infinite;
+/* Permission Button Styles */
+.permission-button-container {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translate(0, -50%);
+  z-index: 100;
+  pointer-events: none;
+  text-align: center;
 }
 
-.permission-status-button:hover {
-  background-color: rgba(239, 68, 68, 1);
-  transform: scale(1.1);
+.permission-explanation {
+  color: white;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+  max-width: 95vw;
+  text-align: left;
+  width: calc(100% - 20px);
+  margin-left: auto;
+  margin-right: auto;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.permission-button-center {
+  all: unset;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  margin: auto;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.permission-button-center:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+}
+
+.permission-button-center:disabled {
+  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .permission-icon {
-  font-size: 18px;
+  font-size: 20px;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-} 
+.permission-button-center.requesting {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+
+
+ 

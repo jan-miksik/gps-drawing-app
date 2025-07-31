@@ -11,7 +11,9 @@ var __assign = (this && this.__assign) || function () {
 };
 import { ref, watch, computed } from 'vue';
 import { DEFAULT_GPS_CONFIG, DEFAULT_CANVAS_CONFIG } from '../constants/gpsConstants';
-var props = defineProps();
+var props = withDefaults(defineProps(), {
+    isNativePlatform: true
+});
 var emit = defineEmits();
 // Default values imported from constants
 var defaultSettings = {
@@ -41,6 +43,7 @@ var handleReset = function () {
     localSettings.value = __assign({}, defaultSettings);
     // Also emit the reset to parent so it can update the actual configs
     emit('save', defaultSettings);
+    alert('Settings reset to defaults successfully!');
 };
 var handleSave = function () {
     emit('save', __assign({}, localSettings.value));
@@ -48,6 +51,9 @@ var handleSave = function () {
     emit('close');
 };
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
+var __VLS_withDefaultsArg = (function (t) { return t; })({
+    isNativePlatform: true
+});
 var __VLS_ctx = {};
 var __VLS_components;
 var __VLS_directives;
@@ -55,6 +61,13 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['settings-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-indicator']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-action-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-action-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-action-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['secondary']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-button']} */ ;
@@ -118,7 +131,6 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign({ type: "number", min: "0.1", max: "5", step: "0.1" }, { class: "setting-input" }));
     (__VLS_ctx.localSettings.PINCH_ZOOM_SENSITIVITY);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-description" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "settings-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-item" }));
@@ -128,7 +140,6 @@ if (__VLS_ctx.show) {
     (__VLS_ctx.localSettings.ACCURACY_THRESHOLD);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "setting-unit" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-description" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-item" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "setting-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-control" }));
@@ -213,6 +224,7 @@ var __VLS_self = (await import('vue')).defineComponent({
     },
     __typeEmits: {},
     __typeProps: {},
+    props: {},
 });
 export default (await import('vue')).defineComponent({
     setup: function () {
@@ -220,5 +232,6 @@ export default (await import('vue')).defineComponent({
     },
     __typeEmits: {},
     __typeProps: {},
+    props: {},
 });
 ; /* PartiallyEnd: #4569/main.vue */

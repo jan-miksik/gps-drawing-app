@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 import type { Point, GPSSignalQuality, GPSPosition } from '../types/gps';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { calculateDistance, getSignalQuality, smoothGPSPoints, roundCoordinates } from '../utils/gpsUtils';
@@ -12,15 +13,21 @@ export function useGPS() {
   const currentLon = ref(0);
   const currentAccuracy = ref<number | null>(null);
   const gpsSignalQuality = ref<GPSSignalQuality>('unknown');
+  const isGPSActive = ref(false);
   
   // Internal state
   let watchId: string | null = null;
   
   // Computed properties
-  const isGPSActive = computed(() => watchId !== null);
+  const isTracking = computed(() => isGPSActive.value && watchId !== null);
   
   const startGPSTracking = async (onPointAdded: (point: Point) => void): Promise<void> => {
+    if (!Capacitor.isNativePlatform()) {
+      console.warn('GPS tracking is optimized for native platforms');
+    }
+
     try {
+      // Check permissions first
       const permissionStatus = await Geolocation.checkPermissions();
       if (permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted') {
         const requestStatus = await Geolocation.requestPermissions();
@@ -30,11 +37,14 @@ export function useGPS() {
         }
       }
 
+      logInfo('Starting enhanced GPS tracking for lock screen support');
+
+      // Enhanced GPS tracking with better lock screen support
       watchId = await Geolocation.watchPosition(
         {
           enableHighAccuracy: true,
-            timeout: GPS_CONFIG.value.TIMEOUT,
-  maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
+          timeout: GPS_CONFIG.value.TIMEOUT,
+          maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
         },
         (position, err) => {
           if (err) {
@@ -45,8 +55,13 @@ export function useGPS() {
           }
         }
       );
+
+      isGPSActive.value = true;
+      logInfo('GPS tracking started successfully');
+
     } catch (error: any) {
       console.error('Failed to start GPS tracking:', error.message || error);
+      logInfo('GPS tracking failed to start', error);
     }
   };
 
@@ -88,6 +103,8 @@ export function useGPS() {
     if (watchId) {
       Geolocation.clearWatch({ id: watchId });
       watchId = null;
+      isGPSActive.value = false;
+      logInfo('GPS tracking stopped');
     }
   };
 
@@ -98,28 +115,22 @@ export function useGPS() {
     }
 
     const lastPoint = points[points.length - 1];
-
-    logInfo('shouldAddPoint 1');
-    
-    // Check time interval - minimum 5 seconds between points
-    const timeDiff = newPoint.timestamp - lastPoint.timestamp;
-    if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
-      console.log(`Skipping GPS point: time ${(timeDiff/1000).toFixed(1)}s < ${GPS_CONFIG.value.MIN_TIME_INTERVAL/1000}s threshold`);
-      return false;
-    }
-
-    logInfo('shouldAddPoint 2');
-    
-    // Check distance - minimum 10 meters between points
     const distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
+    const timeDiff = newPoint.timestamp - lastPoint.timestamp;
+
+    // Check distance threshold
     if (distance < GPS_CONFIG.value.DISTANCE_THRESHOLD) {
-      console.log(`Skipping GPS point: distance ${distance.toFixed(1)}m < ${GPS_CONFIG.value.DISTANCE_THRESHOLD}m threshold`);
+      console.log(`Skipping point - too close: ${distance.toFixed(1)}m (threshold: ${GPS_CONFIG.value.DISTANCE_THRESHOLD}m)`);
       return false;
     }
 
-    logInfo('shouldAddPoint 3');
-    
-    console.log(`Adding GPS point: distance ${distance.toFixed(1)}m, time ${(timeDiff/1000).toFixed(1)}s from last point`);
+    // Check time interval
+    if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
+      console.log(`Skipping point - too soon: ${timeDiff}ms (threshold: ${GPS_CONFIG.value.MIN_TIME_INTERVAL}ms)`);
+      return false;
+    }
+
+    console.log(`Adding GPS point - distance: ${distance.toFixed(1)}m, time: ${timeDiff}ms`);
     return true;
   };
 
@@ -136,10 +147,13 @@ export function useGPS() {
     gpsSignalQuality,
     isGPSActive,
     
+    // Computed
+    isTracking,
+    
     // Methods
     startGPSTracking,
     stopGPSTracking,
     shouldAddPoint,
-    processNewPoint
+    processNewPoint,
   };
 } 

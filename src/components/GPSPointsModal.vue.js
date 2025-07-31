@@ -258,8 +258,8 @@ if (__VLS_ctx.show) {
         } }, { class: "close-button-footer" }));
     /** @type {[typeof SettingsModal, ]} */ ;
     // @ts-ignore
-    var __VLS_0 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings) })));
-    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_0 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
     var __VLS_3 = void 0;
     var __VLS_4 = void 0;
     var __VLS_5 = void 0;
@@ -277,6 +277,15 @@ if (__VLS_ctx.show) {
     };
     var __VLS_7 = {
         onSave: (__VLS_ctx.handleSettingsSave)
+    };
+    var __VLS_8 = {
+        onRequestLocation: (function () { })
+    };
+    var __VLS_9 = {
+        onRequestBackground: (function () { })
+    };
+    var __VLS_10 = {
+        onOpenSettings: (function () { })
     };
     var __VLS_2;
 }

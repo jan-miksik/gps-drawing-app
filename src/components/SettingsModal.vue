@@ -67,8 +67,7 @@
                 class="setting-input"
               />
             </div>
-            <div class="setting-description">Sensitivity for pinch-to-zoom <br/>
-              (higher = faster)</div>
+            <div class="setting-description">Sensitivity for pinch-to-zoom (higher = faster)</div>
           </div>
         </div>
 
@@ -87,8 +86,7 @@
               />
               <span class="setting-unit">meters</span>
             </div>
-            <div class="setting-description">Minimum accuracy to add GPS point <br/>
-              (lower = more accurate)</div>
+            <div class="setting-description">Minimum accuracy to add GPS point (lower = more accurate)</div>
           </div>
 
           <div class="setting-item">
@@ -103,11 +101,11 @@
               />
               <span class="setting-unit">meters</span>
             </div>
-            <div class="setting-description">Minimum distance to add new point</div>
+            <div class="setting-description">Minimum distance between GPS points</div>
           </div>
 
           <div class="setting-item">
-            <label class="setting-label">Min Time Interval</label>
+            <label class="setting-label">Time Interval</label>
             <div class="setting-control">
               <input 
                 type="number" 
@@ -121,6 +119,60 @@
             <div class="setting-description">Minimum time between GPS points</div>
           </div>
         </div>
+
+        <!-- Permissions Section - moved to bottom -->
+        <!-- <div class="settings-section">
+          <h3>Permissions</h3>
+          
+          <div class="permission-item">
+            <div class="permission-info">
+              <label class="permission-label">Location Access</label>
+              <div class="permission-status">
+                <span class="status-indicator" :class="locationStatusClass">{{ locationStatusIcon }}</span>
+                <span class="status-text">{{ locationStatusText }}</span>
+              </div>
+            </div>
+            <div class="permission-description">Required for creating GPS drawing</div>
+            <button 
+              v-if="needsLocationPermission"
+              @click="handleRequestLocation"
+              class="permission-action-button"
+            >
+              Enable Location Access
+            </button>
+          </div>
+
+          <div v-if="isNativePlatform" class="permission-item">
+            <div class="permission-info">
+              <label class="permission-label">Background Location Access</label>
+              <div class="permission-status">
+                <span class="status-indicator" :class="backgroundStatusClass">{{ backgroundStatusIcon }}</span>
+                <span class="status-text">{{ backgroundStatusText }}</span>
+              </div>
+            </div>
+            <div class="permission-description">Required for continuous GPS drawing when app is minimized or phone is locked</div>
+            <button 
+              v-if="needsBackgroundLocationPermission"
+              @click="handleRequestBackground"
+              class="permission-action-button"
+            >
+              Enable Background Access
+            </button>
+          </div>
+
+          <div v-if="showSettingsButton" class="permission-item">
+            <div class="permission-info">
+              <label class="permission-label">Manual Settings</label>
+            </div>
+            <div class="permission-description">Open device settings to manage permissions manually</div>
+            <button 
+              @click="handleOpenSettings"
+              class="permission-action-button secondary"
+            >
+              Open Device Settings
+            </button>
+          </div>
+        </div> -->
       </div>
       
       <div class="modal-footer">
@@ -154,14 +206,23 @@ interface Settings {
 interface Props {
   show: boolean;
   settings: Settings;
+  locationPermission: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
+  backgroundLocationPermission: 'granted' | 'denied' | 'prompt' | 'not-needed';
+  isNativePlatform?: boolean;
 }
 
 interface Emits {
   (e: 'close'): void;
   (e: 'save', settings: Settings): void;
+  (e: 'request-location'): void;
+  (e: 'request-background'): void;
+  (e: 'open-settings'): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  isNativePlatform: true
+});
+
 const emit = defineEmits<Emits>();
 
 // Default values imported from constants
@@ -193,19 +254,96 @@ const hasChangesFromDefaults = computed(() => {
   return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
 });
 
+// Permission computed properties
+// const hasLocationPermission = computed(() => props.locationPermission === 'granted');
+
+// const needsLocationPermission = computed(() => !hasLocationPermission.value);
+// const needsBackgroundLocationPermission = computed(() => 
+//   hasLocationPermission.value && 
+//   props.isNativePlatform && 
+//   props.backgroundLocationPermission !== 'granted'
+// );
+
+// const showSettingsButton = computed(() => 
+//   props.locationPermission === 'denied' || props.backgroundLocationPermission === 'denied'
+// );
+
+// // Permission status computed properties
+// const locationStatusClass = computed(() => {
+//   switch (props.locationPermission) {
+//     case 'granted': return 'status-granted';
+//     case 'denied': return 'status-denied';
+//     default: return 'status-pending';
+//   }
+// });
+
+// const backgroundStatusClass = computed(() => {
+//   switch (props.backgroundLocationPermission) {
+//     case 'granted': return 'status-granted';
+//     case 'denied': return 'status-denied';
+//     case 'not-needed': return 'status-granted';
+//     default: return 'status-pending';
+//   }
+// });
+
+// const locationStatusIcon = computed(() => {
+//   switch (props.locationPermission) {
+//     case 'granted': return '✓';
+//     case 'denied': return '✗';
+//     default: return '?';
+//   }
+// });
+
+// const backgroundStatusIcon = computed(() => {
+//   switch (props.backgroundLocationPermission) {
+//     case 'granted': return '✓';
+//     case 'denied': return '✗';
+//     case 'not-needed': return '✓';
+//     default: return '?';
+//   }
+// });
+
+// const locationStatusText = computed(() => {
+//   switch (props.locationPermission) {
+//     case 'granted': return 'Granted';
+//     case 'denied': return 'Denied';
+//     default: return 'Not set';
+//   }
+// });
+
+// const backgroundStatusText = computed(() => {
+//   switch (props.backgroundLocationPermission) {
+//     case 'granted': return 'Granted';
+//     case 'denied': return 'Denied';
+//     case 'not-needed': return 'Not needed';
+//     default: return 'Not set';
+//   }
+// });
+
 const handleReset = (): void => {
   localSettings.value = { ...defaultSettings };
   // Also emit the reset to parent so it can update the actual configs
   emit('save', defaultSettings);
+  alert('Settings reset to defaults successfully!');
 };
-
-
 
 const handleSave = (): void => {
   emit('save', { ...localSettings.value });
   alert('Settings saved successfully!');
   emit('close');
 };
+
+// const handleRequestLocation = (): void => {
+//   emit('request-location');
+// };
+
+// const handleRequestBackground = (): void => {
+//   emit('request-background');
+// };
+
+// const handleOpenSettings = (): void => {
+//   emit('open-settings');
+// };
 </script>
 
 <style scoped>
@@ -220,6 +358,7 @@ const handleSave = (): void => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .modal-content {
@@ -297,6 +436,88 @@ const handleSave = (): void => {
   text-align: left;
 }
 
+/* Permission Items */
+.permission-item {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.permission-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.permission-label {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.permission-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-indicator {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.status-indicator.status-granted {
+  color: #4ade80;
+}
+
+.status-indicator.status-denied {
+  color: #f87171;
+}
+
+.status-indicator.status-pending {
+  color: #fbbf24;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.permission-description {
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.permission-action-button {
+  all: unset;
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.permission-action-button:hover {
+  background: #2563eb;
+}
+
+.permission-action-button.secondary {
+  background: #666;
+}
+
+.permission-action-button.secondary:hover {
+  background: #555;
+}
+
+/* Setting Items */
 .setting-item {
   margin-bottom: 35px;
 }
@@ -339,6 +560,12 @@ const handleSave = (): void => {
   min-width: 20px;
 }
 
+.setting-description {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .scale-range {
   display: flex;
   gap: 15px;
@@ -356,12 +583,6 @@ const handleSave = (): void => {
   color: rgba(255, 255, 255, 0.8);
   font-size: 11px;
   font-weight: 500;
-}
-
-.setting-description {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-  line-height: 1.4;
 }
 
 .modal-footer {

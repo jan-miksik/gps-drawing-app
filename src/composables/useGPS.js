@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 import { ref, computed } from 'vue';
 import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { calculateDistance, getSignalQuality, smoothGPSPoints, roundCoordinates } from '../utils/gpsUtils';
 import { useDevLogs } from './useDevLogs';
@@ -47,49 +48,61 @@ export function useGPS() {
     var currentLon = ref(0);
     var currentAccuracy = ref(null);
     var gpsSignalQuality = ref('unknown');
+    var isGPSActive = ref(false);
     // Internal state
     var watchId = null;
     // Computed properties
-    var isGPSActive = computed(function () { return watchId !== null; });
+    var isTracking = computed(function () { return isGPSActive.value && watchId !== null; });
     var startGPSTracking = function (onPointAdded) { return __awaiter(_this, void 0, void 0, function () {
         var permissionStatus, requestStatus, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 5, , 6]);
-                    return [4 /*yield*/, Geolocation.checkPermissions()];
+                    if (!Capacitor.isNativePlatform()) {
+                        console.warn('GPS tracking is optimized for native platforms');
+                    }
+                    _a.label = 1;
                 case 1:
-                    permissionStatus = _a.sent();
-                    if (!(permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted')) return [3 /*break*/, 3];
-                    return [4 /*yield*/, Geolocation.requestPermissions()];
+                    _a.trys.push([1, 6, , 7]);
+                    return [4 /*yield*/, Geolocation.checkPermissions()];
                 case 2:
+                    permissionStatus = _a.sent();
+                    if (!(permissionStatus.location !== 'granted' && permissionStatus.coarseLocation !== 'granted')) return [3 /*break*/, 4];
+                    return [4 /*yield*/, Geolocation.requestPermissions()];
+                case 3:
                     requestStatus = _a.sent();
                     if (requestStatus.location !== 'granted' && requestStatus.coarseLocation !== 'granted') {
                         console.error('Location permission denied.');
                         return [2 /*return*/];
                     }
-                    _a.label = 3;
-                case 3: return [4 /*yield*/, Geolocation.watchPosition({
-                        enableHighAccuracy: true,
-                        timeout: GPS_CONFIG.value.TIMEOUT,
-                        maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
-                    }, function (position, err) {
-                        if (err) {
-                            console.error('GPS Error:', err.message, err.code);
-                            gpsSignalQuality.value = 'unknown';
-                        }
-                        else if (position) {
-                            processGPSPosition(position, onPointAdded);
-                        }
-                    })];
+                    _a.label = 4;
                 case 4:
-                    watchId = _a.sent();
-                    return [3 /*break*/, 6];
+                    logInfo('Starting enhanced GPS tracking for lock screen support');
+                    return [4 /*yield*/, Geolocation.watchPosition({
+                            enableHighAccuracy: true,
+                            timeout: GPS_CONFIG.value.TIMEOUT,
+                            maximumAge: GPS_CONFIG.value.MAXIMUM_AGE
+                        }, function (position, err) {
+                            if (err) {
+                                console.error('GPS Error:', err.message, err.code);
+                                gpsSignalQuality.value = 'unknown';
+                            }
+                            else if (position) {
+                                processGPSPosition(position, onPointAdded);
+                            }
+                        })];
                 case 5:
+                    // Enhanced GPS tracking with better lock screen support
+                    watchId = _a.sent();
+                    isGPSActive.value = true;
+                    logInfo('GPS tracking started successfully');
+                    return [3 /*break*/, 7];
+                case 6:
                     error_1 = _a.sent();
                     console.error('Failed to start GPS tracking:', error_1.message || error_1);
-                    return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
+                    logInfo('GPS tracking failed to start', error_1);
+                    return [3 /*break*/, 7];
+                case 7: return [2 /*return*/];
             }
         });
     }); };
@@ -125,6 +138,8 @@ export function useGPS() {
         if (watchId) {
             Geolocation.clearWatch({ id: watchId });
             watchId = null;
+            isGPSActive.value = false;
+            logInfo('GPS tracking stopped');
         }
     };
     var shouldAddPoint = function (points, newPoint) {
@@ -133,22 +148,19 @@ export function useGPS() {
             return true;
         }
         var lastPoint = points[points.length - 1];
-        logInfo('shouldAddPoint 1');
-        // Check time interval - minimum 5 seconds between points
-        var timeDiff = newPoint.timestamp - lastPoint.timestamp;
-        if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
-            console.log("Skipping GPS point: time ".concat((timeDiff / 1000).toFixed(1), "s < ").concat(GPS_CONFIG.value.MIN_TIME_INTERVAL / 1000, "s threshold"));
-            return false;
-        }
-        logInfo('shouldAddPoint 2');
-        // Check distance - minimum 10 meters between points
         var distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
+        var timeDiff = newPoint.timestamp - lastPoint.timestamp;
+        // Check distance threshold
         if (distance < GPS_CONFIG.value.DISTANCE_THRESHOLD) {
-            console.log("Skipping GPS point: distance ".concat(distance.toFixed(1), "m < ").concat(GPS_CONFIG.value.DISTANCE_THRESHOLD, "m threshold"));
+            console.log("Skipping point - too close: ".concat(distance.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.value.DISTANCE_THRESHOLD, "m)"));
             return false;
         }
-        logInfo('shouldAddPoint 3');
-        console.log("Adding GPS point: distance ".concat(distance.toFixed(1), "m, time ").concat((timeDiff / 1000).toFixed(1), "s from last point"));
+        // Check time interval
+        if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
+            console.log("Skipping point - too soon: ".concat(timeDiff, "ms (threshold: ").concat(GPS_CONFIG.value.MIN_TIME_INTERVAL, "ms)"));
+            return false;
+        }
+        console.log("Adding GPS point - distance: ".concat(distance.toFixed(1), "m, time: ").concat(timeDiff, "ms"));
         return true;
     };
     var processNewPoint = function (newPoint) {
@@ -162,10 +174,12 @@ export function useGPS() {
         currentAccuracy: currentAccuracy,
         gpsSignalQuality: gpsSignalQuality,
         isGPSActive: isGPSActive,
+        // Computed
+        isTracking: isTracking,
         // Methods
         startGPSTracking: startGPSTracking,
         stopGPSTracking: stopGPSTracking,
         shouldAddPoint: shouldAddPoint,
-        processNewPoint: processNewPoint
+        processNewPoint: processNewPoint,
     };
 }

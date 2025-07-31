@@ -12,10 +12,28 @@
       @wheel="handleWheel"
     />
     
-    <!-- <GPSStatusBar 
-      @click="showDevLogs"
-      :gps-signal-quality="gpsSignalQuality"
-    /> -->
+    <!-- Location Permission Button -->
+    <div v-if="!hasLocationPermission" class="permission-button-container">
+      <div class="permission-explanation">
+        To draw with GPS, please enable location access.
+        <br><br>
+        How: <br>Tap button bellow ("Open Settings") <br>→ Permissions <br>→ Location <br>→ Choose "While using the app" or "Always"
+        <br><br>
+        Note: The exact texts can vary on your device
+        <br><br>
+        <button 
+          @click="handleOpenAppSettings()"
+          :disabled="isRequestingPermission"
+          class="permission-button-center"
+          :class="{ 'requesting': isRequestingPermission }"
+        >
+          <span v-if="isRequestingPermission">Requesting...</span>
+          <span v-else-if="locationPermission === 'denied'">Open Settings</span>
+          <span v-else>Enable Location</span>
+        </button>
+        <br><br>
+      </div>
+    </div>
     
     <button 
       @click="showModal = true" 
@@ -31,16 +49,6 @@
       title="Export drawing as image"
     >
       <span class="export-button-text">Export</span>
-    </button>
-
-    <!-- Permission Status Button - appears when permissions are needed -->
-    <button 
-      v-if="needsLocationPermission || needsBackgroundLocationPermission"
-      @click="handleShowPermissionModal" 
-      class="permission-status-button"
-      :title="needsLocationPermission ? 'Location permission required' : 'Background location permission required'"
-    >
-      <span class="permission-icon">🔒</span>
     </button>
 
     <!-- Reset Zoom Button - appears when zoomed -->
@@ -59,7 +67,7 @@
       :display-points="displayPoints"
       :is-anonymized="isAnonymized"
       :anonymization-origin="anonymizationOrigin"
-      :background-active="isBackgroundGPSActive"
+
       :current-accuracy="currentAccuracy"
       :settings="settings"
       @close="showModal = false"
@@ -85,16 +93,26 @@
       @clear="clearLogs"
     />
 
-    <!-- Permission Modal -->
-    <PermissionModal
-      :show="showPermissionModal"
+
+
+    <BackgroundTrackingModal
+      :show="showBackgroundTrackingModal"
+      :is-requesting="isRequestingPermission"
+      @enable-background="handleEnableBackgroundTracking"
+      @skip="handleSkipBackgroundTracking"
+    />
+
+    <SettingsModal
+      :show="showSettingsModal"
+      :settings="settings"
       :location-permission="locationPermission"
       :background-location-permission="backgroundLocationPermission"
-      :is-requesting="isRequestingPermission"
-      @close="showPermissionModal = false"
-      @request-location="handleRequestLocationPermission"
-      @request-background="handleRequestBackgroundPermission"
-      @open-settings="handleOpenAppSettings"
+      :is-native-platform="true"
+      @close="showSettingsModal = false"
+      @save="handleSettingsSave"
+      @request-location="handleSettingsRequestLocation"
+      @request-background="handleSettingsRequestBackground"
+      @open-settings="handleSettingsOpenSettings"
     />
   </div>
 </template>
@@ -110,20 +128,32 @@ import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
 import { GPS_CONFIG, CANVAS_CONFIG, updateGPSConfig, updateCanvasConfig } from './constants/gpsConstants';
-// import GPSStatusBar from './components/GPSStatusBar.vue';
+
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
-import PermissionModal from './components/PermissionModal.vue';
+
+import BackgroundTrackingModal from './components/BackgroundTrackingModal.vue';
+import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
-import { getSignalQuality } from './utils/gpsUtils';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+
 
 // State
 const showModal = ref(false);
 const showExportModal = ref(false);
-const showPermissionModal = ref(false);
+
+const showBackgroundTrackingModal = ref(false);
+const showSettingsModal = ref(false);
 const isRequestingPermission = ref(false);
+const dontShowBackgroundModal = ref(false);
 const points = ref<Point[]>([]);
+
+// Tap debouncing for settings button
+let lastTapTime = 0;
+
+// Settings state (already declared above)
 const isAnonymized = ref(true);
 const anonymizationOrigin = ref<AnonymizationOrigin | null>(null);
 
@@ -139,22 +169,28 @@ const settings = computed(() => ({
 }));
 
 // Composables
-const { currentAccuracy, gpsSignalQuality, startGPSTracking, stopGPSTracking, shouldAddPoint, processNewPoint } = useGPS();
-const { isBackgroundGPSActive, initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
+const { currentAccuracy, startGPSTracking, stopGPSTracking, shouldAddPoint } = useGPS();
+
+// Permission computed properties
+const hasLocationPermission = computed(() => locationPermission.value === 'granted');
+const hasBackgroundLocationPermission = computed(() => 
+  backgroundLocationPermission.value === 'granted' || backgroundLocationPermission.value === 'not-needed'
+);
+const { initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, exportPoints, exportCanvasAsImage, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
-const { 
-  locationPermission, 
-  backgroundLocationPermission, 
-  needsLocationPermission, 
-  needsBackgroundLocationPermission,
-  canTrackGPS, 
-  checkPermissions, 
-  requestLocationPermission, 
-  requestBackgroundLocationPermission, 
-  openAppSettings, 
-  initPermissions 
+const {
+  locationPermission,
+  backgroundLocationPermission,
+
+  canTrackGPS,
+  canTrackBackgroundGPS,
+  checkPermissions,
+  requestLocationPermission,
+  requestBackgroundLocationPermission,
+  openAppSettings,
+  initPermissions
 } = usePermissions();
 const { 
   handleTouchStart, 
@@ -216,10 +252,8 @@ const addGPSPoint = (newPoint: Point): void => {
 // Background GPS accuracy handler (updates display for every GPS reading)
 const updateCurrentAccuracy = (accuracy: number): void => {
   currentAccuracy.value = accuracy;
-  gpsSignalQuality.value = getSignalQuality(accuracy);
 };
 
-// Background GPS point handler
 const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
   logInfo('Background GPS point received', newPoint);
   
@@ -227,7 +261,7 @@ const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
     return;
   }
 
-  const processedPoint = processNewPoint(newPoint);
+  const processedPoint = newPoint; // No processing needed for background points
   logInfo('Background GPS point processedPoint', processedPoint);
   points.value.push(processedPoint);
 
@@ -326,6 +360,9 @@ const handleSettingsSave = (newSettings: any): void => {
     LINE_WIDTH: newSettings.LINE_WIDTH,
   });
   
+  // Also update the settings ref for the modal
+  Object.assign(settings.value, newSettings);
+  
   // Redraw canvas to apply visual changes immediately
   redrawCanvas();
   
@@ -338,27 +375,78 @@ const handleSettingsSave = (newSettings: any): void => {
     logInfo('Zoom and view reset to default');
   };
 
-  // Permission handlers
-  const handleShowPermissionModal = (): void => {
-    showPermissionModal.value = true;
-  };
+  
 
   const handleRequestLocationPermission = async (): Promise<void> => {
+    console.log('🔄 handleRequestLocationPermission called');
+    console.log('Current state - isRequesting:', isRequestingPermission.value, 'permission:', locationPermission.value);
+    
+    // Prevent multiple simultaneous requests
+    if (isRequestingPermission.value) {
+      console.log('⏸️ Permission request already in progress, skipping...');
+      return;
+    }
+    
+    // If permission is already granted, no need to request
+    if (locationPermission.value === 'granted') {
+      console.log('✅ Permission already granted, no need to request');
+      return;
+    }
+    
     isRequestingPermission.value = true;
+    console.log('🔄 Set isRequestingPermission to true, starting request...');
+    
     try {
+      console.log('📱 Calling requestLocationPermission...');
       const granted = await requestLocationPermission();
+      console.log('📱 Location permission result:', granted);
+      console.log('📱 New permission state:', locationPermission.value);
+      
       if (granted) {
-        logInfo('Location permission granted');
-        showPermissionModal.value = false;
-        // Re-check permissions after granting
+        logInfo('✅ Location permission granted successfully');
+        
+        // Force re-check permissions to ensure state is up to date
+        console.log('🔄 Re-checking permissions after grant...');
         await checkPermissions();
+        console.log('✅ Permissions re-checked, final state:', locationPermission.value);
+        
+        // If permission was granted, try to start GPS tracking
+        if (canTrackGPS.value) {
+          try {
+            if (canTrackBackgroundGPS.value) {
+              await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+              logInfo('🛰️ Background GPS tracking started');
+            } else {
+              await startGPSTracking(addGPSPoint);
+              logInfo('📍 Foreground GPS tracking started');
+            }
+          } catch (gpsError) {
+            console.error('❌ Failed to start GPS tracking after permission grant:', gpsError);
+            logError('Failed to start GPS tracking after permission grant', gpsError);
+          }
+        }
       } else {
-        logWarn('Location permission denied');
+        logWarn('❌ Location permission denied by user');
+        console.log('❌ Permission denied, final state:', locationPermission.value);
+        
+        // If permission was denied, offer to open settings
+        if (locationPermission.value === 'denied') {
+          console.log('💡 Permission permanently denied, should show settings option');
+        }
       }
     } catch (error) {
+      console.error('❌ Error in handleRequestLocationPermission:', error);
       logError('Error requesting location permission:', error);
+      
+      // Re-check permissions to get accurate state
+      try {
+        await checkPermissions();
+      } catch (checkError) {
+        console.error('❌ Error checking permissions after request error:', checkError);
+      }
     } finally {
       isRequestingPermission.value = false;
+      console.log('✅ Set isRequestingPermission to false, request completed');
     }
   };
 
@@ -371,7 +459,6 @@ const handleSettingsSave = (newSettings: any): void => {
       console.log('Background permission result:', granted);
       if (granted) {
         logInfo('Background location permission granted');
-        showPermissionModal.value = false;
         // Re-check permissions after granting
         await checkPermissions();
       } else {
@@ -385,22 +472,75 @@ const handleSettingsSave = (newSettings: any): void => {
     }
   };
 
+
+
   const handleOpenAppSettings = async (): Promise<void> => {
-    try {
-      await openAppSettings();
-      // Re-check permissions after user returns from settings
-      setTimeout(async () => {
-        await checkPermissions();
-      }, 1000);
-    } catch (error) {
-      logError('Error opening app settings:', error);
+  const now = Date.now();
+  if (now - lastTapTime < 1000) return; // ignore if less than 1s since last tap
+  lastTapTime = now;
+  
+  try {
+    await openAppSettings();
+  } catch (error) {
+    console.error('Error opening app settings:', error);
+    logError('Error opening app settings:', error);
+  }
+};
+
+// Background tracking modal handlers
+const handleEnableBackgroundTracking = async (): Promise<void> => {
+  isRequestingPermission.value = true;
+  try {
+    const granted = await requestBackgroundLocationPermission();
+    if (granted) {
+      logInfo('Background tracking enabled');
+      showBackgroundTrackingModal.value = false;
+      await checkPermissions();
+    } else {
+      logWarn('Background tracking permission denied');
     }
-  };
+  } catch (error) {
+    console.error('Error enabling background tracking:', error);
+    logError('Error enabling background tracking:', error);
+  } finally {
+    isRequestingPermission.value = false;
+  }
+};
+
+const handleSkipBackgroundTracking = (dontShowAgain: boolean): void => {
+  if (dontShowAgain) {
+    dontShowBackgroundModal.value = true;
+    // Save this preference
+    localStorage.setItem('dontShowBackgroundModal', 'true');
+  }
+  showBackgroundTrackingModal.value = false;
+};
+
+// Settings modal handlers
+const handleSettingsRequestLocation = async (): Promise<void> => {
+  await handleRequestLocationPermission();
+};
+
+const handleSettingsRequestBackground = async (): Promise<void> => {
+  await handleRequestBackgroundPermission();
+};
+
+const handleSettingsOpenSettings = async (): Promise<void> => {
+  await handleOpenAppSettings();
+};
+
+
 
 // Lifecycle
 onMounted(async () => {
   logInfo('App starting up');
   
+  // Load background modal preference
+  const savedPreference = localStorage.getItem('dontShowBackgroundModal');
+  if (savedPreference === 'true') {
+    dontShowBackgroundModal.value = true;
+  }
+
   // Initialize permissions first
   await initPermissions();
   
@@ -422,21 +562,34 @@ onMounted(async () => {
   window.addEventListener('resize', setupCanvas);
   logInfo('Canvas setup completed');
   
+      // Auto-request location permission if not granted (with UI breathing room)
+    if (!hasLocationPermission.value) {
+      logInfo('Location permission not granted, requesting automatically');
+      nextTick(() => {
+        setTimeout(async () => {
+          try {
+            await handleRequestLocationPermission();
+          } catch (error) {
+            logError('Failed to request location permission automatically', error);
+          }
+        }, 100);
+      });
+    }
+  
   // Initialize GPS tracking only if permissions are granted
   if (canTrackGPS.value) {
     try {
-      await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
-      logInfo('Background GPS initialized successfully');
-    } catch (error) {
-      logError('Failed to initialize background GPS', error);
-      // Fallback to regular GPS if background GPS fails
-      logWarn('Falling back to regular GPS tracking');
-      try {
+      if (canTrackBackgroundGPS.value) {
+        // Use background GPS for long-term tracking
+        await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+        logInfo('Background GPS tracking started for long-term drawing');
+      } else {
+        // Fallback to foreground GPS
         await startGPSTracking(addGPSPoint);
-        logInfo('Foreground GPS tracking started');
-      } catch (fallbackError) {
-        logError('Failed to start foreground GPS', fallbackError);
+        logInfo('Foreground GPS tracking started (background permission needed for long-term tracking)');
       }
+    } catch (error) {
+      logError('Failed to start GPS tracking', error);
     }
   } else {
     logWarn('GPS tracking not started - location permission required');
@@ -445,6 +598,20 @@ onMounted(async () => {
   // Initial draw
   redrawCanvas();
   logInfo('App initialization completed');
+
+  // Set up app state listener for background tracking prompt
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await App.addListener('appStateChange', async ({ isActive }) => {
+        if (!isActive && !dontShowBackgroundModal.value && hasLocationPermission.value && !hasBackgroundLocationPermission.value) {
+          // App is going to background, show background tracking modal
+          showBackgroundTrackingModal.value = true;
+        }
+      });
+    } catch (error) {
+      console.error('Error setting up app state listener:', error);
+    }
+  }
 });
 
 onUnmounted(async () => {
