@@ -12,28 +12,11 @@
       @wheel="handleWheel"
     />
     
-    <!-- Location Permission Button -->
-    <div v-if="!hasLocationPermission" class="permission-button-container">
-      <div class="permission-explanation">
-        To draw with GPS, please enable location access.
-        <br><br>
-        How: <br>Tap button bellow ("Open Settings") <br>→ Permissions <br>→ Location <br>→ Choose "While using the app" or "Always"
-        <br><br>
-        Note: The exact texts can vary on your device
-        <br><br>
-        <button 
-          @click="handleOpenAppSettings()"
-          :disabled="isRequestingPermission"
-          class="permission-button-center"
-          :class="{ 'requesting': isRequestingPermission }"
-        >
-          <span v-if="isRequestingPermission">Requesting...</span>
-          <span v-else-if="locationPermission === 'denied'">Open Settings</span>
-          <span v-else>Enable Location</span>
-        </button>
-        <br><br>
-      </div>
-    </div>
+    <LocationPermissionModal
+      :location-permission="locationPermission"
+      :is-requesting-permission="isRequestingPermission"
+      @open-settings="handleOpenAppSettings"
+    />
     
     <button 
       @click="showModal = true" 
@@ -93,15 +76,6 @@
       @clear="clearLogs"
     />
 
-
-
-    <BackgroundTrackingModal
-      :show="showBackgroundTrackingModal"
-      :is-requesting="isRequestingPermission"
-      @enable-background="handleEnableBackgroundTracking"
-      @skip="handleSkipBackgroundTracking"
-    />
-
     <SettingsModal
       :show="showSettingsModal"
       :settings="settings"
@@ -129,24 +103,20 @@ import { useDevLogs } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
 import { useExportOperations } from './composables/useExportOperations';
 import { useSettingsManagement } from './composables/useSettingsManagement';
-import { GPS_CONFIG, CANVAS_CONFIG, updateGPSConfig, updateCanvasConfig } from './constants/gpsConstants';
+import { GPS_CONFIG, CANVAS_CONFIG } from './constants/gpsConstants';
 
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
-
-import BackgroundTrackingModal from './components/BackgroundTrackingModal.vue';
+import LocationPermissionModal from './components/LocationPermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
+
 
 
 // State
 const showModal = ref(false);
 const showExportModal = ref(false);
-
-const showBackgroundTrackingModal = ref(false);
 const showSettingsModal = ref(false);
 const isRequestingPermission = ref(false);
 const dontShowBackgroundModal = ref(false);
@@ -440,35 +410,6 @@ const handleClearAll = async (): Promise<void> => {
   }
 };
 
-// Background tracking modal handlers
-const handleEnableBackgroundTracking = async (): Promise<void> => {
-  isRequestingPermission.value = true;
-  try {
-    const granted = await requestBackgroundLocationPermission();
-    if (granted) {
-      logInfo('Background tracking enabled');
-      showBackgroundTrackingModal.value = false;
-      await checkPermissions();
-    } else {
-      logWarn('Background tracking permission denied');
-    }
-  } catch (error) {
-    console.error('Error enabling background tracking:', error);
-    logError('Error enabling background tracking:', error);
-  } finally {
-    isRequestingPermission.value = false;
-  }
-};
-
-const handleSkipBackgroundTracking = (dontShowAgain: boolean): void => {
-  if (dontShowAgain) {
-    dontShowBackgroundModal.value = true;
-    // Save this preference
-    localStorage.setItem('dontShowBackgroundModal', 'true');
-  }
-  showBackgroundTrackingModal.value = false;
-};
-
 // Settings modal handlers
 const handleSettingsRequestLocation = async (): Promise<void> => {
   await handleRequestLocationPermission();
@@ -551,20 +492,6 @@ onMounted(async () => {
   // Initial draw
   redrawCanvas();
   logInfo('App initialization completed');
-
-  // Set up app state listener for background tracking prompt
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await App.addListener('appStateChange', async ({ isActive }) => {
-        if (!isActive && !dontShowBackgroundModal.value && hasLocationPermission.value && !hasBackgroundLocationPermission.value) {
-          // App is going to background, show background tracking modal
-          showBackgroundTrackingModal.value = true;
-        }
-      });
-    } catch (error) {
-      console.error('Error setting up app state listener:', error);
-    }
-  }
 });
 
 onUnmounted(async () => {
