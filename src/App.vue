@@ -12,12 +12,8 @@
       @wheel="handleWheel"
     />
     
-    <LocationPermissionModal
-      :location-permission="locationPermission"
-      :is-requesting-permission="isRequestingPermission"
-      @open-settings="handleOpenAppSettings"
-    />
-    
+  
+    <!-- Buttons -->
     <!-- Dev Logs Button - top left corner -->
     <button 
       @click="isDevLogsVisible = true" 
@@ -53,13 +49,20 @@
       <span class="reset-zoom-icon">⏮</span>
     </button>
 
+
+    <!-- Modals -->
+    <LocationPermissionModal
+      :location-permission="locationPermission"
+      :is-requesting-permission="isRequestingPermission"
+      @open-settings="handleOpenAppSettings"
+    />
+
     <GPSPointsModal
       :show="showModal"
       :points="points"
       :display-points="displayPoints"
       :is-anonymized="isAnonymized"
       :anonymization-origin="anonymizationOrigin"
-
       :current-accuracy="currentAccuracy"
       :settings="settings"
       @close="showModal = false"
@@ -96,15 +99,16 @@
       :is-native-platform="true"
       @close="showSettingsModal = false"
       @save="handleSettingsSave"
-      @request-location="handleSettingsRequestLocation"
-      @request-background="handleSettingsRequestBackground"
-      @open-settings="handleSettingsOpenSettings"
+      @request-location="() => handleRequestLocationPermission(addGPSPoint, addBackgroundGPSPoint, updateCurrentAccuracy, canTrackGPS, canTrackBackgroundGPS, initBackgroundGPS, startGPSTracking)"
+      @request-background="handleRequestBackgroundPermission"
+      @open-settings="handleOpenAppSettings"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { Capacitor } from '@capacitor/core';
 import type { Point, AnonymizationOrigin } from './types/gps';
 import { useGPS } from './composables/useGPS';
 import { useBackgroundGPS } from './composables/useBackgroundGPS';
@@ -117,7 +121,6 @@ import { useNotificationPermission } from './composables/useNotificationPermissi
 import { useExportOperations } from './composables/useExportOperations';
 import { useSettingsManagement } from './composables/useSettingsManagement';
 import { GPS_CONFIG, CANVAS_CONFIG } from './constants/gpsConstants';
-
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
@@ -172,23 +175,19 @@ const {
   backgroundLocationPermission,
   isRequestingPermission,
   dontShowBackgroundModal,
-
   canTrackGPS,
   canTrackBackgroundGPS,
   initPermissions,
   
   // Permission handlers
   handleRequestLocationPermission,
-  handleOpenAppSettings,
-  handleSettingsRequestLocation,
-  handleSettingsRequestBackground,
-  handleSettingsOpenSettings
+  handleRequestBackgroundPermission,
+  handleOpenAppSettings
 } = usePermissions();
 
 // Notification permission handling
 const {
   notificationPermission,
-  // isRequestingNotificationPermission,
   needsNotificationPermission,
   hasNotificationPermission,
   checkNotificationPermission,
@@ -331,6 +330,25 @@ onMounted(async () => {
   // Check notification permission (required for Android 13+ foreground services)
   await checkNotificationPermission();
   
+  // Request notification permission early for background tracking
+  if (needsNotificationPermission.value && !hasNotificationPermission.value) {
+    logInfo('Requesting notification permission for background GPS tracking');
+    nextTick(() => {
+      setTimeout(async () => {
+        try {
+          const granted = await requestNotificationPermission();
+          if (granted) {
+            logInfo('Notification permission granted - background GPS will work properly');
+          } else {
+            logWarn('Notification permission denied - background GPS may not work on Android 13+');
+          }
+        } catch (error) {
+          logError('Failed to request notification permission', error);
+        }
+      }, 500); // Small delay to let UI settle
+    });
+  }
+  
   setupCanvas();
   
   // Load existing points
@@ -345,8 +363,10 @@ onMounted(async () => {
     logInfo('No existing GPS points found');
   }
   
-  // Setup canvas resize listener
-  window.addEventListener('resize', setupCanvas);
+  // Setup canvas resize listener (only on desktop)
+  if (!Capacitor.isNativePlatform()) {
+    window.addEventListener('resize', setupCanvas);
+  }
   logInfo('Canvas setup completed');
   
       // Auto-request location permission if not granted (with UI breathing room)
@@ -374,15 +394,6 @@ onMounted(async () => {
   // Initialize GPS tracking only if permissions are granted
   if (canTrackGPS.value) {
     try {
-      // Request notification permission if needed for background GPS
-      if (canTrackBackgroundGPS.value && needsNotificationPermission.value && !hasNotificationPermission.value) {
-        logInfo('Requesting notification permission for background GPS');
-        const granted = await requestNotificationPermission();
-        if (!granted) {
-          logWarn('Notification permission denied - background GPS may not work properly on Android 13+');
-        }
-      }
-      
       if (canTrackBackgroundGPS.value) {
         // Use background GPS for long-term tracking
         await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
@@ -405,10 +416,11 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // Remove window resize listener (safe to do)
-  window.removeEventListener('resize', setupCanvas);
+  // Remove window resize listener (only if it was added on desktop)
+  if (!Capacitor.isNativePlatform()) {
+    window.removeEventListener('resize', setupCanvas);
+  }
   // Note: Capacitor handles GPS cleanup automatically when app terminates
-  console.log('App component unmounted - minimal cleanup performed');
 });
 </script>
 

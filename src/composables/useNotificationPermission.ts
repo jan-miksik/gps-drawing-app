@@ -70,6 +70,8 @@ export function useNotificationPermission() {
     }
 
     isRequestingNotificationPermission.value = true;
+    
+    logInfo('Showing notification permission request dialog...');
 
     try {
       const result = await PushNotifications.requestPermissions();

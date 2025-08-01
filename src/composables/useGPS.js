@@ -134,14 +134,16 @@ export function useGPS() {
         var newPoint = { lat: lat, lon: lon, timestamp: timestamp, accuracy: accuracy };
         onPointAdded(newPoint);
     };
-    var stopGPSTracking = function () {
-        if (watchId) {
-            Geolocation.clearWatch({ id: watchId });
-            watchId = null;
-            isGPSActive.value = false;
-            logInfo('GPS tracking stopped');
-        }
-    };
+    // const stopGPSTracking = (): void => {
+    //   if (watchId) {
+    //     Geolocation.clearWatch({ id: watchId });
+    //     watchId = null;
+    //     isGPSActive.value = false;
+    //     logInfo('GPS tracking stopped');
+    //   }
+    // };
+    // Note: Capacitor handles cleanup automatically when app terminates
+    // No manual cleanup needed for app state listeners or GPS watchers
     var shouldAddPoint = function (points, newPoint) {
         if (points.length === 0) {
             console.log('Adding first GPS point');
@@ -178,7 +180,7 @@ export function useGPS() {
         isTracking: isTracking,
         // Methods
         startGPSTracking: startGPSTracking,
-        stopGPSTracking: stopGPSTracking,
+        // stopGPSTracking,
         shouldAddPoint: shouldAddPoint,
         processNewPoint: processNewPoint,
     };

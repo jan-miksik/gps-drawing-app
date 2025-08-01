@@ -38,6 +38,20 @@ var formatLogData = function (data) {
     }
     return String(data);
 };
+var getPermissionClass = function (permission) {
+    switch (permission) {
+        case 'granted':
+            return 'permission-granted';
+        case 'denied':
+            return 'permission-denied';
+        case 'prompt':
+            return 'permission-prompt';
+        case 'not-needed':
+            return 'permission-not-needed';
+        default:
+            return 'permission-unknown';
+    }
+};
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -46,6 +60,7 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['clear-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-state-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
@@ -96,6 +111,21 @@ if (__VLS_ctx.show) {
             __VLS_ctx.$emit('close');
         } }, { class: "close-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-state-section" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-info" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-item" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.locationPermission)) }));
+    (__VLS_ctx.locationPermission || 'unknown');
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-item" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.backgroundLocationPermission)) }));
+    (__VLS_ctx.backgroundLocationPermission || 'unknown');
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-item" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.notificationPermission)) }));
+    (__VLS_ctx.notificationPermission || 'unknown');
     if (__VLS_ctx.logs.length === 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "no-logs" }));
     }
@@ -138,6 +168,17 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['clear-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-state-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-info']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-value']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-value']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-value']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-logs']} */ ;
 /** @type {__VLS_StyleScopedClasses['logs-list']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
@@ -155,6 +196,7 @@ var __VLS_self = (await import('vue')).defineComponent({
         return {
             reversedLogs: reversedLogs,
             formatLogData: formatLogData,
+            getPermissionClass: getPermissionClass,
         };
     },
     __typeEmits: {},

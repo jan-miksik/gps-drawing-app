@@ -63,7 +63,7 @@ export function useBackgroundGPS() {
                     _a.trys.push([1, 3, , 4]);
                     console.log('Initializing background GPS...');
                     return [4 /*yield*/, BackgroundGeolocation.addWatcher({
-                            backgroundMessage: "Recording your GPS path in the background",
+                            backgroundMessage: "Recording your GPS path to continue GPS drawing",
                             backgroundTitle: "GPS Drawing Active",
                             requestPermissions: true,
                             stale: false,
@@ -193,37 +193,8 @@ export function useBackgroundGPS() {
             return [2 /*return*/];
         });
     }); };
-    var removeBackgroundGPSListeners = function () { return __awaiter(_this, void 0, void 0, function () {
-        var err_3;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    if (!Capacitor.isNativePlatform())
-                        return [2 /*return*/];
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 4, , 5]);
-                    if (!watcherId.value) return [3 /*break*/, 3];
-                    return [4 /*yield*/, BackgroundGeolocation.removeWatcher({
-                            id: watcherId.value
-                        })];
-                case 2:
-                    _a.sent();
-                    watcherId.value = null;
-                    _a.label = 3;
-                case 3:
-                    isInitialized.value = false;
-                    isBackgroundGPSActive.value = false;
-                    console.log('Background GPS listeners removed');
-                    return [3 /*break*/, 5];
-                case 4:
-                    err_3 = _a.sent();
-                    console.error('Failed to remove background GPS listeners:', err_3);
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/];
-            }
-        });
-    }); };
+    // Note: Capacitor handles cleanup automatically when app terminates
+    // No manual cleanup needed for background GPS watchers
     return {
         // State
         isBackgroundGPSActive: isBackgroundGPSActive,
@@ -233,6 +204,5 @@ export function useBackgroundGPS() {
         startBackgroundGPS: startBackgroundGPS,
         stopBackgroundGPS: stopBackgroundGPS,
         getBackgroundGPSState: getBackgroundGPSState,
-        removeBackgroundGPSListeners: removeBackgroundGPSListeners
     };
 }

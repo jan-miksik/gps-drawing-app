@@ -29,7 +29,7 @@ export function useBackgroundGPS() {
       
       // Add watcher using the correct API with improved configuration
       const id = await BackgroundGeolocation.addWatcher({
-        backgroundMessage: "Recording your GPS path in the background",
+        backgroundMessage: "Recording your GPS path to continue GPS drawing",
         backgroundTitle: "GPS Drawing Active",
         requestPermissions: true,
         stale: false,

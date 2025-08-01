@@ -55,6 +55,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { Capacitor } from '@capacitor/core';
 import { useGPS } from './composables/useGPS';
 import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
@@ -62,25 +63,21 @@ import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
-import { GPS_CONFIG, CANVAS_CONFIG, updateGPSConfig, updateCanvasConfig } from './constants/gpsConstants';
+import { useNotificationPermission } from './composables/useNotificationPermission';
+import { useExportOperations } from './composables/useExportOperations';
+import { useSettingsManagement } from './composables/useSettingsManagement';
+import { GPS_CONFIG, CANVAS_CONFIG } from './constants/gpsConstants';
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
-import BackgroundTrackingModal from './components/BackgroundTrackingModal.vue';
+import LocationPermissionModal from './components/LocationPermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 // State
 var showModal = ref(false);
 var showExportModal = ref(false);
-var showBackgroundTrackingModal = ref(false);
 var showSettingsModal = ref(false);
-var isRequestingPermission = ref(false);
-var dontShowBackgroundModal = ref(false);
 var points = ref([]);
-// Tap debouncing for settings button
-var lastTapTime = 0;
 // Settings state (already declared above)
 var isAnonymized = ref(true);
 var anonymizationOrigin = ref(null);
@@ -95,18 +92,21 @@ var settings = computed(function () { return ({
     LINE_WIDTH: CANVAS_CONFIG.value.LINE_WIDTH,
 }); });
 // Composables
-var _a = useGPS(), currentAccuracy = _a.currentAccuracy, startGPSTracking = _a.startGPSTracking, stopGPSTracking = _a.stopGPSTracking, shouldAddPoint = _a.shouldAddPoint;
+var _a = useGPS(), currentAccuracy = _a.currentAccuracy, startGPSTracking = _a.startGPSTracking, shouldAddPoint = _a.shouldAddPoint;
 // Permission computed properties
 var hasLocationPermission = computed(function () { return locationPermission.value === 'granted'; });
-var hasBackgroundLocationPermission = computed(function () {
-    return backgroundLocationPermission.value === 'granted' || backgroundLocationPermission.value === 'not-needed';
-});
-var _b = useBackgroundGPS(), initBackgroundGPS = _b.initBackgroundGPS, stopBackgroundGPS = _b.stopBackgroundGPS, removeBackgroundGPSListeners = _b.removeBackgroundGPSListeners;
-var _c = useCanvas(), canvasEl = _c.canvasEl, setupCanvas = _c.setupCanvas, drawPath = _c.drawPath, calculateBounds = _c.calculateBounds, pan = _c.pan, zoom = _c.zoom, resetView = _c.resetView, scale = _c.scale, viewOffsetX = _c.viewOffsetX, viewOffsetY = _c.viewOffsetY;
-var _d = useFileOperations(), loadPointsFromFile = _d.loadPointsFromFile, savePointsToFile = _d.savePointsToFile, exportPoints = _d.exportPoints, exportCanvasAsImage = _d.exportCanvasAsImage, clearAllData = _d.clearAllData;
-var _e = useDevLogs(), logs = _e.logs, isDevLogsVisible = _e.isDevLogsVisible, logInfo = _e.logInfo, logWarn = _e.logWarn, logError = _e.logError, clearLogs = _e.clearLogs, hideDevLogs = _e.hideDevLogs, formatLogTime = _e.formatLogTime;
-var _f = usePermissions(), locationPermission = _f.locationPermission, backgroundLocationPermission = _f.backgroundLocationPermission, canTrackGPS = _f.canTrackGPS, canTrackBackgroundGPS = _f.canTrackBackgroundGPS, checkPermissions = _f.checkPermissions, requestLocationPermission = _f.requestLocationPermission, requestBackgroundLocationPermission = _f.requestBackgroundLocationPermission, openAppSettings = _f.openAppSettings, initPermissions = _f.initPermissions;
-var _g = useInteractions(function (deltaX, deltaY) {
+var initBackgroundGPS = useBackgroundGPS().initBackgroundGPS;
+var _b = useCanvas(), canvasEl = _b.canvasEl, setupCanvas = _b.setupCanvas, drawPath = _b.drawPath, calculateBounds = _b.calculateBounds, pan = _b.pan, zoom = _b.zoom, resetView = _b.resetView, scale = _b.scale, viewOffsetX = _b.viewOffsetX, viewOffsetY = _b.viewOffsetY;
+var _c = useFileOperations(), loadPointsFromFile = _c.loadPointsFromFile, savePointsToFile = _c.savePointsToFile, clearAllData = _c.clearAllData;
+var _d = useDevLogs(), logs = _d.logs, isDevLogsVisible = _d.isDevLogsVisible, logInfo = _d.logInfo, logWarn = _d.logWarn, logError = _d.logError, clearLogs = _d.clearLogs, hideDevLogs = _d.hideDevLogs, formatLogTime = _d.formatLogTime;
+// Export operations
+var _e = useExportOperations(canvasEl, points, isAnonymized, anonymizationOrigin, showExportModal), handleDirectExport = _e.handleDirectExport, handleExportImage = _e.handleExportImage, handleExportData = _e.handleExportData;
+var _f = usePermissions(), locationPermission = _f.locationPermission, backgroundLocationPermission = _f.backgroundLocationPermission, isRequestingPermission = _f.isRequestingPermission, dontShowBackgroundModal = _f.dontShowBackgroundModal, canTrackGPS = _f.canTrackGPS, canTrackBackgroundGPS = _f.canTrackBackgroundGPS, initPermissions = _f.initPermissions, 
+// Permission handlers
+handleRequestLocationPermission = _f.handleRequestLocationPermission, handleRequestBackgroundPermission = _f.handleRequestBackgroundPermission, handleOpenAppSettings = _f.handleOpenAppSettings;
+// Notification permission handling
+var _g = useNotificationPermission(), notificationPermission = _g.notificationPermission, needsNotificationPermission = _g.needsNotificationPermission, hasNotificationPermission = _g.hasNotificationPermission, checkNotificationPermission = _g.checkNotificationPermission, requestNotificationPermission = _g.requestNotificationPermission;
+var _h = useInteractions(function (deltaX, deltaY) {
     pan(deltaX, deltaY);
     redrawCanvas();
 }, function (deltaY) {
@@ -115,7 +115,7 @@ var _g = useInteractions(function (deltaX, deltaY) {
 }, function () {
     resetView();
     redrawCanvas();
-}), handleTouchStart = _g.handleTouchStart, handleTouchMove = _g.handleTouchMove, handleTouchEnd = _g.handleTouchEnd, handleMouseDown = _g.handleMouseDown, handleMouseMove = _g.handleMouseMove, handleMouseUp = _g.handleMouseUp, handleWheel = _g.handleWheel;
+}), handleTouchStart = _h.handleTouchStart, handleTouchMove = _h.handleTouchMove, handleTouchEnd = _h.handleTouchEnd, handleMouseDown = _h.handleMouseDown, handleMouseMove = _h.handleMouseMove, handleMouseUp = _h.handleMouseUp, handleWheel = _h.handleWheel;
 // Computed properties
 var displayPoints = computed(function () {
     return isAnonymized.value && anonymizationOrigin.value
@@ -179,6 +179,8 @@ var redrawCanvas = function () {
         drawPath(displayPoints.value, displayBounds.value);
     });
 };
+// Settings management
+var handleSettingsSave = useSettingsManagement(settings, redrawCanvas).handleSettingsSave;
 var toggleAnonymization = function () {
     isAnonymized.value = !isAnonymized.value;
     // Set origin when first enabling anonymization
@@ -187,76 +189,6 @@ var toggleAnonymization = function () {
     }
     redrawCanvas();
 };
-var handleDirectExport = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var error_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                if (!canvasEl.value) {
-                    logError('Canvas element not available for image export');
-                    return [2 /*return*/];
-                }
-                return [4 /*yield*/, exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value)];
-            case 1:
-                _a.sent();
-                logInfo('Drawing exported as SVG successfully');
-                return [3 /*break*/, 3];
-            case 2:
-                error_1 = _a.sent();
-                logError('Failed to export drawing as SVG', error_1);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
-        }
-    });
-}); };
-var handleExportImage = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var error_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                if (!canvasEl.value) {
-                    logError('Canvas element not available for image export');
-                    return [2 /*return*/];
-                }
-                return [4 /*yield*/, exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value)];
-            case 1:
-                _a.sent();
-                showExportModal.value = false;
-                logInfo('Drawing exported as SVG successfully');
-                return [3 /*break*/, 3];
-            case 2:
-                error_2 = _a.sent();
-                logError('Failed to export drawing as SVG', error_2);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
-        }
-    });
-}); };
-var handleExportData = function (coordinateType) { return __awaiter(void 0, void 0, void 0, function () {
-    var error_3;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, exportPoints(points.value, coordinateType, anonymizationOrigin.value)];
-            case 1:
-                _a.sent();
-                showExportModal.value = false;
-                logInfo('GPS points exported successfully', {
-                    count: points.value.length,
-                    coordinateType: coordinateType
-                });
-                return [3 /*break*/, 3];
-            case 2:
-                error_3 = _a.sent();
-                logError('Failed to export GPS points', error_3);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
-        }
-    });
-}); };
 var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, function () {
     var pointCount;
     return __generator(this, function (_a) {
@@ -275,264 +207,14 @@ var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); };
-var handleSettingsSave = function (newSettings) {
-    // Update GPS config
-    updateGPSConfig({
-        ACCURACY_THRESHOLD: newSettings.ACCURACY_THRESHOLD,
-        DISTANCE_THRESHOLD: newSettings.DISTANCE_THRESHOLD,
-        MIN_TIME_INTERVAL: newSettings.MIN_TIME_INTERVAL * 1000, // Convert back to milliseconds
-    });
-    // Update Canvas config
-    updateCanvasConfig({
-        PINCH_ZOOM_SENSITIVITY: newSettings.PINCH_ZOOM_SENSITIVITY,
-        MIN_SCALE: newSettings.MIN_SCALE,
-        MAX_SCALE: newSettings.MAX_SCALE,
-        LINE_WIDTH: newSettings.LINE_WIDTH,
-    });
-    // Also update the settings ref for the modal
-    Object.assign(settings.value, newSettings);
-    // Redraw canvas to apply visual changes immediately
-    redrawCanvas();
-    logInfo('Settings updated', newSettings);
-};
 var handleResetZoom = function () {
     resetView();
     redrawCanvas();
     logInfo('Zoom and view reset to default');
 };
-var handleRequestLocationPermission = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var granted, gpsError_1, error_4, checkError_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                console.log('🔄 handleRequestLocationPermission called');
-                console.log('Current state - isRequesting:', isRequestingPermission.value, 'permission:', locationPermission.value);
-                // Prevent multiple simultaneous requests
-                if (isRequestingPermission.value) {
-                    console.log('⏸️ Permission request already in progress, skipping...');
-                    return [2 /*return*/];
-                }
-                // If permission is already granted, no need to request
-                if (locationPermission.value === 'granted') {
-                    console.log('✅ Permission already granted, no need to request');
-                    return [2 /*return*/];
-                }
-                isRequestingPermission.value = true;
-                console.log('🔄 Set isRequestingPermission to true, starting request...');
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 13, 18, 19]);
-                console.log('📱 Calling requestLocationPermission...');
-                return [4 /*yield*/, requestLocationPermission()];
-            case 2:
-                granted = _a.sent();
-                console.log('📱 Location permission result:', granted);
-                console.log('📱 New permission state:', locationPermission.value);
-                if (!granted) return [3 /*break*/, 11];
-                logInfo('✅ Location permission granted successfully');
-                // Force re-check permissions to ensure state is up to date
-                console.log('🔄 Re-checking permissions after grant...');
-                return [4 /*yield*/, checkPermissions()];
-            case 3:
-                _a.sent();
-                console.log('✅ Permissions re-checked, final state:', locationPermission.value);
-                if (!canTrackGPS.value) return [3 /*break*/, 10];
-                _a.label = 4;
-            case 4:
-                _a.trys.push([4, 9, , 10]);
-                if (!canTrackBackgroundGPS.value) return [3 /*break*/, 6];
-                return [4 /*yield*/, initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy)];
-            case 5:
-                _a.sent();
-                logInfo('🛰️ Background GPS tracking started');
-                return [3 /*break*/, 8];
-            case 6: return [4 /*yield*/, startGPSTracking(addGPSPoint)];
-            case 7:
-                _a.sent();
-                logInfo('📍 Foreground GPS tracking started');
-                _a.label = 8;
-            case 8: return [3 /*break*/, 10];
-            case 9:
-                gpsError_1 = _a.sent();
-                console.error('❌ Failed to start GPS tracking after permission grant:', gpsError_1);
-                logError('Failed to start GPS tracking after permission grant', gpsError_1);
-                return [3 /*break*/, 10];
-            case 10: return [3 /*break*/, 12];
-            case 11:
-                logWarn('❌ Location permission denied by user');
-                console.log('❌ Permission denied, final state:', locationPermission.value);
-                // If permission was denied, offer to open settings
-                if (locationPermission.value === 'denied') {
-                    console.log('💡 Permission permanently denied, should show settings option');
-                }
-                _a.label = 12;
-            case 12: return [3 /*break*/, 19];
-            case 13:
-                error_4 = _a.sent();
-                console.error('❌ Error in handleRequestLocationPermission:', error_4);
-                logError('Error requesting location permission:', error_4);
-                _a.label = 14;
-            case 14:
-                _a.trys.push([14, 16, , 17]);
-                return [4 /*yield*/, checkPermissions()];
-            case 15:
-                _a.sent();
-                return [3 /*break*/, 17];
-            case 16:
-                checkError_1 = _a.sent();
-                console.error('❌ Error checking permissions after request error:', checkError_1);
-                return [3 /*break*/, 17];
-            case 17: return [3 /*break*/, 19];
-            case 18:
-                isRequestingPermission.value = false;
-                console.log('✅ Set isRequestingPermission to false, request completed');
-                return [7 /*endfinally*/];
-            case 19: return [2 /*return*/];
-        }
-    });
-}); };
-var handleRequestBackgroundPermission = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var granted, error_5;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                console.log('handleRequestBackgroundPermission called');
-                isRequestingPermission.value = true;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 6, 7, 8]);
-                console.log('Calling requestBackgroundLocationPermission...');
-                return [4 /*yield*/, requestBackgroundLocationPermission()];
-            case 2:
-                granted = _a.sent();
-                console.log('Background permission result:', granted);
-                if (!granted) return [3 /*break*/, 4];
-                logInfo('Background location permission granted');
-                // Re-check permissions after granting
-                return [4 /*yield*/, checkPermissions()];
-            case 3:
-                // Re-check permissions after granting
-                _a.sent();
-                return [3 /*break*/, 5];
-            case 4:
-                logWarn('Background location permission denied');
-                _a.label = 5;
-            case 5: return [3 /*break*/, 8];
-            case 6:
-                error_5 = _a.sent();
-                console.error('Error in handleRequestBackgroundPermission:', error_5);
-                logError('Error requesting background location permission:', error_5);
-                return [3 /*break*/, 8];
-            case 7:
-                isRequestingPermission.value = false;
-                return [7 /*endfinally*/];
-            case 8: return [2 /*return*/];
-        }
-    });
-}); };
-var handleOpenAppSettings = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var now, error_6;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                now = Date.now();
-                if (now - lastTapTime < 1000)
-                    return [2 /*return*/]; // ignore if less than 1s since last tap
-                lastTapTime = now;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, openAppSettings()];
-            case 2:
-                _a.sent();
-                return [3 /*break*/, 4];
-            case 3:
-                error_6 = _a.sent();
-                console.error('Error opening app settings:', error_6);
-                logError('Error opening app settings:', error_6);
-                return [3 /*break*/, 4];
-            case 4: return [2 /*return*/];
-        }
-    });
-}); };
-// Background tracking modal handlers
-var handleEnableBackgroundTracking = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var granted, error_7;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                isRequestingPermission.value = true;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 6, 7, 8]);
-                return [4 /*yield*/, requestBackgroundLocationPermission()];
-            case 2:
-                granted = _a.sent();
-                if (!granted) return [3 /*break*/, 4];
-                logInfo('Background tracking enabled');
-                showBackgroundTrackingModal.value = false;
-                return [4 /*yield*/, checkPermissions()];
-            case 3:
-                _a.sent();
-                return [3 /*break*/, 5];
-            case 4:
-                logWarn('Background tracking permission denied');
-                _a.label = 5;
-            case 5: return [3 /*break*/, 8];
-            case 6:
-                error_7 = _a.sent();
-                console.error('Error enabling background tracking:', error_7);
-                logError('Error enabling background tracking:', error_7);
-                return [3 /*break*/, 8];
-            case 7:
-                isRequestingPermission.value = false;
-                return [7 /*endfinally*/];
-            case 8: return [2 /*return*/];
-        }
-    });
-}); };
-var handleSkipBackgroundTracking = function (dontShowAgain) {
-    if (dontShowAgain) {
-        dontShowBackgroundModal.value = true;
-        // Save this preference
-        localStorage.setItem('dontShowBackgroundModal', 'true');
-    }
-    showBackgroundTrackingModal.value = false;
-};
-// Settings modal handlers
-var handleSettingsRequestLocation = function () { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, handleRequestLocationPermission()];
-            case 1:
-                _a.sent();
-                return [2 /*return*/];
-        }
-    });
-}); };
-var handleSettingsRequestBackground = function () { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, handleRequestBackgroundPermission()];
-            case 1:
-                _a.sent();
-                return [2 /*return*/];
-        }
-    });
-}); };
-var handleSettingsOpenSettings = function () { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, handleOpenAppSettings()];
-            case 1:
-                _a.sent();
-                return [2 /*return*/];
-        }
-    });
-}); };
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var savedPreference, loadedPoints, error_8, error_9;
+    var savedPreference, loadedPoints, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -546,9 +228,44 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
             case 1:
                 // Initialize permissions first
                 _a.sent();
+                // Check notification permission (required for Android 13+ foreground services)
+                return [4 /*yield*/, checkNotificationPermission()];
+            case 2:
+                // Check notification permission (required for Android 13+ foreground services)
+                _a.sent();
+                // Request notification permission early for background tracking
+                if (needsNotificationPermission.value && !hasNotificationPermission.value) {
+                    logInfo('Requesting notification permission for background GPS tracking');
+                    nextTick(function () {
+                        setTimeout(function () { return __awaiter(void 0, void 0, void 0, function () {
+                            var granted, error_2;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        _a.trys.push([0, 2, , 3]);
+                                        return [4 /*yield*/, requestNotificationPermission()];
+                                    case 1:
+                                        granted = _a.sent();
+                                        if (granted) {
+                                            logInfo('Notification permission granted - background GPS will work properly');
+                                        }
+                                        else {
+                                            logWarn('Notification permission denied - background GPS may not work on Android 13+');
+                                        }
+                                        return [3 /*break*/, 3];
+                                    case 2:
+                                        error_2 = _a.sent();
+                                        logError('Failed to request notification permission', error_2);
+                                        return [3 /*break*/, 3];
+                                    case 3: return [2 /*return*/];
+                                }
+                            });
+                        }); }, 500); // Small delay to let UI settle
+                    });
+                }
                 setupCanvas();
                 return [4 /*yield*/, loadPointsFromFile()];
-            case 2:
+            case 3:
                 loadedPoints = _a.sent();
                 if (loadedPoints.length > 0) {
                     points.value = loadedPoints;
@@ -560,26 +277,28 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                 else {
                     logInfo('No existing GPS points found');
                 }
-                // Setup canvas resize listener
-                window.addEventListener('resize', setupCanvas);
+                // Setup canvas resize listener (only on desktop)
+                if (!Capacitor.isNativePlatform()) {
+                    window.addEventListener('resize', setupCanvas);
+                }
                 logInfo('Canvas setup completed');
                 // Auto-request location permission if not granted (with UI breathing room)
                 if (!hasLocationPermission.value) {
                     logInfo('Location permission not granted, requesting automatically');
                     nextTick(function () {
                         setTimeout(function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var error_10;
+                            var error_3;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
                                         _a.trys.push([0, 2, , 3]);
-                                        return [4 /*yield*/, handleRequestLocationPermission()];
+                                        return [4 /*yield*/, handleRequestLocationPermission(addGPSPoint, addBackgroundGPSPoint, updateCurrentAccuracy, canTrackGPS, canTrackBackgroundGPS, initBackgroundGPS, startGPSTracking)];
                                     case 1:
                                         _a.sent();
                                         return [3 /*break*/, 3];
                                     case 2:
-                                        error_10 = _a.sent();
-                                        logError('Failed to request location permission automatically', error_10);
+                                        error_3 = _a.sent();
+                                        logError('Failed to request location permission automatically', error_3);
                                         return [3 /*break*/, 3];
                                     case 3: return [2 /*return*/];
                                 }
@@ -587,92 +306,50 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                         }); }, 100);
                     });
                 }
-                if (!canTrackGPS.value) return [3 /*break*/, 10];
-                _a.label = 3;
-            case 3:
-                _a.trys.push([3, 8, , 9]);
-                if (!canTrackBackgroundGPS.value) return [3 /*break*/, 5];
+                if (!canTrackGPS.value) return [3 /*break*/, 11];
+                _a.label = 4;
+            case 4:
+                _a.trys.push([4, 9, , 10]);
+                if (!canTrackBackgroundGPS.value) return [3 /*break*/, 6];
                 // Use background GPS for long-term tracking
                 return [4 /*yield*/, initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy)];
-            case 4:
+            case 5:
                 // Use background GPS for long-term tracking
                 _a.sent();
                 logInfo('Background GPS tracking started for long-term drawing');
-                return [3 /*break*/, 7];
-            case 5: 
+                return [3 /*break*/, 8];
+            case 6: 
             // Fallback to foreground GPS
             return [4 /*yield*/, startGPSTracking(addGPSPoint)];
-            case 6:
+            case 7:
                 // Fallback to foreground GPS
                 _a.sent();
                 logInfo('Foreground GPS tracking started (background permission needed for long-term tracking)');
-                _a.label = 7;
-            case 7: return [3 /*break*/, 9];
-            case 8:
-                error_8 = _a.sent();
-                logError('Failed to start GPS tracking', error_8);
-                return [3 /*break*/, 9];
-            case 9: return [3 /*break*/, 11];
-            case 10:
-                logWarn('GPS tracking not started - location permission required');
-                _a.label = 11;
+                _a.label = 8;
+            case 8: return [3 /*break*/, 10];
+            case 9:
+                error_1 = _a.sent();
+                logError('Failed to start GPS tracking', error_1);
+                return [3 /*break*/, 10];
+            case 10: return [3 /*break*/, 12];
             case 11:
+                logWarn('GPS tracking not started - location permission required');
+                _a.label = 12;
+            case 12:
                 // Initial draw
                 redrawCanvas();
                 logInfo('App initialization completed');
-                if (!Capacitor.isNativePlatform()) return [3 /*break*/, 15];
-                _a.label = 12;
-            case 12:
-                _a.trys.push([12, 14, , 15]);
-                return [4 /*yield*/, App.addListener('appStateChange', function (_a) { return __awaiter(void 0, [_a], void 0, function (_b) {
-                        var isActive = _b.isActive;
-                        return __generator(this, function (_c) {
-                            if (!isActive && !dontShowBackgroundModal.value && hasLocationPermission.value && !hasBackgroundLocationPermission.value) {
-                                // App is going to background, show background tracking modal
-                                showBackgroundTrackingModal.value = true;
-                            }
-                            return [2 /*return*/];
-                        });
-                    }); })];
-            case 13:
-                _a.sent();
-                return [3 /*break*/, 15];
-            case 14:
-                error_9 = _a.sent();
-                console.error('Error setting up app state listener:', error_9);
-                return [3 /*break*/, 15];
-            case 15: return [2 /*return*/];
-        }
-    });
-}); });
-onUnmounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var error_11;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                // Stop GPS tracking
-                stopGPSTracking();
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 4, , 5]);
-                return [4 /*yield*/, stopBackgroundGPS()];
-            case 2:
-                _a.sent();
-                return [4 /*yield*/, removeBackgroundGPSListeners()];
-            case 3:
-                _a.sent();
-                console.log('Background GPS stopped and cleaned up');
-                return [3 /*break*/, 5];
-            case 4:
-                error_11 = _a.sent();
-                console.error('Error stopping background GPS:', error_11);
-                return [3 /*break*/, 5];
-            case 5:
-                window.removeEventListener('resize', setupCanvas);
                 return [2 /*return*/];
         }
     });
 }); });
+onUnmounted(function () {
+    // Remove window resize listener (only if it was added on desktop)
+    if (!Capacitor.isNativePlatform()) {
+        window.removeEventListener('resize', setupCanvas);
+    }
+    // Note: Capacitor handles GPS cleanup automatically when app terminates
+});
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -684,41 +361,15 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-if (!__VLS_ctx.hasLocationPermission) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-button-container" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-explanation" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            if (!(!__VLS_ctx.hasLocationPermission))
-                return;
-            __VLS_ctx.handleOpenAppSettings();
-        } }, { disabled: (__VLS_ctx.isRequestingPermission) }), { class: "permission-button-center" }), { class: ({ 'requesting': __VLS_ctx.isRequestingPermission }) }));
-    if (__VLS_ctx.isRequestingPermission) {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-    }
-    else if (__VLS_ctx.locationPermission === 'denied') {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-    }
-    else {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-    }
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.br, __VLS_intrinsicElements.br)({});
-}
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
+        var _a = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            _a[_i] = arguments[_i];
+        }
+        var $event = _a[0];
+        __VLS_ctx.isDevLogsVisible = true;
+    } }, { class: "dev-logs-button" }), { title: "Open Dev Logs" }));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "dev-logs-icon" }));
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -735,14 +386,25 @@ if (__VLS_ctx.scale !== 1 || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffset
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
 }
-/** @type {[typeof GPSPointsModal, ]} */ ;
+/** @type {[typeof LocationPermissionModal, ]} */ ;
 // @ts-ignore
-var __VLS_0 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
-var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+var __VLS_0 = __VLS_asFunctionalComponent(LocationPermissionModal, new LocationPermissionModal(__assign({ 'onOpenSettings': {} }, { locationPermission: (__VLS_ctx.locationPermission), isRequestingPermission: (__VLS_ctx.isRequestingPermission) })));
+var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onOpenSettings': {} }, { locationPermission: (__VLS_ctx.locationPermission), isRequestingPermission: (__VLS_ctx.isRequestingPermission) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
 var __VLS_3;
 var __VLS_4;
 var __VLS_5;
 var __VLS_6 = {
+    onOpenSettings: (__VLS_ctx.handleOpenAppSettings)
+};
+var __VLS_2;
+/** @type {[typeof GPSPointsModal, ]} */ ;
+// @ts-ignore
+var __VLS_7 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
+var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_7), false));
+var __VLS_10;
+var __VLS_11;
+var __VLS_12;
+var __VLS_13 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -752,10 +414,10 @@ var __VLS_6 = {
         __VLS_ctx.showModal = false;
     }
 };
-var __VLS_7 = {
+var __VLS_14 = {
     onToggleAnonymization: (__VLS_ctx.toggleAnonymization)
 };
-var __VLS_8 = {
+var __VLS_15 = {
     onExport: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -765,21 +427,21 @@ var __VLS_8 = {
         __VLS_ctx.showExportModal = true;
     }
 };
-var __VLS_9 = {
+var __VLS_16 = {
     onClear: (__VLS_ctx.handleClearAll)
 };
-var __VLS_10 = {
+var __VLS_17 = {
     onSettingsSave: (__VLS_ctx.handleSettingsSave)
 };
-var __VLS_2;
+var __VLS_9;
 /** @type {[typeof ExportModal, ]} */ ;
 // @ts-ignore
-var __VLS_11 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
-var __VLS_12 = __VLS_11.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_11), false));
-var __VLS_14;
-var __VLS_15;
-var __VLS_16;
-var __VLS_17 = {
+var __VLS_18 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
+var __VLS_19 = __VLS_18.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_18), false));
+var __VLS_21;
+var __VLS_22;
+var __VLS_23;
+var __VLS_24 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -789,49 +451,35 @@ var __VLS_17 = {
         __VLS_ctx.showExportModal = false;
     }
 };
-var __VLS_18 = {
+var __VLS_25 = {
     onExportImage: (__VLS_ctx.handleExportImage)
 };
-var __VLS_19 = {
+var __VLS_26 = {
     onExportData: (__VLS_ctx.handleExportData)
 };
-var __VLS_13;
+var __VLS_20;
 /** @type {[typeof DevLogsModal, ]} */ ;
 // @ts-ignore
-var __VLS_20 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })));
-var __VLS_21 = __VLS_20.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime) })], __VLS_functionalComponentArgsRest(__VLS_20), false));
-var __VLS_23;
-var __VLS_24;
-var __VLS_25;
-var __VLS_26 = {
-    onClose: (__VLS_ctx.hideDevLogs)
-};
-var __VLS_27 = {
-    onClear: (__VLS_ctx.clearLogs)
-};
-var __VLS_22;
-/** @type {[typeof BackgroundTrackingModal, ]} */ ;
-// @ts-ignore
-var __VLS_28 = __VLS_asFunctionalComponent(BackgroundTrackingModal, new BackgroundTrackingModal(__assign(__assign({ 'onEnableBackground': {} }, { 'onSkip': {} }), { show: (__VLS_ctx.showBackgroundTrackingModal), isRequesting: (__VLS_ctx.isRequestingPermission) })));
-var __VLS_29 = __VLS_28.apply(void 0, __spreadArray([__assign(__assign({ 'onEnableBackground': {} }, { 'onSkip': {} }), { show: (__VLS_ctx.showBackgroundTrackingModal), isRequesting: (__VLS_ctx.isRequestingPermission) })], __VLS_functionalComponentArgsRest(__VLS_28), false));
+var __VLS_27 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })));
+var __VLS_28 = __VLS_27.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_27), false));
+var __VLS_30;
 var __VLS_31;
 var __VLS_32;
-var __VLS_33;
+var __VLS_33 = {
+    onClose: (__VLS_ctx.hideDevLogs)
+};
 var __VLS_34 = {
-    onEnableBackground: (__VLS_ctx.handleEnableBackgroundTracking)
+    onClear: (__VLS_ctx.clearLogs)
 };
-var __VLS_35 = {
-    onSkip: (__VLS_ctx.handleSkipBackgroundTracking)
-};
-var __VLS_30;
+var __VLS_29;
 /** @type {[typeof SettingsModal, ]} */ ;
 // @ts-ignore
-var __VLS_36 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), isNativePlatform: (true) })));
-var __VLS_37 = __VLS_36.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_36), false));
+var __VLS_35 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), isNativePlatform: (true) })));
+var __VLS_36 = __VLS_35.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), backgroundLocationPermission: (__VLS_ctx.backgroundLocationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_35), false));
+var __VLS_38;
 var __VLS_39;
 var __VLS_40;
-var __VLS_41;
-var __VLS_42 = {
+var __VLS_41 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -841,24 +489,22 @@ var __VLS_42 = {
         __VLS_ctx.showSettingsModal = false;
     }
 };
-var __VLS_43 = {
+var __VLS_42 = {
     onSave: (__VLS_ctx.handleSettingsSave)
 };
+var __VLS_43 = {
+    onRequestLocation: (function () { return __VLS_ctx.handleRequestLocationPermission(__VLS_ctx.addGPSPoint, __VLS_ctx.addBackgroundGPSPoint, __VLS_ctx.updateCurrentAccuracy, __VLS_ctx.canTrackGPS, __VLS_ctx.canTrackBackgroundGPS, __VLS_ctx.initBackgroundGPS, __VLS_ctx.startGPSTracking); })
+};
 var __VLS_44 = {
-    onRequestLocation: (__VLS_ctx.handleSettingsRequestLocation)
+    onRequestBackground: (__VLS_ctx.handleRequestBackgroundPermission)
 };
 var __VLS_45 = {
-    onRequestBackground: (__VLS_ctx.handleSettingsRequestBackground)
+    onOpenSettings: (__VLS_ctx.handleOpenAppSettings)
 };
-var __VLS_46 = {
-    onOpenSettings: (__VLS_ctx.handleSettingsOpenSettings)
-};
-var __VLS_38;
+var __VLS_37;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-button-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-explanation']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-button-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['requesting']} */ ;
+/** @type {__VLS_StyleScopedClasses['dev-logs-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['dev-logs-icon']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-button-main']} */ ;
@@ -872,19 +518,18 @@ var __VLS_self = (await import('vue')).defineComponent({
             GPSPointsModal: GPSPointsModal,
             ExportModal: ExportModal,
             DevLogsModal: DevLogsModal,
-            BackgroundTrackingModal: BackgroundTrackingModal,
+            LocationPermissionModal: LocationPermissionModal,
             SettingsModal: SettingsModal,
             showModal: showModal,
             showExportModal: showExportModal,
-            showBackgroundTrackingModal: showBackgroundTrackingModal,
             showSettingsModal: showSettingsModal,
-            isRequestingPermission: isRequestingPermission,
             points: points,
             isAnonymized: isAnonymized,
             anonymizationOrigin: anonymizationOrigin,
             settings: settings,
             currentAccuracy: currentAccuracy,
-            hasLocationPermission: hasLocationPermission,
+            startGPSTracking: startGPSTracking,
+            initBackgroundGPS: initBackgroundGPS,
             canvasEl: canvasEl,
             scale: scale,
             viewOffsetX: viewOffsetX,
@@ -894,8 +539,18 @@ var __VLS_self = (await import('vue')).defineComponent({
             clearLogs: clearLogs,
             hideDevLogs: hideDevLogs,
             formatLogTime: formatLogTime,
+            handleDirectExport: handleDirectExport,
+            handleExportImage: handleExportImage,
+            handleExportData: handleExportData,
             locationPermission: locationPermission,
             backgroundLocationPermission: backgroundLocationPermission,
+            isRequestingPermission: isRequestingPermission,
+            canTrackGPS: canTrackGPS,
+            canTrackBackgroundGPS: canTrackBackgroundGPS,
+            handleRequestLocationPermission: handleRequestLocationPermission,
+            handleRequestBackgroundPermission: handleRequestBackgroundPermission,
+            handleOpenAppSettings: handleOpenAppSettings,
+            notificationPermission: notificationPermission,
             handleTouchStart: handleTouchStart,
             handleTouchMove: handleTouchMove,
             handleTouchEnd: handleTouchEnd,
@@ -904,19 +559,13 @@ var __VLS_self = (await import('vue')).defineComponent({
             handleMouseUp: handleMouseUp,
             handleWheel: handleWheel,
             displayPoints: displayPoints,
-            toggleAnonymization: toggleAnonymization,
-            handleDirectExport: handleDirectExport,
-            handleExportImage: handleExportImage,
-            handleExportData: handleExportData,
-            handleClearAll: handleClearAll,
+            addGPSPoint: addGPSPoint,
+            updateCurrentAccuracy: updateCurrentAccuracy,
+            addBackgroundGPSPoint: addBackgroundGPSPoint,
             handleSettingsSave: handleSettingsSave,
+            toggleAnonymization: toggleAnonymization,
+            handleClearAll: handleClearAll,
             handleResetZoom: handleResetZoom,
-            handleOpenAppSettings: handleOpenAppSettings,
-            handleEnableBackgroundTracking: handleEnableBackgroundTracking,
-            handleSkipBackgroundTracking: handleSkipBackgroundTracking,
-            handleSettingsRequestLocation: handleSettingsRequestLocation,
-            handleSettingsRequestBackground: handleSettingsRequestBackground,
-            handleSettingsOpenSettings: handleSettingsOpenSettings,
         };
     },
 });
