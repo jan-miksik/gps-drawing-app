@@ -10,6 +10,31 @@
       </div>
       
       <div class="modal-body">
+        <!-- Permission State Section -->
+        <div class="permission-state-section">
+          <h3>Permission State</h3>
+          <div class="permission-info">
+            <div class="permission-item">
+              <span class="permission-label">Location:</span>
+              <span class="permission-value" :class="getPermissionClass(locationPermission)">
+                {{ locationPermission || 'unknown' }}
+              </span>
+            </div>
+            <div class="permission-item">
+              <span class="permission-label">Background Location:</span>
+              <span class="permission-value" :class="getPermissionClass(backgroundLocationPermission)">
+                {{ backgroundLocationPermission || 'unknown' }}
+              </span>
+            </div>
+            <div class="permission-item">
+              <span class="permission-label">Notifications:</span>
+              <span class="permission-value" :class="getPermissionClass(notificationPermission)">
+                {{ notificationPermission || 'unknown' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
         <div v-if="logs.length === 0" class="no-logs">
           No logs available.
         </div>
@@ -60,6 +85,9 @@ interface Props {
   show: boolean;
   logs: LogEntry[];
   formatLogTime: (timestamp: number) => string;
+  locationPermission?: string;
+  backgroundLocationPermission?: string;
+  notificationPermission?: string;
 }
 
 interface Emits {
@@ -88,6 +116,21 @@ const formatLogData = (data: any): string => {
   }
   
   return String(data);
+};
+
+const getPermissionClass = (permission: string | undefined): string => {
+  switch (permission) {
+    case 'granted':
+      return 'permission-granted';
+    case 'denied':
+      return 'permission-denied';
+    case 'prompt':
+      return 'permission-prompt';
+    case 'not-needed':
+      return 'permission-not-needed';
+    default:
+      return 'permission-unknown';
+  }
 };
 </script>
 
@@ -169,6 +212,78 @@ const formatLogData = (data: any): string => {
   font-family: 'Courier New', monospace;
   font-size: 11px;
   -webkit-overflow-scrolling: touch;
+}
+
+.permission-state-section {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.permission-state-section h3 {
+  margin: 0 0 8px 0;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.permission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.permission-label {
+  color: #ccc;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.permission-value {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.permission-granted {
+  color: #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.permission-denied {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.permission-prompt {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.permission-not-needed {
+  color: #888;
+  background: rgba(136, 136, 136, 0.1);
+  border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.permission-unknown {
+  color: #888;
+  background: rgba(136, 136, 136, 0.1);
+  border: 1px solid rgba(136, 136, 136, 0.3);
 }
 
 .no-logs {

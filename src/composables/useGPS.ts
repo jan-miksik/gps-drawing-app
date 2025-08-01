@@ -99,14 +99,17 @@ export function useGPS() {
     onPointAdded(newPoint);
   };
 
-  const stopGPSTracking = (): void => {
-    if (watchId) {
-      Geolocation.clearWatch({ id: watchId });
-      watchId = null;
-      isGPSActive.value = false;
-      logInfo('GPS tracking stopped');
-    }
-  };
+  // const stopGPSTracking = (): void => {
+  //   if (watchId) {
+  //     Geolocation.clearWatch({ id: watchId });
+  //     watchId = null;
+  //     isGPSActive.value = false;
+  //     logInfo('GPS tracking stopped');
+  //   }
+  // };
+
+  // Note: Capacitor handles cleanup automatically when app terminates
+  // No manual cleanup needed for app state listeners or GPS watchers
 
   const shouldAddPoint = (points: Point[], newPoint: Point): boolean => {
     if (points.length === 0) {
@@ -152,7 +155,7 @@ export function useGPS() {
     
     // Methods
     startGPSTracking,
-    stopGPSTracking,
+    // stopGPSTracking,
     shouldAddPoint,
     processNewPoint,
   };

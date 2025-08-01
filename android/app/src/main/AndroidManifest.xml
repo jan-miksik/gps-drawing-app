@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -41,6 +42,10 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Background Geolocation Service -->
+        <service
+            android:name="com.capacitorcommunity.backgroundgeolocation.BackgroundGeolocationService"
+            android:foregroundServiceType="location" />
 
     </application>
 

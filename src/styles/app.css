@@ -112,7 +112,34 @@ body, html, #app {
   text-underline-offset: 4px;
 }
 
+.dev-logs-button {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 20px);
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 16px;
+  z-index: 10;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.dev-logs-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
 
-
- 
+.dev-logs-icon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: bold;
+  filter:grayscale(1);
+}

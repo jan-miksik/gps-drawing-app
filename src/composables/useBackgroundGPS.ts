@@ -27,7 +27,7 @@ export function useBackgroundGPS() {
     try {
       console.log('Initializing background GPS...');
       
-      // Add watcher using the correct API
+      // Add watcher using the correct API with improved configuration
       const id = await BackgroundGeolocation.addWatcher({
         backgroundMessage: "Recording your GPS path in the background",
         backgroundTitle: "GPS Drawing Active",
@@ -61,7 +61,7 @@ export function useBackgroundGPS() {
           }
 
           // Apply accuracy filter for recording points
-                  if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
+          if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
           console.warn(`Skipping low-accuracy background GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_CONFIG.value.ACCURACY_THRESHOLD}m)`);
             return;
           }
@@ -149,24 +149,8 @@ export function useBackgroundGPS() {
     }
   };
 
-  const removeBackgroundGPSListeners = async (): Promise<void> => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    try {
-      if (watcherId.value) {
-        await BackgroundGeolocation.removeWatcher({
-          id: watcherId.value
-        });
-        watcherId.value = null;
-      }
-      
-      isInitialized.value = false;
-      isBackgroundGPSActive.value = false;
-      console.log('Background GPS listeners removed');
-    } catch (err) {
-      console.error('Failed to remove background GPS listeners:', err);
-    }
-  };
+  // Note: Capacitor handles cleanup automatically when app terminates
+  // No manual cleanup needed for background GPS watchers
 
   return {
     // State
@@ -178,6 +162,5 @@ export function useBackgroundGPS() {
     startBackgroundGPS,
     stopBackgroundGPS,
     getBackgroundGPSState,
-    removeBackgroundGPSListeners
   };
 } 

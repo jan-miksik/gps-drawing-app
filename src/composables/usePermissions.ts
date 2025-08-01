@@ -23,6 +23,11 @@ export function usePermissions() {
   const locationPermission = ref<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'>('prompt');
   const backgroundLocationPermission = ref<'granted' | 'denied' | 'prompt' | 'not-needed'>('not-needed');
   const isCheckingPermissions = ref(false);
+  const isRequestingPermission = ref(false);
+  const dontShowBackgroundModal = ref(false);
+  
+  // Tap debouncing for settings button
+  let lastTapTime = 0;
   
   // Singleton flag for app state listener
   let appStateListenerInitialized = false;
@@ -40,6 +45,52 @@ export function usePermissions() {
   );
   const canTrackGPS = computed(() => hasLocationPermission.value);
   const canTrackBackgroundGPS = computed(() => hasLocationPermission.value && hasBackgroundLocationPermission.value);
+
+  // Check background geolocation permission specifically
+  const checkBackgroundGeolocationPermission = async (): Promise<'granted' | 'denied' | 'prompt' | 'not-needed'> => {
+    if (!Capacitor.isNativePlatform()) {
+      return 'not-needed';
+    }
+
+    try {
+      // Test by trying to add a watcher without requesting permissions
+      const testWatcherId = await BackgroundGeolocation.addWatcher({
+        backgroundMessage: "Testing background permission",
+        backgroundTitle: "Permission Test",
+        requestPermissions: false, // Don't request, just test
+        stale: false,
+        distanceFilter: 1000
+      }, (location, error) => {
+        // This callback won't be called during the test
+        log('Test watcher callback (should not be called):', { location: !!location, error });
+      });
+      
+      // If we get here, background permission is granted
+      log('Background geolocation permission: granted');
+      
+      // Clean up the test watcher
+      try {
+        await BackgroundGeolocation.removeWatcher({ id: testWatcherId });
+        log('Test watcher removed successfully');
+      } catch (removeError) {
+        log('Error removing test watcher:', removeError);
+      }
+      
+      return 'granted';
+      
+    } catch (backgroundError: any) {
+      log('Background geolocation test failed:', backgroundError);
+      
+      // Check specific error codes
+      if (backgroundError.code === 'NOT_AUTHORIZED' || backgroundError.message?.includes('permission')) {
+        log('Background geolocation permission: denied');
+        return 'denied';
+      } else {
+        log('Background geolocation permission: prompt needed');
+        return 'prompt';
+      }
+    }
+  };
 
   // Check current permissions
   const checkPermissions = async (): Promise<void> => {
@@ -70,10 +121,8 @@ export function usePermissions() {
           if (position) {
             log('Location access working, checking background...');
             
-            // For background permission, we'll use a simple approach:
-            // If we can get location and the app is working, assume background is available
-            // The actual background permission will be tested when we try to use it
-            backgroundLocationPermission.value = 'granted';
+            // Use the dedicated background geolocation permission checker
+            backgroundLocationPermission.value = await checkBackgroundGeolocationPermission();
           } else {
             backgroundLocationPermission.value = 'prompt';
           }
@@ -259,6 +308,12 @@ export function usePermissions() {
   const initPermissions = async (): Promise<void> => {
     await checkPermissions();
     
+    // Load background modal preference
+    const savedPreference = localStorage.getItem('dontShowBackgroundModal');
+    if (savedPreference === 'true') {
+      dontShowBackgroundModal.value = true;
+    }
+    
     // Set up app state listener for permission refresh (singleton)
     if (!appStateListenerInitialized && Capacitor.isNativePlatform()) {
       try {
@@ -278,11 +333,155 @@ export function usePermissions() {
     }
   };
 
+  // Permission request handlers
+  const handleRequestLocationPermission = async (
+    addGPSPoint: any,
+    addBackgroundGPSPoint: any,
+    updateCurrentAccuracy: any,
+    canTrackGPS: any,
+    canTrackBackgroundGPS: any,
+    initBackgroundGPS: any,
+    startGPSTracking: any
+  ): Promise<void> => {
+    console.log('🔄 handleRequestLocationPermission called');
+    console.log('Current state - isRequesting:', isRequestingPermission.value, 'permission:', locationPermission.value);
+    
+    // Prevent multiple simultaneous requests
+    if (isRequestingPermission.value) {
+      console.log('⏸️ Permission request already in progress, skipping...');
+      return;
+    }
+    
+    // If permission is already granted, no need to request
+    if (locationPermission.value === 'granted') {
+      console.log('✅ Permission already granted, no need to request');
+      return;
+    }
+    
+    isRequestingPermission.value = true;
+    console.log('🔄 Set isRequestingPermission to true, starting request...');
+    
+    try {
+      console.log('📱 Calling requestLocationPermission...');
+      const granted = await requestLocationPermission();
+      console.log('📱 Location permission result:', granted);
+      console.log('📱 New permission state:', locationPermission.value);
+      
+      if (granted) {
+        console.log('✅ Location permission granted successfully');
+        
+        // Force re-check permissions to ensure state is up to date
+        console.log('🔄 Re-checking permissions after grant...');
+        await checkPermissions();
+        console.log('✅ Permissions re-checked, final state:', locationPermission.value);
+        
+        // If permission was granted, try to start GPS tracking
+        if (canTrackGPS.value) {
+          try {
+            if (canTrackBackgroundGPS.value) {
+              await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+              console.log('🛰️ Background GPS tracking started');
+            } else {
+              await startGPSTracking(addGPSPoint);
+              console.log('📍 Foreground GPS tracking started');
+            }
+          } catch (gpsError) {
+            console.error('❌ Failed to start GPS tracking after permission grant:', gpsError);
+          }
+        }
+      } else {
+        console.log('❌ Location permission denied by user');
+        console.log('❌ Permission denied, final state:', locationPermission.value);
+        
+        // If permission was denied, offer to open settings
+        if (locationPermission.value === 'denied') {
+          console.log('💡 Permission permanently denied, should show settings option');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in handleRequestLocationPermission:', error);
+      
+      // Re-check permissions to get accurate state
+      try {
+        await checkPermissions();
+      } catch (checkError) {
+        console.error('❌ Error checking permissions after request error:', checkError);
+      }
+    } finally {
+      isRequestingPermission.value = false;
+      console.log('✅ Set isRequestingPermission to false, request completed');
+    }
+  };
+
+  const handleRequestBackgroundPermission = async (): Promise<void> => {
+    console.log('handleRequestBackgroundPermission called');
+    isRequestingPermission.value = true;
+    try {
+      console.log('Calling requestBackgroundLocationPermission...');
+      const granted = await requestBackgroundLocationPermission();
+      console.log('Background permission result:', granted);
+      if (granted) {
+        console.log('Background location permission granted');
+        // Re-check permissions after granting
+        await checkPermissions();
+      } else {
+        console.log('Background location permission denied');
+      }
+    } catch (error) {
+      console.error('Error in handleRequestBackgroundPermission:', error);
+    } finally {
+      isRequestingPermission.value = false;
+    }
+  };
+
+  const handleOpenAppSettings = async (): Promise<void> => {
+    const now = Date.now();
+    if (now - lastTapTime < 1000) return; // ignore if less than 1s since last tap
+    lastTapTime = now;
+    
+    try {
+      await openAppSettings();
+    } catch (error) {
+      console.error('Error opening app settings:', error);
+    }
+  };
+
+  // Settings modal handlers
+  const handleSettingsRequestLocation = async (
+    addGPSPoint: any,
+    addBackgroundGPSPoint: any,
+    updateCurrentAccuracy: any,
+    canTrackGPS: any,
+    canTrackBackgroundGPS: any,
+    initBackgroundGPS: any,
+    startGPSTracking: any
+  ): Promise<void> => {
+    await handleRequestLocationPermission(
+      addGPSPoint,
+      addBackgroundGPSPoint,
+      updateCurrentAccuracy,
+      canTrackGPS,
+      canTrackBackgroundGPS,
+      initBackgroundGPS,
+      startGPSTracking
+    );
+  };
+
+  const handleSettingsRequestBackground = async (): Promise<void> => {
+    await handleRequestBackgroundPermission();
+  };
+
+  const handleSettingsOpenSettings = async (): Promise<void> => {
+    await handleOpenAppSettings();
+  };
+
   return {
     // State
     locationPermission,
     backgroundLocationPermission,
     isCheckingPermissions,
+    isRequestingPermission,
+    dontShowBackgroundModal,
     
     // Computed properties
     hasLocationPermission,
@@ -294,9 +493,18 @@ export function usePermissions() {
     
     // Methods
     checkPermissions,
+    checkBackgroundGeolocationPermission,
     requestLocationPermission,
     requestBackgroundLocationPermission,
     openAppSettings,
     initPermissions,
+    
+    // Permission handlers
+    handleRequestLocationPermission,
+    handleRequestBackgroundPermission,
+    handleOpenAppSettings,
+    handleSettingsRequestLocation,
+    handleSettingsRequestBackground,
+    handleSettingsOpenSettings,
   };
 } 

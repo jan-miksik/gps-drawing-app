@@ -72,6 +72,11 @@
   dependencies:
     tslib "^2.1.0"
 
+"@capacitor/device@^7.0.1":
+  version "7.0.1"
+  resolved "https://registry.npmjs.org/@capacitor/device/-/device-7.0.1.tgz"
+  integrity sha512-ImjR2LmCEhbckYtOHXTfi5v6B7d4HPX9uKIAQs7wzzmE+yRRXuUTEzARBQ00dZDInAInkbuyQRdjwPTSHZUpnw==
+
 "@capacitor/filesystem@^7.1.2":
   version "7.1.2"
   resolved "https://registry.npmjs.org/@capacitor/filesystem/-/filesystem-7.1.2.tgz"
@@ -85,6 +90,11 @@
   integrity sha512-8KQfa1RNVmgFoDYYaf13qDuf5rh7ob4mC/zRpzpavPEFhWkuIbFM5dyNpSndc9EFnaIib8BCIjJj9ZQ6+nPrTQ==
   dependencies:
     "@capacitor/synapse" "^1.0.3"
+
+"@capacitor/push-notifications@^7.0.1":
+  version "7.0.1"
+  resolved "https://registry.npmjs.org/@capacitor/push-notifications/-/push-notifications-7.0.1.tgz"
+  integrity sha512-nSHsMSrTHX5pOkX1Khse75/uvSx/JTcXG+9aT6a66CvzalH6MCs0ha8Jv+xu0k9xW8caO+qSUMjfj5Oy82Uxmw==
 
 "@capacitor/share@^7.0.1":
   version "7.0.1"

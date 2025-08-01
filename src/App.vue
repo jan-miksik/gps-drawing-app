@@ -18,6 +18,15 @@
       @open-settings="handleOpenAppSettings"
     />
     
+    <!-- Dev Logs Button - top left corner -->
+    <button 
+      @click="isDevLogsVisible = true" 
+      class="dev-logs-button"
+      title="Open Dev Logs"
+    >
+      <span class="dev-logs-icon">📋</span>
+    </button>
+    
     <button 
       @click="showModal = true" 
       class="gps-points-button"
@@ -72,6 +81,9 @@
       :show="isDevLogsVisible"
       :logs="logs"
       :format-log-time="formatLogTime"
+      :location-permission="locationPermission"
+      :background-location-permission="backgroundLocationPermission"
+      :notification-permission="notificationPermission"
       @close="hideDevLogs"
       @clear="clearLogs"
     />
@@ -101,6 +113,7 @@ import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
+import { useNotificationPermission } from './composables/useNotificationPermission';
 import { useExportOperations } from './composables/useExportOperations';
 import { useSettingsManagement } from './composables/useSettingsManagement';
 import { GPS_CONFIG, CANVAS_CONFIG } from './constants/gpsConstants';
@@ -112,18 +125,11 @@ import LocationPermissionModal from './components/LocationPermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 
-
-
 // State
 const showModal = ref(false);
 const showExportModal = ref(false);
 const showSettingsModal = ref(false);
-const isRequestingPermission = ref(false);
-const dontShowBackgroundModal = ref(false);
 const points = ref<Point[]>([]);
-
-// Tap debouncing for settings button
-let lastTapTime = 0;
 
 // Settings state (already declared above)
 const isAnonymized = ref(true);
@@ -141,14 +147,12 @@ const settings = computed(() => ({
 }));
 
 // Composables
-const { currentAccuracy, startGPSTracking, stopGPSTracking, shouldAddPoint } = useGPS();
+const { currentAccuracy, startGPSTracking, shouldAddPoint } = useGPS();
 
 // Permission computed properties
 const hasLocationPermission = computed(() => locationPermission.value === 'granted');
-const hasBackgroundLocationPermission = computed(() => 
-  backgroundLocationPermission.value === 'granted' || backgroundLocationPermission.value === 'not-needed'
-);
-const { initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
+
+const { initBackgroundGPS } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
@@ -166,15 +170,30 @@ const { handleDirectExport, handleExportImage, handleExportData } = useExportOpe
 const {
   locationPermission,
   backgroundLocationPermission,
+  isRequestingPermission,
+  dontShowBackgroundModal,
 
   canTrackGPS,
   canTrackBackgroundGPS,
-  checkPermissions,
-  requestLocationPermission,
-  requestBackgroundLocationPermission,
-  openAppSettings,
-  initPermissions
+  initPermissions,
+  
+  // Permission handlers
+  handleRequestLocationPermission,
+  handleOpenAppSettings,
+  handleSettingsRequestLocation,
+  handleSettingsRequestBackground,
+  handleSettingsOpenSettings
 } = usePermissions();
+
+// Notification permission handling
+const {
+  notificationPermission,
+  // isRequestingNotificationPermission,
+  needsNotificationPermission,
+  hasNotificationPermission,
+  checkNotificationPermission,
+  requestNotificationPermission
+} = useNotificationPermission();
 const { 
   handleTouchStart, 
   handleTouchMove, 
@@ -290,140 +309,11 @@ const handleClearAll = async (): Promise<void> => {
   logInfo('All GPS points cleared', { clearedCount: pointCount });
 };
 
-
-
-  const handleResetZoom = (): void => {
-    resetView();
-    redrawCanvas();
-    logInfo('Zoom and view reset to default');
-  };
-
-  
-
-  const handleRequestLocationPermission = async (): Promise<void> => {
-    console.log('🔄 handleRequestLocationPermission called');
-    console.log('Current state - isRequesting:', isRequestingPermission.value, 'permission:', locationPermission.value);
-    
-    // Prevent multiple simultaneous requests
-    if (isRequestingPermission.value) {
-      console.log('⏸️ Permission request already in progress, skipping...');
-      return;
-    }
-    
-    // If permission is already granted, no need to request
-    if (locationPermission.value === 'granted') {
-      console.log('✅ Permission already granted, no need to request');
-      return;
-    }
-    
-    isRequestingPermission.value = true;
-    console.log('🔄 Set isRequestingPermission to true, starting request...');
-    
-    try {
-      console.log('📱 Calling requestLocationPermission...');
-      const granted = await requestLocationPermission();
-      console.log('📱 Location permission result:', granted);
-      console.log('📱 New permission state:', locationPermission.value);
-      
-      if (granted) {
-        logInfo('✅ Location permission granted successfully');
-        
-        // Force re-check permissions to ensure state is up to date
-        console.log('🔄 Re-checking permissions after grant...');
-        await checkPermissions();
-        console.log('✅ Permissions re-checked, final state:', locationPermission.value);
-        
-        // If permission was granted, try to start GPS tracking
-        if (canTrackGPS.value) {
-          try {
-            if (canTrackBackgroundGPS.value) {
-              await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
-              logInfo('🛰️ Background GPS tracking started');
-            } else {
-              await startGPSTracking(addGPSPoint);
-              logInfo('📍 Foreground GPS tracking started');
-            }
-          } catch (gpsError) {
-            console.error('❌ Failed to start GPS tracking after permission grant:', gpsError);
-            logError('Failed to start GPS tracking after permission grant', gpsError);
-          }
-        }
-      } else {
-        logWarn('❌ Location permission denied by user');
-        console.log('❌ Permission denied, final state:', locationPermission.value);
-        
-        // If permission was denied, offer to open settings
-        if (locationPermission.value === 'denied') {
-          console.log('💡 Permission permanently denied, should show settings option');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error in handleRequestLocationPermission:', error);
-      logError('Error requesting location permission:', error);
-      
-      // Re-check permissions to get accurate state
-      try {
-        await checkPermissions();
-      } catch (checkError) {
-        console.error('❌ Error checking permissions after request error:', checkError);
-      }
-    } finally {
-      isRequestingPermission.value = false;
-      console.log('✅ Set isRequestingPermission to false, request completed');
-    }
-  };
-
-  const handleRequestBackgroundPermission = async (): Promise<void> => {
-    console.log('handleRequestBackgroundPermission called');
-    isRequestingPermission.value = true;
-    try {
-      console.log('Calling requestBackgroundLocationPermission...');
-      const granted = await requestBackgroundLocationPermission();
-      console.log('Background permission result:', granted);
-      if (granted) {
-        logInfo('Background location permission granted');
-        // Re-check permissions after granting
-        await checkPermissions();
-      } else {
-        logWarn('Background location permission denied');
-      }
-    } catch (error) {
-      console.error('Error in handleRequestBackgroundPermission:', error);
-      logError('Error requesting background location permission:', error);
-    } finally {
-      isRequestingPermission.value = false;
-    }
-  };
-
-
-
-  const handleOpenAppSettings = async (): Promise<void> => {
-  const now = Date.now();
-  if (now - lastTapTime < 1000) return; // ignore if less than 1s since last tap
-  lastTapTime = now;
-  
-  try {
-    await openAppSettings();
-  } catch (error) {
-    console.error('Error opening app settings:', error);
-    logError('Error opening app settings:', error);
-  }
+const handleResetZoom = (): void => {
+  resetView();
+  redrawCanvas();
+  logInfo('Zoom and view reset to default');
 };
-
-// Settings modal handlers
-const handleSettingsRequestLocation = async (): Promise<void> => {
-  await handleRequestLocationPermission();
-};
-
-const handleSettingsRequestBackground = async (): Promise<void> => {
-  await handleRequestBackgroundPermission();
-};
-
-const handleSettingsOpenSettings = async (): Promise<void> => {
-  await handleOpenAppSettings();
-};
-
-
 
 // Lifecycle
 onMounted(async () => {
@@ -437,6 +327,9 @@ onMounted(async () => {
 
   // Initialize permissions first
   await initPermissions();
+  
+  // Check notification permission (required for Android 13+ foreground services)
+  await checkNotificationPermission();
   
   setupCanvas();
   
@@ -462,7 +355,15 @@ onMounted(async () => {
       nextTick(() => {
         setTimeout(async () => {
           try {
-            await handleRequestLocationPermission();
+            await handleRequestLocationPermission(
+              addGPSPoint,
+              addBackgroundGPSPoint,
+              updateCurrentAccuracy,
+              canTrackGPS,
+              canTrackBackgroundGPS,
+              initBackgroundGPS,
+              startGPSTracking
+            );
           } catch (error) {
             logError('Failed to request location permission automatically', error);
           }
@@ -473,6 +374,15 @@ onMounted(async () => {
   // Initialize GPS tracking only if permissions are granted
   if (canTrackGPS.value) {
     try {
+      // Request notification permission if needed for background GPS
+      if (canTrackBackgroundGPS.value && needsNotificationPermission.value && !hasNotificationPermission.value) {
+        logInfo('Requesting notification permission for background GPS');
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          logWarn('Notification permission denied - background GPS may not work properly on Android 13+');
+        }
+      }
+      
       if (canTrackBackgroundGPS.value) {
         // Use background GPS for long-term tracking
         await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
@@ -494,20 +404,11 @@ onMounted(async () => {
   logInfo('App initialization completed');
 });
 
-onUnmounted(async () => {
-  // Stop GPS tracking
-  stopGPSTracking();
-  
-  // Stop and cleanup background GPS tracking
-  try {
-    await stopBackgroundGPS();
-    await removeBackgroundGPSListeners();
-    console.log('Background GPS stopped and cleaned up');
-  } catch (error) {
-    console.error('Error stopping background GPS:', error);
-  }
-  
+onUnmounted(() => {
+  // Remove window resize listener (safe to do)
   window.removeEventListener('resize', setupCanvas);
+  // Note: Capacitor handles GPS cleanup automatically when app terminates
+  console.log('App component unmounted - minimal cleanup performed');
 });
 </script>
 
