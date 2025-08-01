@@ -127,6 +127,8 @@ import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
 import { useDevLogs } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
+import { useExportOperations } from './composables/useExportOperations';
+import { useSettingsManagement } from './composables/useSettingsManagement';
 import { GPS_CONFIG, CANVAS_CONFIG, updateGPSConfig, updateCanvasConfig } from './constants/gpsConstants';
 
 import GPSPointsModal from './components/GPSPointsModal.vue';
@@ -178,8 +180,19 @@ const hasBackgroundLocationPermission = computed(() =>
 );
 const { initBackgroundGPS, stopBackgroundGPS, removeBackgroundGPSListeners } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
-const { loadPointsFromFile, savePointsToFile, exportPoints, exportCanvasAsImage, clearAllData } = useFileOperations();
+const { loadPointsFromFile, savePointsToFile, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
+
+// Export operations
+const { handleDirectExport, handleExportImage, handleExportData } = useExportOperations(
+  canvasEl,
+  points,
+  isAnonymized,
+  anonymizationOrigin,
+  showExportModal
+);
+
+
 const {
   locationPermission,
   backgroundLocationPermission,
@@ -281,6 +294,9 @@ const redrawCanvas = (): void => {
   });
 };
 
+// Settings management
+const { handleSettingsSave } = useSettingsManagement(settings, redrawCanvas);
+
 const toggleAnonymization = (): void => {
   isAnonymized.value = !isAnonymized.value;
   
@@ -292,47 +308,7 @@ const toggleAnonymization = (): void => {
   redrawCanvas();
 };
 
-const handleDirectExport = async (): Promise<void> => {
-  try {
-    if (!canvasEl.value) {
-      logError('Canvas element not available for image export');
-      return;
-    }
-    
-    await exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value);
-    logInfo('Drawing exported as SVG successfully');
-  } catch (error) {
-    logError('Failed to export drawing as SVG', error);
-  }
-};
 
-const handleExportImage = async (): Promise<void> => {
-  try {
-    if (!canvasEl.value) {
-      logError('Canvas element not available for image export');
-      return;
-    }
-    
-    await exportCanvasAsImage(canvasEl.value, points.value, isAnonymized.value, anonymizationOrigin.value);
-    showExportModal.value = false;
-    logInfo('Drawing exported as SVG successfully');
-  } catch (error) {
-    logError('Failed to export drawing as SVG', error);
-  }
-};
-
-const handleExportData = async (coordinateType: 'relative' | 'exact'): Promise<void> => {
-  try {
-    await exportPoints(points.value, coordinateType, anonymizationOrigin.value);
-    showExportModal.value = false;
-    logInfo('GPS points exported successfully', { 
-      count: points.value.length, 
-      coordinateType 
-    });
-  } catch (error) {
-    logError('Failed to export GPS points', error);
-  }
-};
 
 const handleClearAll = async (): Promise<void> => {
   const pointCount = points.value.length;
@@ -344,30 +320,7 @@ const handleClearAll = async (): Promise<void> => {
   logInfo('All GPS points cleared', { clearedCount: pointCount });
 };
 
-const handleSettingsSave = (newSettings: any): void => {
-  // Update GPS config
-  updateGPSConfig({
-    ACCURACY_THRESHOLD: newSettings.ACCURACY_THRESHOLD,
-    DISTANCE_THRESHOLD: newSettings.DISTANCE_THRESHOLD,
-    MIN_TIME_INTERVAL: newSettings.MIN_TIME_INTERVAL * 1000, // Convert back to milliseconds
-  });
-  
-  // Update Canvas config
-  updateCanvasConfig({
-    PINCH_ZOOM_SENSITIVITY: newSettings.PINCH_ZOOM_SENSITIVITY,
-    MIN_SCALE: newSettings.MIN_SCALE,
-    MAX_SCALE: newSettings.MAX_SCALE,
-    LINE_WIDTH: newSettings.LINE_WIDTH,
-  });
-  
-  // Also update the settings ref for the modal
-  Object.assign(settings.value, newSettings);
-  
-  // Redraw canvas to apply visual changes immediately
-  redrawCanvas();
-  
-  logInfo('Settings updated', newSettings);
-};
+
 
   const handleResetZoom = (): void => {
     resetView();
