@@ -34,26 +34,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { useDevLogs } from './useDevLogs';
-var _a = useDevLogs(), logInfo = _a.logInfo, logWarn = _a.logWarn, logError = _a.logError;
+var _a = useDevLogs(), logInfo = _a.logInfo, logError = _a.logError;
+var notificationPermission = ref(null);
 export function useNotificationPermission() {
     var _this = this;
-    var notificationPermission = ref('not-needed');
     var isRequestingNotificationPermission = ref(false);
-    var needsNotificationPermission = ref(false);
     var checkIfNeedsNotificationPermission = function () { return __awaiter(_this, void 0, void 0, function () {
         var info, osVersion, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     if (Capacitor.getPlatform() !== 'android') {
-                        needsNotificationPermission.value = false;
+                        notificationPermission.value = 'not-needed';
                         logInfo('Not Android platform, notification permission not needed');
-                        return [2 /*return*/];
+                        return [2 /*return*/, false];
                     }
                     _a.label = 1;
                 case 1:
@@ -62,34 +61,25 @@ export function useNotificationPermission() {
                 case 2:
                     info = _a.sent();
                     osVersion = parseInt(info.osVersion);
-                    needsNotificationPermission.value = osVersion >= 13; // Android 13 = API 33
-                    logInfo('Device info checked', {
-                        platform: Capacitor.getPlatform(),
-                        osVersion: info.osVersion,
-                        parsedVersion: osVersion,
-                        needsPermission: needsNotificationPermission.value
-                    });
-                    return [3 /*break*/, 4];
+                    return [2 /*return*/, osVersion >= 13]; // Android 13 = API 33
                 case 3:
                     error_1 = _a.sent();
                     logError('Error getting device info', error_1);
-                    needsNotificationPermission.value = false;
-                    return [3 /*break*/, 4];
+                    return [2 /*return*/, null];
                 case 4: return [2 /*return*/];
             }
         });
     }); };
     var checkNotificationPermission = function () { return __awaiter(_this, void 0, void 0, function () {
-        var result, error_2;
+        var needsNotificationPermission, result, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, checkIfNeedsNotificationPermission()];
                 case 1:
-                    _a.sent();
-                    if (!needsNotificationPermission.value) {
+                    needsNotificationPermission = _a.sent();
+                    if (needsNotificationPermission === false) {
                         notificationPermission.value = 'not-needed';
-                        logInfo('Notification permission not needed on this platform');
-                        return [2 /*return*/];
+                        return [2 /*return*/, true];
                     }
                     _a.label = 2;
                 case 2:
@@ -97,18 +87,14 @@ export function useNotificationPermission() {
                     return [4 /*yield*/, PushNotifications.checkPermissions()];
                 case 3:
                     result = _a.sent();
-                    notificationPermission.value = result.receive === 'granted' ? 'granted' : 'denied';
-                    logInfo('Notification permission status checked', {
-                        status: notificationPermission.value,
-                        platform: Capacitor.getPlatform(),
-                        needsPermission: needsNotificationPermission.value
-                    });
-                    return [3 /*break*/, 5];
+                    notificationPermission.value = result.receive;
+                    return [2 /*return*/, result.receive === 'granted'];
                 case 4:
                     error_2 = _a.sent();
                     logError('Error checking notification permission', error_2);
-                    notificationPermission.value = 'denied';
-                    return [3 /*break*/, 5];
+                    alert(JSON.stringify(error_2));
+                    // notificationPermission.value = 'denied';
+                    return [2 /*return*/, false];
                 case 5: return [2 /*return*/];
             }
         });
@@ -117,56 +103,33 @@ export function useNotificationPermission() {
         var result, granted, error_3;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, checkIfNeedsNotificationPermission()];
-                case 1:
-                    _a.sent();
-                    if (!needsNotificationPermission.value) {
-                        logInfo('Notification permission not needed on this platform');
-                        return [2 /*return*/, true];
-                    }
-                    if (notificationPermission.value === 'granted') {
-                        logInfo('Notification permission already granted');
-                        return [2 /*return*/, true];
-                    }
+                case 0:
                     isRequestingNotificationPermission.value = true;
-                    logInfo('Showing notification permission request dialog...');
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 4, 5, 6]);
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, 4, 5]);
                     return [4 /*yield*/, PushNotifications.requestPermissions()];
-                case 3:
+                case 2:
                     result = _a.sent();
                     granted = result.receive === 'granted';
                     notificationPermission.value = granted ? 'granted' : 'denied';
-                    if (granted) {
-                        logInfo('Notification permission granted');
-                    }
-                    else {
-                        logWarn('Notification permission denied - background GPS may not work properly');
-                    }
                     return [2 /*return*/, granted];
-                case 4:
+                case 3:
                     error_3 = _a.sent();
                     logError('Error requesting notification permission', error_3);
                     notificationPermission.value = 'denied';
                     return [2 /*return*/, false];
-                case 5:
+                case 4:
                     isRequestingNotificationPermission.value = false;
                     return [7 /*endfinally*/];
-                case 6: return [2 /*return*/];
+                case 5: return [2 /*return*/];
             }
         });
     }); };
-    var hasNotificationPermission = computed(function () {
-        return notificationPermission.value === 'granted' || !needsNotificationPermission.value;
-    });
     return {
         // State
         notificationPermission: notificationPermission,
         isRequestingNotificationPermission: isRequestingNotificationPermission,
-        needsNotificationPermission: needsNotificationPermission,
-        // Computed
-        hasNotificationPermission: hasNotificationPermission,
         // Methods
         checkNotificationPermission: checkNotificationPermission,
         requestNotificationPermission: requestNotificationPermission,

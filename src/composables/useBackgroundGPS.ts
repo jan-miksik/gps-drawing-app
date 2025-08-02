@@ -5,65 +5,55 @@ import { Capacitor } from '@capacitor/core';
 import type { Point } from '../types/gps';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { roundCoordinates } from '../utils/gpsUtils';
+import { useDevLogs } from './useDevLogs';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
+
+const { logWarn } = useDevLogs();
 
 export function useBackgroundGPS() {
   const isBackgroundGPSActive = ref(false);
   const isInitialized = ref(false);
   const watcherId = ref<string | null>(null);
+  const lastPointTime = ref<number>(0);
 
   const initBackgroundGPS = async (onPoint: (point: Point) => void, onAccuracyUpdate?: (accuracy: number) => void): Promise<void> => {
     if (!Capacitor.isNativePlatform()) {
-      console.warn('Background GPS is only available on native platforms.');
       return;
     }
 
     if (isInitialized.value) {
-      console.log('Background GPS already initialized');
       return;
     }
+    isInitialized.value = true;
 
     try {
-      console.log('Initializing background GPS...');
+      alert('Initializing background GPS 11 ...' + GPS_CONFIG.value.DISTANCE_THRESHOLD);
       
       // Add watcher using the correct API with improved configuration
       const id = await BackgroundGeolocation.addWatcher({
-        backgroundMessage: "Recording your GPS path to continue GPS drawing",
+        backgroundMessage: "GPS drawing in progress",
         backgroundTitle: "GPS Drawing Active",
         requestPermissions: true,
-        stale: false,
+        stale: true,
         distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD
       }, (location, error) => {
         if (error) {
           console.error('Background GPS error:', error);
-          
-          if (error.code === "NOT_AUTHORIZED") {
-            console.warn('Background location permission denied');
-          }
+          // alert(JSON.stringify(error));
           return;
         }
 
-        if (location) {
-          console.log('Background GPS location received:', {
-            lat: location.latitude,
-            lon: location.longitude,
-            accuracy: location.accuracy,
-            speed: location.speed,
-            timestamp: location.time
-          });
+        // alert(JSON.stringify(location));
 
+        // useDevLogs().logWarn('----- 1 ----- Background GPS location', location)
+        logWarn('Background GPS location', location);
+
+        if (location) {
           const accuracy = location.accuracy || 999;
-          
           // Always update current accuracy display (even for poor accuracy points)
           if (onAccuracyUpdate) {
             onAccuracyUpdate(accuracy);
-          }
-
-          // Apply accuracy filter for recording points
-          if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
-          console.warn(`Skipping low-accuracy background GPS point: ${accuracy.toFixed(1)}m (threshold: ${GPS_CONFIG.value.ACCURACY_THRESHOLD}m)`);
-            return;
           }
 
           // Round coordinates to specified precision
@@ -77,18 +67,23 @@ export function useBackgroundGPS() {
             accuracy
           };
 
-          // Call the provided callback for point recording
-          onPoint(point);
+          // Apply timeout based on settings to prevent too frequent updates
+          const now = Date.now();
+          const timeSinceLastPoint = now - lastPointTime.value;
+          const minInterval = GPS_CONFIG.value.MIN_TIME_INTERVAL;
+          
+          if (timeSinceLastPoint >= minInterval) {
+            // Call the provided callback for point recording
+            onPoint(point);
+            lastPointTime.value = now;
+          }
         }
       });
 
       watcherId.value = id;
-      isInitialized.value = true;
-      isBackgroundGPSActive.value = true;
-      console.log('Background GPS initialized successfully with watcher ID:', id);
 
+      isBackgroundGPSActive.value = true;
     } catch (err) {
-      console.error('Failed to initialize background GPS:', err);
       throw err;
     }
   };
@@ -155,7 +150,7 @@ export function useBackgroundGPS() {
   return {
     // State
     isBackgroundGPSActive,
-    isInitialized,
+    // isInitialized,
     
     // Methods
     initBackgroundGPS,

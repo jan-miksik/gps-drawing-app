@@ -21,12 +21,6 @@
               </span>
             </div>
             <div class="permission-item">
-              <span class="permission-label">Background Location:</span>
-              <span class="permission-value" :class="getPermissionClass(backgroundLocationPermission)">
-                {{ backgroundLocationPermission || 'unknown' }}
-              </span>
-            </div>
-            <div class="permission-item">
               <span class="permission-label">Notifications:</span>
               <span class="permission-value" :class="getPermissionClass(notificationPermission)">
                 {{ notificationPermission || 'unknown' }}
@@ -85,9 +79,9 @@ interface Props {
   show: boolean;
   logs: LogEntry[];
   formatLogTime: (timestamp: number) => string;
-  locationPermission?: string;
-  backgroundLocationPermission?: string;
-  notificationPermission?: string;
+  locationPermission?: string | null;
+  backgroundLocationPermission?: string | null;
+  notificationPermission?: string | null;
 }
 
 interface Emits {
@@ -118,7 +112,7 @@ const formatLogData = (data: any): string => {
   return String(data);
 };
 
-const getPermissionClass = (permission: string | undefined): string => {
+const getPermissionClass = (permission: string | null | undefined): string => {
   switch (permission) {
     case 'granted':
       return 'permission-granted';

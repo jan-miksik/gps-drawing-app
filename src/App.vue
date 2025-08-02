@@ -51,10 +51,13 @@
 
 
     <!-- Modals -->
-    <LocationPermissionModal
+    <PermissionModal
       :location-permission="locationPermission"
-      :is-requesting-permission="isRequestingPermission"
+      :notification-permission="notificationPermission"
+      :is-requesting="isRequestingNotificationPermission"
+      @request-location-permission="requestLocationPermission"
       @open-settings="handleOpenAppSettings"
+      @request-notification-permission="requestNotificationPermission"
     />
 
     <GPSPointsModal
@@ -85,7 +88,6 @@
       :logs="logs"
       :format-log-time="formatLogTime"
       :location-permission="locationPermission"
-      :background-location-permission="backgroundLocationPermission"
       :notification-permission="notificationPermission"
       @close="hideDevLogs"
       @clear="clearLogs"
@@ -95,19 +97,16 @@
       :show="showSettingsModal"
       :settings="settings"
       :location-permission="locationPermission"
-      :background-location-permission="backgroundLocationPermission"
       :is-native-platform="true"
       @close="showSettingsModal = false"
       @save="handleSettingsSave"
-      @request-location="() => handleRequestLocationPermission(addGPSPoint, addBackgroundGPSPoint, updateCurrentAccuracy, canTrackGPS, canTrackBackgroundGPS, initBackgroundGPS, startGPSTracking)"
-      @request-background="handleRequestBackgroundPermission"
       @open-settings="handleOpenAppSettings"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { Capacitor } from '@capacitor/core';
 import type { Point, AnonymizationOrigin } from './types/gps';
 import { useGPS } from './composables/useGPS';
@@ -124,7 +123,7 @@ import { GPS_CONFIG, CANVAS_CONFIG } from './constants/gpsConstants';
 import GPSPointsModal from './components/GPSPointsModal.vue';
 import ExportModal from './components/ExportModal.vue';
 import DevLogsModal from './components/DevLogsModal.vue';
-import LocationPermissionModal from './components/LocationPermissionModal.vue';
+import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 
@@ -150,15 +149,13 @@ const settings = computed(() => ({
 }));
 
 // Composables
-const { currentAccuracy, startGPSTracking, shouldAddPoint } = useGPS();
+const { currentAccuracy, shouldAddPoint } = useGPS();
 
 // Permission computed properties
-const hasLocationPermission = computed(() => locationPermission.value === 'granted');
-
 const { initBackgroundGPS } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, clearAllData } = useFileOperations();
-const { logs, isDevLogsVisible, logInfo, logWarn, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
+const { logs, isDevLogsVisible, logInfo, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
 
 // Export operations
 const { handleDirectExport, handleExportImage, handleExportData } = useExportOperations(
@@ -172,26 +169,19 @@ const { handleDirectExport, handleExportImage, handleExportData } = useExportOpe
 
 const {
   locationPermission,
-  backgroundLocationPermission,
-  isRequestingPermission,
-  dontShowBackgroundModal,
-  canTrackGPS,
-  canTrackBackgroundGPS,
-  initPermissions,
+  checkHasLocationPermission,
+  requestLocationPermission,
   
   // Permission handlers
-  handleRequestLocationPermission,
-  handleRequestBackgroundPermission,
   handleOpenAppSettings
 } = usePermissions();
 
 // Notification permission handling
 const {
   notificationPermission,
-  needsNotificationPermission,
-  hasNotificationPermission,
   checkNotificationPermission,
-  requestNotificationPermission
+  requestNotificationPermission,
+  isRequestingNotificationPermission
 } = useNotificationPermission();
 const { 
   handleTouchStart, 
@@ -227,29 +217,6 @@ const displayBounds = computed(() => {
   return calculateBounds(displayPoints.value);
 });
 
-// Methods
-const addGPSPoint = (newPoint: Point): void => {
-  if (!shouldAddPoint(points.value, newPoint)) {
-    logInfo('GPS point filtered out', { 
-      reason: 'distance/time threshold', 
-      point: newPoint 
-    });
-    return;
-  }
-
-  // const processedPoint = processNewPoint(points.value, newPoint);
-  points.value.push(newPoint);
-  logInfo('Foreground GPS point added', newPoint);
-
-  // Set anonymization origin if this is the first point
-  if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
-    anonymizationOrigin.value = createAnonymizationOrigin(points.value);
-  }
-
-  savePointsToFile(points.value);
-  redrawCanvas();
-};
-
 // Background GPS accuracy handler (updates display for every GPS reading)
 const updateCurrentAccuracy = (accuracy: number): void => {
   currentAccuracy.value = accuracy;
@@ -262,9 +229,9 @@ const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
     return;
   }
 
-  const processedPoint = newPoint; // No processing needed for background points
-  logInfo('Background GPS point processedPoint', processedPoint);
-  points.value.push(processedPoint);
+  // const processedPoint = newPoint; // turned off for now
+  logInfo('Background GPS point to add', newPoint);
+  points.value.push(newPoint);
 
   // Set anonymization origin if this is the first point
   if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
@@ -272,7 +239,7 @@ const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
   }
 
   // Save to file (this will handle both foreground and background points)
-  await savePointsToFile([processedPoint], true); // true = append mode
+  await savePointsToFile([newPoint], true); // true = append mode
   redrawCanvas();
 };
 
@@ -282,7 +249,6 @@ const redrawCanvas = (): void => {
   });
 };
 
-// Settings management
 const { handleSettingsSave } = useSettingsManagement(settings, redrawCanvas);
 
 const toggleAnonymization = (): void => {
@@ -318,36 +284,14 @@ const handleResetZoom = (): void => {
 onMounted(async () => {
   logInfo('App starting up');
   
-  // Load background modal preference
-  const savedPreference = localStorage.getItem('dontShowBackgroundModal');
-  if (savedPreference === 'true') {
-    dontShowBackgroundModal.value = true;
-  }
+  // const [hasNotificationPermissionResult, hasLocationPermissionResult] = await Promise.all([, checkHasLocationPermission()]);
+  // hasNotificationPermissionValue.value = hasNotificationPermissionResult;
+  // hasLocationPermissionValue.value = hasLocationPermissionResult;
+  const hasNotificationPermissionResult = await checkNotificationPermission()
+  const hasLocationPermissionResult = await checkHasLocationPermission()
 
-  // Initialize permissions first
-  await initPermissions();
-  
-  // Check notification permission (required for Android 13+ foreground services)
-  await checkNotificationPermission();
-  
-  // Request notification permission early for background tracking
-  if (needsNotificationPermission.value && !hasNotificationPermission.value) {
-    logInfo('Requesting notification permission for background GPS tracking');
-    nextTick(() => {
-      setTimeout(async () => {
-        try {
-          const granted = await requestNotificationPermission();
-          if (granted) {
-            logInfo('Notification permission granted - background GPS will work properly');
-          } else {
-            logWarn('Notification permission denied - background GPS may not work on Android 13+');
-          }
-        } catch (error) {
-          logError('Failed to request notification permission', error);
-        }
-      }, 500); // Small delay to let UI settle
-    });
-  }
+  logInfo('hasNotificationPermissionResult', hasNotificationPermissionResult);
+  logInfo('hasLocationPermission', hasLocationPermissionResult);
   
   setupCanvas();
   
@@ -355,65 +299,37 @@ onMounted(async () => {
   const loadedPoints = await loadPointsFromFile();
   if (loadedPoints.length > 0) {
     points.value = loadedPoints;
-    logInfo('Loaded existing GPS points', { count: loadedPoints.length });
     if (isAnonymized.value && !anonymizationOrigin.value) {
       anonymizationOrigin.value = createAnonymizationOrigin(points.value);
     }
-  } else {
-    logInfo('No existing GPS points found');
   }
-  
-  // Setup canvas resize listener (only on desktop)
+
+  // Setup canvas resize listener only on desktop
   if (!Capacitor.isNativePlatform()) {
     window.addEventListener('resize', setupCanvas);
   }
-  logInfo('Canvas setup completed');
-  
-      // Auto-request location permission if not granted (with UI breathing room)
-    if (!hasLocationPermission.value) {
-      logInfo('Location permission not granted, requesting automatically');
-      nextTick(() => {
-        setTimeout(async () => {
-          try {
-            await handleRequestLocationPermission(
-              addGPSPoint,
-              addBackgroundGPSPoint,
-              updateCurrentAccuracy,
-              canTrackGPS,
-              canTrackBackgroundGPS,
-              initBackgroundGPS,
-              startGPSTracking
-            );
-          } catch (error) {
-            logError('Failed to request location permission automatically', error);
-          }
-        }, 100);
-      });
-    }
-  
-  // Initialize GPS tracking only if permissions are granted
-  if (canTrackGPS.value) {
-    try {
-      if (canTrackBackgroundGPS.value) {
-        // Use background GPS for long-term tracking
-        await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
-        logInfo('Background GPS tracking started for long-term drawing');
-      } else {
-        // Fallback to foreground GPS
-        await startGPSTracking(addGPSPoint);
-        logInfo('Foreground GPS tracking started (background permission needed for long-term tracking)');
-      }
-    } catch (error) {
-      logError('Failed to start GPS tracking', error);
-    }
-  } else {
-    logWarn('GPS tracking not started - location permission required');
-  }
-  
   // Initial draw
   redrawCanvas();
   logInfo('App initialization completed');
 });
+
+watch([locationPermission, notificationPermission], async ([locationPermission, notificationPermission]) => {
+  logInfo('watch log');
+  if (locationPermission === 'prompt' || notificationPermission === 'prompt') return
+
+  if (locationPermission === 'granted') {
+    try {
+      logInfo('In init BG tracking');
+      // Use background GPS for long-term tracking
+      await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+      logInfo('Background GPS tracking started for long-term drawing');
+    } catch (error) {
+      logError('Failed to start GPS tracking', error);
+    }
+  }
+}, {
+  immediate: true,
+})
 
 onUnmounted(() => {
   // Remove window resize listener (only if it was added on desktop)

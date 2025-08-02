@@ -11,8 +11,8 @@ var __assign = (this && this.__assign) || function () {
 };
 var __VLS_props = defineProps();
 var emit = defineEmits();
-var handleOpenSettings = function () {
-    emit('open-settings');
+var handleRequestPermission = function () {
+    emit('request-permission');
 };
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
@@ -22,12 +22,17 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['permission-button']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
-if (__VLS_ctx.locationPermission === 'denied') {
+if (__VLS_ctx.notificationPermission === 'denied') {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-modal" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-content" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-text" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleOpenSettings) }, { class: "permission-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleRequestPermission) }, { class: "permission-button" }), { disabled: (__VLS_ctx.isRequesting) }));
+    if (!__VLS_ctx.isRequesting) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+    }
+    else {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
+    }
 }
 /** @type {__VLS_StyleScopedClasses['permission-modal']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-content']} */ ;
@@ -37,7 +42,7 @@ var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
-            handleOpenSettings: handleOpenSettings,
+            handleRequestPermission: handleRequestPermission,
         };
     },
     __typeEmits: {},

@@ -39,60 +39,51 @@ import { registerPlugin } from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { roundCoordinates } from '../utils/gpsUtils';
+import { useDevLogs } from './useDevLogs';
 var BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
+var logWarn = useDevLogs().logWarn;
 export function useBackgroundGPS() {
     var _this = this;
     var isBackgroundGPSActive = ref(false);
     var isInitialized = ref(false);
     var watcherId = ref(null);
+    var lastPointTime = ref(0);
     var initBackgroundGPS = function (onPoint, onAccuracyUpdate) { return __awaiter(_this, void 0, void 0, function () {
         var id, err_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     if (!Capacitor.isNativePlatform()) {
-                        console.warn('Background GPS is only available on native platforms.');
                         return [2 /*return*/];
                     }
                     if (isInitialized.value) {
-                        console.log('Background GPS already initialized');
                         return [2 /*return*/];
                     }
+                    isInitialized.value = true;
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    console.log('Initializing background GPS...');
+                    alert('Initializing background GPS 11 ...' + GPS_CONFIG.value.DISTANCE_THRESHOLD);
                     return [4 /*yield*/, BackgroundGeolocation.addWatcher({
-                            backgroundMessage: "Recording your GPS path to continue GPS drawing",
+                            backgroundMessage: "GPS drawing in progress",
                             backgroundTitle: "GPS Drawing Active",
                             requestPermissions: true,
-                            stale: false,
+                            stale: true,
                             distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD
                         }, function (location, error) {
                             if (error) {
                                 console.error('Background GPS error:', error);
-                                if (error.code === "NOT_AUTHORIZED") {
-                                    console.warn('Background location permission denied');
-                                }
+                                alert(JSON.stringify(error));
                                 return;
                             }
+                            alert(JSON.stringify(location));
+                            // useDevLogs().logWarn('----- 1 ----- Background GPS location', location)
+                            logWarn('Background GPS location', location);
                             if (location) {
-                                console.log('Background GPS location received:', {
-                                    lat: location.latitude,
-                                    lon: location.longitude,
-                                    accuracy: location.accuracy,
-                                    speed: location.speed,
-                                    timestamp: location.time
-                                });
                                 var accuracy = location.accuracy || 999;
                                 // Always update current accuracy display (even for poor accuracy points)
                                 if (onAccuracyUpdate) {
                                     onAccuracyUpdate(accuracy);
-                                }
-                                // Apply accuracy filter for recording points
-                                if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
-                                    console.warn("Skipping low-accuracy background GPS point: ".concat(accuracy.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.value.ACCURACY_THRESHOLD, "m)"));
-                                    return;
                                 }
                                 // Round coordinates to specified precision
                                 var _a = roundCoordinates(location.latitude, location.longitude), lat = _a.lat, lon = _a.lon;
@@ -103,20 +94,24 @@ export function useBackgroundGPS() {
                                     timestamp: timestamp,
                                     accuracy: accuracy
                                 };
-                                // Call the provided callback for point recording
-                                onPoint(point);
+                                // Apply timeout based on settings to prevent too frequent updates
+                                var now = Date.now();
+                                var timeSinceLastPoint = now - lastPointTime.value;
+                                var minInterval = GPS_CONFIG.value.MIN_TIME_INTERVAL;
+                                if (timeSinceLastPoint >= minInterval) {
+                                    // Call the provided callback for point recording
+                                    onPoint(point);
+                                    lastPointTime.value = now;
+                                }
                             }
                         })];
                 case 2:
                     id = _a.sent();
                     watcherId.value = id;
-                    isInitialized.value = true;
                     isBackgroundGPSActive.value = true;
-                    console.log('Background GPS initialized successfully with watcher ID:', id);
                     return [3 /*break*/, 4];
                 case 3:
                     err_1 = _a.sent();
-                    console.error('Failed to initialize background GPS:', err_1);
                     throw err_1;
                 case 4: return [2 /*return*/];
             }
@@ -198,7 +193,7 @@ export function useBackgroundGPS() {
     return {
         // State
         isBackgroundGPSActive: isBackgroundGPSActive,
-        isInitialized: isInitialized,
+        // isInitialized,
         // Methods
         initBackgroundGPS: initBackgroundGPS,
         startBackgroundGPS: startBackgroundGPS,

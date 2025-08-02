@@ -206,8 +206,7 @@ interface Settings {
 interface Props {
   show: boolean;
   settings: Settings;
-  locationPermission: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
-  backgroundLocationPermission: 'granted' | 'denied' | 'prompt' | 'not-needed';
+  locationPermission: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' | null;
   isNativePlatform?: boolean;
 }
 

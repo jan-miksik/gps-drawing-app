@@ -120,10 +120,6 @@ if (__VLS_ctx.show) {
     (__VLS_ctx.locationPermission || 'unknown');
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-item" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.backgroundLocationPermission)) }));
-    (__VLS_ctx.backgroundLocationPermission || 'unknown');
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-item" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.notificationPermission)) }));
     (__VLS_ctx.notificationPermission || 'unknown');
     if (__VLS_ctx.logs.length === 0) {
@@ -170,9 +166,6 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-state-section']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-info']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
-/** @type {__VLS_StyleScopedClasses['permission-value']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-value']} */ ;

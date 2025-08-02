@@ -6,7 +6,7 @@ export const DEFAULT_GPS_CONFIG = {
   DISTANCE_THRESHOLD: 10, // meters - minimum distance to add new point
   SMOOTHING_WINDOW: 3, // number of points to average for smoothing
   TIMEOUT: 15000, // 15 seconds timeout for GPS updates
-  MAXIMUM_AGE: 10000, // Accept cached positions up to 10 seconds old
+  // MAXIMUM_AGE: 10000, // Accept cached positions up to 10 seconds old
   MIN_TIME_INTERVAL: 5000, // Minimum 5 seconds between GPS points
   POINTS_PRECISION: 5, // Decimal precision for coordinates
 } as const;
@@ -29,7 +29,7 @@ export const GPS_CONFIG = ref<{
   DISTANCE_THRESHOLD: number;
   SMOOTHING_WINDOW: number;
   TIMEOUT: number;
-  MAXIMUM_AGE: number;
+  // MAXIMUM_AGE: number;
   MIN_TIME_INTERVAL: number;
   POINTS_PRECISION: number;
 }>({ ...DEFAULT_GPS_CONFIG });
@@ -63,7 +63,7 @@ export const updateGPSConfig = (newConfig: Partial<{
   DISTANCE_THRESHOLD: number;
   SMOOTHING_WINDOW: number;
   TIMEOUT: number;
-  MAXIMUM_AGE: number;
+  // MAXIMUM_AGE: number;
   MIN_TIME_INTERVAL: number;
   POINTS_PRECISION: number;
 }>): void => {
