@@ -284,14 +284,10 @@ const handleResetZoom = (): void => {
 onMounted(async () => {
   logInfo('App starting up');
   
-  // const [hasNotificationPermissionResult, hasLocationPermissionResult] = await Promise.all([, checkHasLocationPermission()]);
-  // hasNotificationPermissionValue.value = hasNotificationPermissionResult;
-  // hasLocationPermissionValue.value = hasLocationPermissionResult;
-  const hasNotificationPermissionResult = await checkNotificationPermission()
-  const hasLocationPermissionResult = await checkHasLocationPermission()
-
-  logInfo('hasNotificationPermissionResult', hasNotificationPermissionResult);
-  logInfo('hasLocationPermission', hasLocationPermissionResult);
+  await Promise.all([
+    checkNotificationPermission(),
+    checkHasLocationPermission()
+  ]);
   
   setupCanvas();
   
@@ -314,13 +310,10 @@ onMounted(async () => {
 });
 
 watch([locationPermission, notificationPermission], async ([locationPermission, notificationPermission]) => {
-  logInfo('watch log');
   if (locationPermission === 'prompt' || notificationPermission === 'prompt') return
 
   if (locationPermission === 'granted') {
     try {
-      logInfo('In init BG tracking');
-      // Use background GPS for long-term tracking
       await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
       logInfo('Background GPS tracking started for long-term drawing');
     } catch (error) {

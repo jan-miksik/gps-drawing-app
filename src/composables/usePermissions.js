@@ -64,7 +64,6 @@ export function usePermissions() {
                 case 2:
                     locationStatus = _a.sent();
                     locationPermission.value = locationStatus.location;
-                    alert(JSON.stringify(locationStatus.location));
                     return [2 /*return*/, locationPermission.value === 'granted'];
                 case 3:
                     error_1 = _a.sent();

@@ -5,11 +5,9 @@ import { Capacitor } from '@capacitor/core';
 import type { Point } from '../types/gps';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { roundCoordinates } from '../utils/gpsUtils';
-import { useDevLogs } from './useDevLogs';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
-const { logWarn } = useDevLogs();
 
 export function useBackgroundGPS() {
   const isBackgroundGPSActive = ref(false);
@@ -27,27 +25,19 @@ export function useBackgroundGPS() {
     }
     isInitialized.value = true;
 
-    try {
-      alert('Initializing background GPS 11 ...' + GPS_CONFIG.value.DISTANCE_THRESHOLD);
-      
+    try {      
       // Add watcher using the correct API with improved configuration
       const id = await BackgroundGeolocation.addWatcher({
         backgroundMessage: "GPS drawing in progress",
         backgroundTitle: "GPS Drawing Active",
         requestPermissions: true,
-        stale: true,
+        stale: false,
         distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD
       }, (location, error) => {
         if (error) {
           console.error('Background GPS error:', error);
-          // alert(JSON.stringify(error));
           return;
         }
-
-        // alert(JSON.stringify(location));
-
-        // useDevLogs().logWarn('----- 1 ----- Background GPS location', location)
-        logWarn('Background GPS location', location);
 
         if (location) {
           const accuracy = location.accuracy || 999;

@@ -71,7 +71,7 @@ if (__VLS_ctx.shouldShowModal) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-status granted" }));
     }
-    else if (__VLS_ctx.notificationPermission === 'prompt') {
+    else if (__VLS_ctx.notificationPermission === 'prompt' || __VLS_ctx.notificationPermission === 'prompt-with-rationale') {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleRequestNotificationPermission) }, { class: "permission-button" }), { disabled: (__VLS_ctx.isRequesting) }));
         if (!__VLS_ctx.isRequesting) {
@@ -89,6 +89,7 @@ if (__VLS_ctx.shouldShowModal) {
     else {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({});
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "permission-text" }));
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleOpenSettings) }, { class: "permission-button" }));
     }
 }
 /** @type {__VLS_StyleScopedClasses['permission-modal']} */ ;
@@ -109,6 +110,7 @@ if (__VLS_ctx.shouldShowModal) {
 /** @type {__VLS_StyleScopedClasses['permission-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['permission-button']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {

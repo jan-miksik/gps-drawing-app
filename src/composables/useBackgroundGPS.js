@@ -39,9 +39,7 @@ import { registerPlugin } from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { roundCoordinates } from '../utils/gpsUtils';
-import { useDevLogs } from './useDevLogs';
 var BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
-var logWarn = useDevLogs().logWarn;
 export function useBackgroundGPS() {
     var _this = this;
     var isBackgroundGPSActive = ref(false);
@@ -63,22 +61,17 @@ export function useBackgroundGPS() {
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    alert('Initializing background GPS 11 ...' + GPS_CONFIG.value.DISTANCE_THRESHOLD);
                     return [4 /*yield*/, BackgroundGeolocation.addWatcher({
                             backgroundMessage: "GPS drawing in progress",
                             backgroundTitle: "GPS Drawing Active",
                             requestPermissions: true,
-                            stale: true,
+                            stale: false,
                             distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD
                         }, function (location, error) {
                             if (error) {
                                 console.error('Background GPS error:', error);
-                                alert(JSON.stringify(error));
                                 return;
                             }
-                            alert(JSON.stringify(location));
-                            // useDevLogs().logWarn('----- 1 ----- Background GPS location', location)
-                            logWarn('Background GPS location', location);
                             if (location) {
                                 var accuracy = location.accuracy || 999;
                                 // Always update current accuracy display (even for poor accuracy points)

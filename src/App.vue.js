@@ -192,22 +192,20 @@ var handleResetZoom = function () {
 };
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
-    var hasNotificationPermissionResult, hasLocationPermissionResult, loadedPoints;
+    var loadedPoints;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 logInfo('App starting up');
-                return [4 /*yield*/, checkNotificationPermission()];
+                return [4 /*yield*/, Promise.all([
+                        checkNotificationPermission(),
+                        checkHasLocationPermission()
+                    ])];
             case 1:
-                hasNotificationPermissionResult = _a.sent();
-                return [4 /*yield*/, checkHasLocationPermission()];
-            case 2:
-                hasLocationPermissionResult = _a.sent();
-                logInfo('hasNotificationPermissionResult', hasNotificationPermissionResult);
-                logInfo('hasLocationPermission', hasLocationPermissionResult);
+                _a.sent();
                 setupCanvas();
                 return [4 /*yield*/, loadPointsFromFile()];
-            case 3:
+            case 2:
                 loadedPoints = _a.sent();
                 if (loadedPoints.length > 0) {
                     points.value = loadedPoints;
@@ -232,18 +230,14 @@ watch([locationPermission, notificationPermission], function (_a) { return __awa
     return __generator(this, function (_c) {
         switch (_c.label) {
             case 0:
-                logInfo('watch log');
                 if (locationPermission === 'prompt' || notificationPermission === 'prompt')
                     return [2 /*return*/];
                 if (!(locationPermission === 'granted')) return [3 /*break*/, 4];
                 _c.label = 1;
             case 1:
                 _c.trys.push([1, 3, , 4]);
-                logInfo('In init BG tracking');
-                // Use background GPS for long-term tracking
                 return [4 /*yield*/, initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy)];
             case 2:
-                // Use background GPS for long-term tracking
                 _c.sent();
                 logInfo('Background GPS tracking started for long-term drawing');
                 return [3 /*break*/, 4];

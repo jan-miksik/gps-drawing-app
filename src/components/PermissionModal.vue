@@ -48,7 +48,7 @@
           <div class="permission-status granted">✅ Notification permission granted</div>
         </div>
 
-        <div v-else-if="notificationPermission === 'prompt'">
+        <div v-else-if="notificationPermission === 'prompt' || notificationPermission === 'prompt-with-rationale'">
           <button 
             @click="handleRequestNotificationPermission"
             class="permission-button"
@@ -70,11 +70,14 @@
 
         <div v-else>
           <div class="permission-text">
-            Checking notification permission...
+            Notification permission is in unknown state. Please enable it in your system settings to allow background tracking.
           </div>
+          <button @click="handleOpenSettings" class="permission-button">
+            Open Settings
+          </button>
         </div>
+        
       </div>
-
     </div>
   </div>
 </template>

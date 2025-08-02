@@ -357,15 +357,14 @@ const handleSave = (): void => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 16px;
 }
 
 .modal-content {
   background: rgba(0, 0, 0, 0.9);
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  width: 90%;
-  max-width: 500px;
+  width: 100%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
@@ -378,6 +377,7 @@ const handleSave = (): void => {
   max-width: none;
   max-height: none;
   border-radius: 0;
+  border: none;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
