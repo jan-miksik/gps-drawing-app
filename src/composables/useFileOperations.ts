@@ -6,6 +6,18 @@ import { anonymizePoints } from '../utils/coordinateUtils';
 import { project, calculateBounds } from '../utils/canvasUtils';
 
 export function useFileOperations() {
+  // Helper function to generate a filename-safe date-time timestamp
+  const generateDateTimeStamp = (): string => {
+    const now = new Date();
+    return now.toISOString()
+      .replace(/[:.]/g, '-')  // Replace colons and dots with hyphens
+      .replace('T', '_')      // Replace T with underscore
+      .slice(0, 19);          // Keep only YYYY-MM-DD_HH-MM-SS (remove milliseconds and timezone)
+  };
+
+  const getTitle = (pointCount: number): string => {
+    return `GPS Drawing - ${pointCount} points - ${new Date().toLocaleDateString()}`;
+  };
 
   const savePointsToFile = async (points: Point[], append = false): Promise<void> => {
     try {
@@ -59,7 +71,7 @@ export function useFileOperations() {
       }
 
       const currentTime = new Date();
-      const timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const timestamp = generateDateTimeStamp();
       
       const isAnonymized = coordinateType === 'relative';
       const displayPoints = isAnonymized && anonymizationOrigin 
@@ -110,8 +122,7 @@ export function useFileOperations() {
     anonymizationOrigin: AnonymizationOrigin | null
   ): Promise<void> => {
     try {
-      const currentTime = new Date();
-      const timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const timestamp = generateDateTimeStamp();
       const fileName = `gps_drawing_${timestamp}.svg`;
 
       // Generate SVG content
@@ -183,7 +194,7 @@ export function useFileOperations() {
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            title: 'GPS Drawing',
+            title: getTitle(pointCount),
             text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
             files: [file]
           });
@@ -219,7 +230,7 @@ export function useFileOperations() {
       try {
         // Share using Capacitor
         await Share.share({
-          title: 'GPS Drawing',
+          title: getTitle(pointCount),
           text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
           url: fileUri.uri,
           dialogTitle: 'Share GPS Drawing'
@@ -249,46 +260,6 @@ export function useFileOperations() {
     }
   };
 
-  // const tryWebShareWithFile = async (
-  //   fileName: string,
-  //   content: string,
-  //   mimeType: string,
-  //   pointCount: number,
-  //   isAnonymized: boolean
-  // ): Promise<boolean> => {
-  //   try {
-  //     if (!navigator.share || !navigator.canShare) {
-  //       console.log('Web Share API not available');
-  //       return false;
-  //     }
-
-  //     // Create blob and file
-  //     const blob = new Blob([content], { type: mimeType });
-  //     const file = new File([blob], fileName, { type: mimeType });
-
-  //     if (!navigator.canShare({ files: [file] })) {
-  //       console.log('Web Share API cannot share this file type');
-  //       return false;
-  //     }
-
-  //     await navigator.share({
-  //       title: 'GPS Drawing',
-  //       text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
-  //       files: [file]
-  //     });
-
-  //     console.log('Successfully shared via Web Share API with File');
-  //     return true;
-  //   } catch (error: any) {
-  //     if (error.name === 'AbortError') {
-  //       console.log('User cancelled share');
-  //       return true; // Consider this a success since user chose to cancel
-  //     }
-  //     console.warn('Web Share with File failed:', error);
-  //     return false;
-  //   }
-  // };
-
   const tryWebShareWithURL = async (
     content: string,
     mimeType: string,
@@ -306,7 +277,7 @@ export function useFileOperations() {
       const blobUrl = URL.createObjectURL(blob);
 
       await navigator.share({
-        title: 'GPS Drawing',
+        title: getTitle(pointCount),
         text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
         url: blobUrl
       });

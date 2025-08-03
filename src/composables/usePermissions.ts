@@ -73,7 +73,7 @@ export function usePermissions() {
         await BackgroundGeolocation.openSettings();
       } catch (error) {
         logError('Error opening app settings', error);
-        alert('Please go to your device settings > Apps > GPS Drawing > Permissions and enable location access.');
+        alert('Please go to your device settings > Apps > GPS Pen > Permissions and enable location access.');
       }
     } else {
       alert('Please enable location permissions in your browser settings.');

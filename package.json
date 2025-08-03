@@ -1,5 +1,5 @@
 {
-  "name": "gps-drawing-app",
+  "name": "gps-pen-app",
   "version": "0.1.0-alpha",
   "license": "MIT",
   "type": "module",
@@ -12,12 +12,14 @@
     "run:android": "npx cap run android",
     "android:build": "yarn config set nodeLinker node-modules && yarn install && yarn build:android && yarn config set nodeLinker pnp && yarn install",
     "d": "vite",
-    "a": "npx cap run android -l --host $(ifconfig en0 | grep 'inet ' | awk '{print $2}')"
+    "a": "npx cap run android -l --host $(ifconfig en0 | grep 'inet ' | awk '{print $2}')",
+    "generate:assets": "npx @capacitor/assets generate"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.25",
     "@capacitor/android": "^7.4.2",
     "@capacitor/app": "^7.0.1",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.4.2",
     "@capacitor/core": "^7.4.2",
     "@capacitor/device": "^7.0.1",

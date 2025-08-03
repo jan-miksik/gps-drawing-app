@@ -62,8 +62,8 @@ export function useBackgroundGPS() {
                 case 1:
                     _a.trys.push([1, 3, , 4]);
                     return [4 /*yield*/, BackgroundGeolocation.addWatcher({
-                            backgroundMessage: "GPS drawing in progress",
-                            backgroundTitle: "GPS Drawing Active",
+                            backgroundMessage: "drawing your path",
+                            backgroundTitle: "GPS Pen Active",
                             requestPermissions: true,
                             stale: false,
                             distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD

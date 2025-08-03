@@ -86,7 +86,7 @@
               />
               <span class="setting-unit">meters</span>
             </div>
-            <div class="setting-description">Minimum accuracy to add GPS point (lower = more accurate)</div>
+            <div class="setting-description">Minimum accuracy to add GPS point <br/>(lower = more accurate)</div>
           </div>
 
           <div class="setting-item">
@@ -117,6 +117,21 @@
               <span class="setting-unit">seconds</span>
             </div>
             <div class="setting-description">Minimum time between GPS points</div>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-label">Path Smoothing</label>
+            <div class="setting-control">
+              <input 
+                type="number" 
+                v-model.number="localSettings.SMOOTHING_WINDOW"
+                min="1" 
+                max="10"
+                class="setting-input"
+              />
+              <span class="setting-unit">points</span>
+            </div>
+            <div class="setting-description">Number of points to average for smoothing <br/>(1 = no smoothing)</div>
           </div>
         </div>
 
@@ -197,6 +212,7 @@ interface Settings {
   ACCURACY_THRESHOLD: number;
   DISTANCE_THRESHOLD: number;
   MIN_TIME_INTERVAL: number;
+  SMOOTHING_WINDOW: number;
   PINCH_ZOOM_SENSITIVITY: number;
   MIN_SCALE: number;
   MAX_SCALE: number;
@@ -229,6 +245,7 @@ const defaultSettings: Settings = {
   ACCURACY_THRESHOLD: DEFAULT_GPS_CONFIG.ACCURACY_THRESHOLD,
   DISTANCE_THRESHOLD: DEFAULT_GPS_CONFIG.DISTANCE_THRESHOLD,
   MIN_TIME_INTERVAL: DEFAULT_GPS_CONFIG.MIN_TIME_INTERVAL / 1000, // Convert from ms to seconds for UI
+  SMOOTHING_WINDOW: DEFAULT_GPS_CONFIG.SMOOTHING_WINDOW,
   PINCH_ZOOM_SENSITIVITY: DEFAULT_CANVAS_CONFIG.PINCH_ZOOM_SENSITIVITY,
   MIN_SCALE: DEFAULT_CANVAS_CONFIG.MIN_SCALE,
   MAX_SCALE: DEFAULT_CANVAS_CONFIG.MAX_SCALE,

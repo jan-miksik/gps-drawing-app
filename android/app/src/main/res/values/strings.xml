@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">gps.drawing.app</string>
-    <string name="title_activity_main">gps.drawing.app</string>
+    <string name="app_name">GPS Pen</string>
+    <string name="title_activity_main">GPS Pen</string>
     <string name="package_name">GPS.Drawing.App</string>
     <string name="custom_url_scheme">GPS.Drawing.App</string>
 </resources>

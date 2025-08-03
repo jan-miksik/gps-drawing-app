@@ -73,6 +73,7 @@ import DevLogsModal from './components/DevLogsModal.vue';
 import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
+import { clearSmoothingBuffer } from './utils/gpsUtils';
 // State
 var showModal = ref(false);
 var showExportModal = ref(false);
@@ -86,6 +87,7 @@ var settings = computed(function () { return ({
     ACCURACY_THRESHOLD: GPS_CONFIG.value.ACCURACY_THRESHOLD,
     DISTANCE_THRESHOLD: GPS_CONFIG.value.DISTANCE_THRESHOLD,
     MIN_TIME_INTERVAL: GPS_CONFIG.value.MIN_TIME_INTERVAL / 1000, // Convert to seconds for UI
+    SMOOTHING_WINDOW: GPS_CONFIG.value.SMOOTHING_WINDOW,
     PINCH_ZOOM_SENSITIVITY: CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY,
     MIN_SCALE: CANVAS_CONFIG.value.MIN_SCALE,
     MAX_SCALE: CANVAS_CONFIG.value.MAX_SCALE,
@@ -175,6 +177,7 @@ var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, func
                 pointCount = points.value.length;
                 points.value = [];
                 anonymizationOrigin.value = null;
+                clearSmoothingBuffer(); // Clear smoothing buffer for new drawing
                 return [4 /*yield*/, clearAllData()];
             case 1:
                 _a.sent();

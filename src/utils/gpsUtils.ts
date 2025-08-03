@@ -21,13 +21,68 @@ export const getSignalQuality = (accuracy: number): GPSSignalQuality => {
   return 'poor';
 };
 
+// Global buffer for smoothing - stores recent points
+let smoothingBuffer: Point[] = [];
+
 export const smoothGPSPoints = (newPoint: Point): Point => {
-  // Smoothing disabled - return the new point with precision rounding
+  const smoothingWindow = GPS_CONFIG.value.SMOOTHING_WINDOW;
+  
+  // If smoothing is disabled (window size 1 or less), return the point as-is
+  if (smoothingWindow <= 1) {
+    return {
+      lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+      lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+      timestamp: newPoint.timestamp,
+      accuracy: newPoint.accuracy
+    };
+  }
+
+  // Add new point to buffer
+  smoothingBuffer.push(newPoint);
+  
+  // Keep only the last N points in the buffer
+  if (smoothingBuffer.length > smoothingWindow) {
+    smoothingBuffer = smoothingBuffer.slice(-smoothingWindow);
+  }
+
+  // If we don't have enough points for smoothing, return the original point
+  if (smoothingBuffer.length < 2) {
+    return {
+      lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+      lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+      timestamp: newPoint.timestamp,
+      accuracy: newPoint.accuracy
+    };
+  }
+
+  // Calculate weighted average based on recency and accuracy
+  let totalWeight = 0;
+  let weightedLat = 0;
+  let weightedLon = 0;
+  let weightedAccuracy = 0;
+
+  for (let i = 0; i < smoothingBuffer.length; i++) {
+    const point = smoothingBuffer[i];
+    const recencyWeight = i + 1; // More recent points get higher weight
+    const accuracyWeight = 1 / Math.max(point.accuracy || 999, 1); // Better accuracy gets higher weight
+    const weight = recencyWeight * accuracyWeight;
+    
+    weightedLat += point.lat * weight;
+    weightedLon += point.lon * weight;
+    weightedAccuracy += (point.accuracy || 999) * weight;
+    totalWeight += weight;
+  }
+
+  // Calculate final smoothed coordinates
+  const smoothedLat = weightedLat / totalWeight;
+  const smoothedLon = weightedLon / totalWeight;
+  const smoothedAccuracy = weightedAccuracy / totalWeight;
+
   return {
-    lat: Math.round(newPoint.lat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
-    lon: Math.round(newPoint.lon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+    lat: Math.round(smoothedLat * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
+    lon: Math.round(smoothedLon * Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION)) / Math.pow(10, GPS_CONFIG.value.POINTS_PRECISION),
     timestamp: newPoint.timestamp,
-    accuracy: newPoint.accuracy
+    accuracy: Math.round(smoothedAccuracy)
   };
 };
 
@@ -37,4 +92,9 @@ export const roundCoordinates = (lat: number, lon: number): { lat: number; lon: 
     lat: Math.round(lat * precision) / precision,
     lon: Math.round(lon * precision) / precision
   };
+};
+
+// Function to clear the smoothing buffer (call this when starting a new drawing)
+export const clearSmoothingBuffer = (): void => {
+  smoothingBuffer = [];
 }; 

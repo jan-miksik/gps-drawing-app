@@ -123,7 +123,7 @@ export function usePermissions() {
                 case 3:
                     error_3 = _a.sent();
                     logError('Error opening app settings', error_3);
-                    alert('Please go to your device settings > Apps > GPS Drawing > Permissions and enable location access.');
+                    alert('Please go to your device settings > Apps > GPS Pen > Permissions and enable location access.');
                     return [3 /*break*/, 4];
                 case 4: return [3 /*break*/, 6];
                 case 5:

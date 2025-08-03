@@ -20,6 +20,7 @@ var defaultSettings = {
     ACCURACY_THRESHOLD: DEFAULT_GPS_CONFIG.ACCURACY_THRESHOLD,
     DISTANCE_THRESHOLD: DEFAULT_GPS_CONFIG.DISTANCE_THRESHOLD,
     MIN_TIME_INTERVAL: DEFAULT_GPS_CONFIG.MIN_TIME_INTERVAL / 1000, // Convert from ms to seconds for UI
+    SMOOTHING_WINDOW: DEFAULT_GPS_CONFIG.SMOOTHING_WINDOW,
     PINCH_ZOOM_SENSITIVITY: DEFAULT_CANVAS_CONFIG.PINCH_ZOOM_SENSITIVITY,
     MIN_SCALE: DEFAULT_CANVAS_CONFIG.MIN_SCALE,
     MAX_SCALE: DEFAULT_CANVAS_CONFIG.MAX_SCALE,
@@ -206,6 +207,7 @@ if (__VLS_ctx.show) {
     (__VLS_ctx.localSettings.ACCURACY_THRESHOLD);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "setting-unit" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-description" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.br)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-item" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "setting-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-control" }));
@@ -220,6 +222,14 @@ if (__VLS_ctx.show) {
     (__VLS_ctx.localSettings.MIN_TIME_INTERVAL);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "setting-unit" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-description" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-item" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.label, __VLS_intrinsicElements.label)(__assign({ class: "setting-label" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-control" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.input)(__assign({ type: "number", min: "1", max: "10" }, { class: "setting-input" }));
+    (__VLS_ctx.localSettings.SMOOTHING_WINDOW);
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "setting-unit" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "setting-description" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.br)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleReset) }, { class: "reset-button" }), { disabled: (!__VLS_ctx.hasChangesFromDefaults) }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-right" }));
@@ -255,6 +265,12 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['setting-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-description']} */ ;
 /** @type {__VLS_StyleScopedClasses['settings-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-control']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-unit']} */ ;
+/** @type {__VLS_StyleScopedClasses['setting-description']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-control']} */ ;

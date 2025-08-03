@@ -28,8 +28,8 @@ export function useBackgroundGPS() {
     try {      
       // Add watcher using the correct API with improved configuration
       const id = await BackgroundGeolocation.addWatcher({
-        backgroundMessage: "GPS drawing in progress",
-        backgroundTitle: "GPS Drawing Active",
+        backgroundMessage: "drawing your path",
+        backgroundTitle: "GPS Pen Active",
         requestPermissions: true,
         stale: false,
         distanceFilter: GPS_CONFIG.value.DISTANCE_THRESHOLD

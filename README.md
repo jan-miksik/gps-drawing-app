@@ -1,4 +1,4 @@
-# GPS Drawing
+# GPS Pen
 
 This app explores surveillance and self-surveillance through minimalist GPS tracking. By reducing the interface to pure movement visualization.
 

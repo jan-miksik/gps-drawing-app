@@ -9,7 +9,7 @@
         </div>
 
         <div v-if="locationPermission === 'granted'">
-          <div class="permission-status granted">✅ Location permission granted</div>
+          <div class="permission-status granted">✓ Location permission granted</div>
         </div>
 
         <div v-else-if="locationPermission === 'prompt' || locationPermission === 'prompt-with-rationale'">
@@ -45,7 +45,7 @@
         </div>
 
         <div v-if="notificationPermission === 'granted' || notificationPermission === 'not-needed'">
-          <div class="permission-status granted">✅ Notification permission granted</div>
+          <div class="permission-status granted">✓ Notification permission granted</div>
         </div>
 
         <div v-else-if="notificationPermission === 'prompt' || notificationPermission === 'prompt-with-rationale'">
@@ -76,7 +76,7 @@
             Open Settings
           </button>
         </div>
-        
+
       </div>
     </div>
   </div>
@@ -142,8 +142,9 @@ const handleRequestNotificationPermission = (): void => {
   background: #1a1a1a;
   color: white;
   padding: 30px;
-  border-radius: 15px;
-  max-width: 400px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  /* max-width: 400px; */
   text-align: center;
   line-height: 1.5;
   font-size: 14px;
@@ -169,9 +170,9 @@ const handleRequestNotificationPermission = (): void => {
 }
 
 .permission-status.granted {
-  background: rgba(0, 255, 0, 0.1);
-  color: #4ade80;
-  border: 1px solid #4ade80;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid white;
 }
 
 .permission-button {
@@ -188,7 +189,8 @@ const handleRequestNotificationPermission = (): void => {
 }
 
 .permission-button:hover:not(:disabled) {
-  background: #333;
+  background: white;
+  color: black;
   transform: translateY(-2px);
 }
 

@@ -1,8 +1,8 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.gpsdrawing.app',
-  appName: 'GPS Drawing',
+  appId: 'gps.pen.app',
+  appName: 'GPS Pen',
   webDir: 'dist',
   // Only add server config for development
   ...(process.env.NODE_ENV === 'development' && {
@@ -17,14 +17,18 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 2000,
       backgroundColor: "#000000",
-      showSpinner: false
+      showSpinner: false,
+      androidSpinnerStyle: "small",
+      iosSpinnerStyle: "small",
+      spinnerColor: "#ffffff",
+      splashFullScreen: true,
+      splashImmersive: true,
+      layoutName: "launch_screen",
+      useDialog: true,
     },
     StatusBar: {
-      style: 'light',
-      backgroundColor: '#000000'
-    },
-    Share: {
-      // Share plugin configuration
+      style: "dark",
+      backgroundColor: "#000000"
     }
   }
 };

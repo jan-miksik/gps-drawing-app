@@ -61,6 +61,17 @@ import { anonymizePoints } from '../utils/coordinateUtils';
 import { project, calculateBounds } from '../utils/canvasUtils';
 export function useFileOperations() {
     var _this = this;
+    // Helper function to generate a filename-safe date-time timestamp
+    var generateDateTimeStamp = function () {
+        var now = new Date();
+        return now.toISOString()
+            .replace(/[:.]/g, '-') // Replace colons and dots with hyphens
+            .replace('T', '_') // Replace T with underscore
+            .slice(0, 19); // Keep only YYYY-MM-DD_HH-MM-SS (remove milliseconds and timezone)
+    };
+    var getTitle = function (pointCount) {
+        return "GPS Drawing - ".concat(pointCount, " points - ").concat(new Date().toLocaleDateString());
+    };
     var savePointsToFile = function (points_1) {
         var args_1 = [];
         for (var _i = 1; _i < arguments.length; _i++) {
@@ -136,7 +147,7 @@ export function useFileOperations() {
                         return [2 /*return*/];
                     }
                     currentTime = new Date();
-                    timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                    timestamp = generateDateTimeStamp();
                     isAnonymized_1 = coordinateType === 'relative';
                     displayPoints = isAnonymized_1 && anonymizationOrigin
                         ? anonymizePoints(points, anonymizationOrigin)
@@ -169,13 +180,12 @@ export function useFileOperations() {
         });
     }); };
     var exportCanvasAsImage = function (canvas, points, isAnonymized, anonymizationOrigin) { return __awaiter(_this, void 0, void 0, function () {
-        var currentTime, timestamp, fileName, ctx, dpr, logicalWidth, logicalHeight, svgContent, mimeType, error_2;
+        var timestamp, fileName, ctx, dpr, logicalWidth, logicalHeight, svgContent, mimeType, error_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
-                    currentTime = new Date();
-                    timestamp = currentTime.toISOString().replace(/[:.]/g, '-').split('T')[0];
+                    timestamp = generateDateTimeStamp();
                     fileName = "gps_drawing_".concat(timestamp, ".svg");
                     ctx = canvas.getContext('2d');
                     if (!ctx) {
@@ -249,7 +259,7 @@ export function useFileOperations() {
                 case 1:
                     _a.trys.push([1, 3, , 4]);
                     return [4 /*yield*/, navigator.share({
-                            title: 'GPS Drawing',
+                            title: getTitle(pointCount),
                             text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
                             files: [file]
                         })];
@@ -287,7 +297,7 @@ export function useFileOperations() {
                     _a.trys.push([7, 9, 10, 14]);
                     // Share using Capacitor
                     return [4 /*yield*/, Share.share({
-                            title: 'GPS Drawing',
+                            title: getTitle(pointCount),
                             text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
                             url: fileUri.uri,
                             dialogTitle: 'Share GPS Drawing'
@@ -326,41 +336,6 @@ export function useFileOperations() {
             }
         });
     }); };
-    // const tryWebShareWithFile = async (
-    //   fileName: string,
-    //   content: string,
-    //   mimeType: string,
-    //   pointCount: number,
-    //   isAnonymized: boolean
-    // ): Promise<boolean> => {
-    //   try {
-    //     if (!navigator.share || !navigator.canShare) {
-    //       console.log('Web Share API not available');
-    //       return false;
-    //     }
-    //     // Create blob and file
-    //     const blob = new Blob([content], { type: mimeType });
-    //     const file = new File([blob], fileName, { type: mimeType });
-    //     if (!navigator.canShare({ files: [file] })) {
-    //       console.log('Web Share API cannot share this file type');
-    //       return false;
-    //     }
-    //     await navigator.share({
-    //       title: 'GPS Drawing',
-    //       text: `GPS Drawing (${isAnonymized ? 'anonymized' : 'exact'}) - ${pointCount} points`,
-    //       files: [file]
-    //     });
-    //     console.log('Successfully shared via Web Share API with File');
-    //     return true;
-    //   } catch (error: any) {
-    //     if (error.name === 'AbortError') {
-    //       console.log('User cancelled share');
-    //       return true; // Consider this a success since user chose to cancel
-    //     }
-    //     console.warn('Web Share with File failed:', error);
-    //     return false;
-    //   }
-    // };
     var tryWebShareWithURL = function (content, mimeType, pointCount, isAnonymized) { return __awaiter(_this, void 0, void 0, function () {
         var blob, blobUrl_1, error_4;
         return __generator(this, function (_a) {
@@ -374,7 +349,7 @@ export function useFileOperations() {
                     blob = new Blob([content], { type: mimeType });
                     blobUrl_1 = URL.createObjectURL(blob);
                     return [4 /*yield*/, navigator.share({
-                            title: 'GPS Drawing',
+                            title: getTitle(pointCount),
                             text: "GPS Drawing (".concat(isAnonymized ? 'anonymized' : 'exact', ") - ").concat(pointCount, " points"),
                             url: blobUrl_1
                         })];
