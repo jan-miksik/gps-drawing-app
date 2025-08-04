@@ -1,4 +1,4 @@
-package GPS.Drawing.App;
+package gps.pen.app;
 
 import android.os.Bundle;
 import androidx.core.view.WindowCompat;

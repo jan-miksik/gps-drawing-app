@@ -33,15 +33,16 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="handleCancel" class="close-button-footer">
-          Cancel
-        </button>
+        <BaseButton @click="handleCancel" variant="primary" size="medium">
+          Close
+        </BaseButton>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import BaseButton from './BaseButton.vue';
 
 interface Props {
   show: boolean;

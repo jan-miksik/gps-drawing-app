@@ -4,8 +4,8 @@
       <div class="modal-header">
         <h2>Developer Logs ({{ logs.length }})</h2>
         <div class="header-controls">
-          <button @click="$emit('clear')" class="clear-button">Clear</button>
-          <button @click="$emit('close')" class="close-button">✕</button>
+          <!-- <button @click="$emit('clear')" class="clear-button">Clear</button> -->
+          <button @click="$emit('close')" class="close-button">x</button>
         </div>
       </div>
       
@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+// import BaseButton from './BaseButton.vue';
 
 interface LogEntry {
   id: number;

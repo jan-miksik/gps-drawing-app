@@ -82,17 +82,17 @@
       
       <div class="modal-footer">
         <div class="footer-left">
-          <button @click="$emit('export')" class="export-button">
+          <BaseButton @click="$emit('export')" variant="primary" size="medium">
             Export
-          </button>
-          <div @click="handleClearAll" class="clear-button-1">
+          </BaseButton>
+          <BaseButton @click="handleClearAll" variant="primary" size="medium">
             Clear
-          </div>
+          </BaseButton>
         </div>
         <div class="footer-right">
-          <button @click="$emit('close')" class="close-button-footer">
+          <BaseButton @click="$emit('close')" variant="primary" size="medium">
             Close
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -117,6 +117,7 @@ import { computed, ref } from 'vue';
 import type { Point, AnonymizationOrigin } from '../types/gps';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
 import SettingsModal from './SettingsModal.vue';
+import BaseButton from './BaseButton.vue';
 
 interface Props {
   show: boolean;

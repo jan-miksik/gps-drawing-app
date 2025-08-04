@@ -14,39 +14,41 @@
     
   
     <!-- Buttons -->
-    <!-- Dev Logs Button - top left corner -->
-    <button 
+    <BaseButton 
       @click="isDevLogsVisible = true" 
-      class="dev-logs-button"
+      variant="circular"
+      position="top-left"
       title="Open Dev Logs"
     >
       <span class="dev-logs-icon">📋</span>
-    </button>
+    </BaseButton>
     
-    <button 
+    <BaseButton 
       @click="showModal = true" 
-      class="gps-points-button"
+      variant="primary"
+      position="bottom-right"
       title="Click: Open GPS Points"
     >
       <span class="gps-points-button-text">Points ({{ points.length }})</span>
-    </button>
+    </BaseButton>
 
-    <button 
+    <BaseButton 
       @click="handleDirectExport" 
-      class="export-button-main"
+      variant="primary"
+      position="bottom-left"
       title="Export drawing as image"
     >
       <span class="export-button-text">Export</span>
-    </button>
+    </BaseButton>
 
-    <!-- Reset Zoom Button - appears when zoomed -->
+    <!-- Reset Zoom Button - appears when zoomed or pan the map-->
     <button 
-      v-if="scale !== 1 || viewOffsetX !== 0 || viewOffsetY !== 0"
+      v-if="scale !== CANVAS_CONFIG.DEFAULT_SCALE || viewOffsetX !== 0 || viewOffsetY !== 0"
       @click="handleResetZoom" 
       class="reset-zoom-button"
       title="Reset zoom and center"
     >
-      <span class="reset-zoom-icon">⏮</span>
+      <span class="reset-zoom-icon"><img :src="resetZoomIcon" alt="Reset zoom" class="reset-zoom-icon-image" /></span>
     </button>
 
 
@@ -127,6 +129,8 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
+import resetZoomIcon from './assets/reset-zoom.svg';
+import BaseButton from './components/BaseButton.vue';
 
 // State
 const showModal = ref(false);
@@ -150,10 +154,7 @@ const settings = computed(() => ({
   LINE_WIDTH: CANVAS_CONFIG.value.LINE_WIDTH,
 }));
 
-// Composables
-const { currentAccuracy, shouldAddPoint } = useGPS();
-
-// Permission computed properties
+const { currentAccuracy, shouldAddPoint, processNewPoint } = useGPS();
 const { initBackgroundGPS } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, clearAllData } = useFileOperations();
@@ -168,17 +169,13 @@ const { handleDirectExport, handleExportImage, handleExportData } = useExportOpe
   showExportModal
 );
 
-
 const {
   locationPermission,
   checkHasLocationPermission,
   requestLocationPermission,
-  
-  // Permission handlers
   handleOpenAppSettings
 } = usePermissions();
 
-// Notification permission handling
 const {
   notificationPermission,
   checkNotificationPermission,
@@ -203,7 +200,6 @@ const {
     redrawCanvas();
   },
   () => {
-    resetView();
     redrawCanvas();
   }
 );
@@ -224,16 +220,14 @@ const updateCurrentAccuracy = (accuracy: number): void => {
   currentAccuracy.value = accuracy;
 };
 
-const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
-  logInfo('Background GPS point received', newPoint);
-  
+const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {  
   if (!shouldAddPoint(points.value, newPoint)) {
     return;
   }
 
-  // const processedPoint = newPoint; // turned off for now
-  logInfo('Background GPS point to add', newPoint);
-  points.value.push(newPoint);
+  const processedPoint = processNewPoint(newPoint);
+  logInfo('Background GPS point to add', processedPoint);
+  points.value.push(processedPoint);
 
   // Set anonymization origin if this is the first point
   if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
@@ -241,7 +235,7 @@ const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {
   }
 
   // Save to file (this will handle both foreground and background points)
-  await savePointsToFile([newPoint], true); // true = append mode
+  await savePointsToFile([processedPoint], true); // true = append mode
   redrawCanvas();
 };
 

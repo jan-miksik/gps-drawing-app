@@ -5,7 +5,7 @@
       <!-- Location Permission Section -->
       <div class="permission-section">
         <div class="permission-text">
-          This app needs your location to draw your GPS path. Your data stays only on your device. GPS drawing stops when the app is closed.
+          GPS Pen uses your location to draw your path. Your data stays on your phone. Drawing and access to your locations by GPS Pen stops when you close this app.        
         </div>
 
         <div v-if="locationPermission === 'granted'">
@@ -13,9 +13,9 @@
         </div>
 
         <div v-else-if="locationPermission === 'prompt' || locationPermission === 'prompt-with-rationale'">
-          <button @click="handleRequestLocationPermission" class="permission-button">
+          <BaseButton @click="handleRequestLocationPermission" variant="primary" size="large" class="permission-button">
             Enable Location
-          </button>
+          </BaseButton>
         </div>
 
         <div v-else-if="locationPermission === 'denied'">
@@ -26,9 +26,9 @@
             → Permissions → Location <br>
             → Choose "While using the app" or "Always"
           </div>
-          <button @click="handleOpenSettings" class="permission-button">
+          <BaseButton @click="handleOpenSettings" variant="primary" size="large" class="permission-button">
             Open Settings
-          </button>
+          </BaseButton>
         </div>
 
         <div v-else>
@@ -41,7 +41,7 @@
       <!-- Notification Permission Section -->
       <div class="permission-section">
         <div class="permission-text">
-          To keep GPS drawing running when the app is minimized or your phone is idle, a small notification needs to be shown.
+          To keep GPS drawing running when the app is minimized or your phone is idle, a notification reminding this have to be shown.
         </div>
 
         <div v-if="notificationPermission === 'granted' || notificationPermission === 'not-needed'">
@@ -49,33 +49,39 @@
         </div>
 
         <div v-else-if="notificationPermission === 'prompt' || notificationPermission === 'prompt-with-rationale'">
-          <button 
+          <BaseButton 
             @click="handleRequestNotificationPermission"
+            variant="primary"
             class="permission-button"
+            size="large"
             :disabled="isRequesting"
           >
             <span v-if="!isRequesting">Enable Notifications</span>
             <span v-else>Requesting...</span>
-          </button>
+          </BaseButton>
         </div>
 
         <div v-else-if="notificationPermission === 'denied'">
           <div class="permission-text">
             Notification permission was denied. Please enable it in your system settings to allow background tracking.
           </div>
-          <button @click="handleOpenSettings" class="permission-button">
+          <BaseButton @click="handleOpenSettings" variant="primary" size="large" class="permission-button">
             Open Settings
-          </button>
+          </BaseButton>
         </div>
 
         <div v-else>
           <div class="permission-text">
             Notification permission is in unknown state. Please enable it in your system settings to allow background tracking.
           </div>
-          <button @click="handleOpenSettings" class="permission-button">
+          <BaseButton @click="handleOpenSettings" variant="primary" size="large" class="permission-button">
             Open Settings
-          </button>
+          </BaseButton>
         </div>
+
+        <BaseButton v-if="permissionsGranted" @click="isKeepShowingModal = false" variant="primary" size="large" class="permission-button done-button">
+          Done
+        </BaseButton>
 
       </div>
     </div>
@@ -84,6 +90,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import BaseButton from './BaseButton.vue';
+import { ref } from 'vue';
 
 interface Props {
   locationPermission: 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' | null; 
@@ -100,27 +108,39 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+const isKeepShowingModal = ref(false);
+
+const permissionsGranted = computed(() => {
+  return props.locationPermission === 'granted' && (props.notificationPermission === 'granted' || props.notificationPermission === 'not-needed')
+});
 
 const shouldShowModal = computed(() => {
+
+  if (isKeepShowingModal.value) {
+    return true;
+  }
 
   // the permission is not know if the states are in prompt
   if (props.locationPermission === null || props.notificationPermission === null) {
     return false
   }
   // Show modal if any permission is not granted (except 'not-needed' for notifications)
-  return props.locationPermission !== 'granted' || (props.notificationPermission !== 'granted' && props.notificationPermission !== 'not-needed');
+  return !permissionsGranted.value;
 });
 
 const handleRequestLocationPermission = (): void => {
   emit('request-location-permission');
+  isKeepShowingModal.value = true;
 };
 
 const handleOpenSettings = (): void => {
   emit('open-settings');
+  isKeepShowingModal.value = true;
 };
 
 const handleRequestNotificationPermission = (): void => {
   emit('request-notification-permission');
+  isKeepShowingModal.value = true;
 };
 </script>
 
@@ -152,6 +172,10 @@ const handleRequestNotificationPermission = (): void => {
 
 .permission-section {
   margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .permission-section:last-child {
@@ -176,15 +200,7 @@ const handleRequestNotificationPermission = (): void => {
 }
 
 .permission-button {
-  background: #1a1a1a;
-  color: white;
-  border: 1px solid white;
-  padding: 15px 30px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
   min-width: 200px;
 }
 
@@ -197,5 +213,9 @@ const handleRequestNotificationPermission = (): void => {
 .permission-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.done-button {
+  margin-top: 20px;
 }
 </style> 

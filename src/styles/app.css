@@ -23,34 +23,6 @@ body, html, #app {
   touch-action: none; /* Prevents default touch actions like scrolling */
 }
 
-.gps-points-button {
-  position: absolute;
-  bottom: env(safe-area-inset-bottom);
-  right: 20px;
-  background-color: transparent;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 5px;
-  font-size: 14px;
-  z-index: 10;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-  margin-bottom: env(safe-area-inset-bottom);
-  border: none;
-}
-
-.gps-points-button:hover {
-  border-bottom-color: rgba(255, 255, 255, 0.6);
-}
-
-.gps-points-button-text {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: rgb(131, 131, 131);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-}
-
 .reset-zoom-button {
   position: absolute;
   bottom: calc(70px + env(safe-area-inset-bottom));
@@ -77,39 +49,17 @@ body, html, #app {
   transform: scale(1.05);
 }
 
+.reset-zoom-icon-image {
+  padding-top: 3px;
+  width: 20px;
+  height: 20px;
+}
+
 .reset-zoom-icon {
-  font-size: 18px;
+  font-size: 23px;
   line-height: 1;
   font-weight: bold;
   font-family: 'Arial', sans-serif;
-}
-
-.export-button-main {
-  position: absolute;
-  bottom: env(safe-area-inset-bottom);
-  left: 20px;
-  background-color: transparent;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 5px;
-  font-size: 14px;
-  z-index: 10;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-  margin-bottom: env(safe-area-inset-bottom);
-  border: none;
-}
-
-.export-button-main:hover {
-  border-bottom-color: rgba(255, 255, 255, 0.6);
-}
-
-.export-button-text {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: rgb(131, 131, 131);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
 }
 
 .dev-logs-button {

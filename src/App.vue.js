@@ -74,6 +74,8 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
+import resetZoomIcon from './assets/reset-zoom.svg';
+import BaseButton from './components/BaseButton.vue';
 // State
 var showModal = ref(false);
 var showExportModal = ref(false);
@@ -114,7 +116,7 @@ var _h = useInteractions(function (deltaX, deltaY) {
     zoom(deltaY);
     redrawCanvas();
 }, function () {
-    resetView();
+    // resetView();
     redrawCanvas();
 }), handleTouchStart = _h.handleTouchStart, handleTouchMove = _h.handleTouchMove, handleTouchEnd = _h.handleTouchEnd, handleMouseDown = _h.handleMouseDown, handleMouseMove = _h.handleMouseMove, handleMouseUp = _h.handleMouseUp, handleWheel = _h.handleWheel;
 // Computed properties
@@ -272,56 +274,90 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
+/** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+// @ts-ignore
+var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })));
+var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+var __VLS_3;
+var __VLS_4;
+var __VLS_5;
+var __VLS_6 = {
+    onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             _a[_i] = arguments[_i];
         }
         var $event = _a[0];
         __VLS_ctx.isDevLogsVisible = true;
-    } }, { class: "dev-logs-button" }), { title: "Open Dev Logs" }));
+    }
+};
+__VLS_2.slots.default;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "dev-logs-icon" }));
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: function () {
+var __VLS_2;
+/** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+// @ts-ignore
+var __VLS_7 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", position: "bottom-right", title: "Click: Open GPS Points" })));
+var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", position: "bottom-right", title: "Click: Open GPS Points" })], __VLS_functionalComponentArgsRest(__VLS_7), false));
+var __VLS_10;
+var __VLS_11;
+var __VLS_12;
+var __VLS_13 = {
+    onClick: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             _a[_i] = arguments[_i];
         }
         var $event = _a[0];
         __VLS_ctx.showModal = true;
-    } }, { class: "gps-points-button" }), { title: "Click: Open GPS Points" }));
+    }
+};
+__VLS_9.slots.default;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "gps-points-button-text" }));
 (__VLS_ctx.points.length);
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleDirectExport) }, { class: "export-button-main" }), { title: "Export drawing as image" }));
+var __VLS_9;
+/** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+// @ts-ignore
+var __VLS_14 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", position: "bottom-left", title: "Export drawing as image" })));
+var __VLS_15 = __VLS_14.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", position: "bottom-left", title: "Export drawing as image" })], __VLS_functionalComponentArgsRest(__VLS_14), false));
+var __VLS_17;
+var __VLS_18;
+var __VLS_19;
+var __VLS_20 = {
+    onClick: (__VLS_ctx.handleDirectExport)
+};
+__VLS_16.slots.default;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "export-button-text" }));
-if (__VLS_ctx.scale !== 1 || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) {
+var __VLS_16;
+if (__VLS_ctx.scale !== __VLS_ctx.CANVAS_CONFIG.DEFAULT_SCALE || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.img)(__assign({ src: (__VLS_ctx.resetZoomIcon), alt: "Reset zoom" }, { class: "reset-zoom-icon-image" }));
 }
 /** @type {[typeof PermissionModal, ]} */ ;
 // @ts-ignore
-var __VLS_0 = __VLS_asFunctionalComponent(PermissionModal, new PermissionModal(__assign(__assign(__assign({ 'onRequestLocationPermission': {} }, { 'onOpenSettings': {} }), { 'onRequestNotificationPermission': {} }), { locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission), isRequesting: (__VLS_ctx.isRequestingNotificationPermission) })));
-var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onRequestLocationPermission': {} }, { 'onOpenSettings': {} }), { 'onRequestNotificationPermission': {} }), { locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission), isRequesting: (__VLS_ctx.isRequestingNotificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
-var __VLS_3;
-var __VLS_4;
-var __VLS_5;
-var __VLS_6 = {
+var __VLS_21 = __VLS_asFunctionalComponent(PermissionModal, new PermissionModal(__assign(__assign(__assign({ 'onRequestLocationPermission': {} }, { 'onOpenSettings': {} }), { 'onRequestNotificationPermission': {} }), { locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission), isRequesting: (__VLS_ctx.isRequestingNotificationPermission) })));
+var __VLS_22 = __VLS_21.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onRequestLocationPermission': {} }, { 'onOpenSettings': {} }), { 'onRequestNotificationPermission': {} }), { locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission), isRequesting: (__VLS_ctx.isRequestingNotificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_21), false));
+var __VLS_24;
+var __VLS_25;
+var __VLS_26;
+var __VLS_27 = {
     onRequestLocationPermission: (__VLS_ctx.requestLocationPermission)
 };
-var __VLS_7 = {
+var __VLS_28 = {
     onOpenSettings: (__VLS_ctx.handleOpenAppSettings)
 };
-var __VLS_8 = {
+var __VLS_29 = {
     onRequestNotificationPermission: (__VLS_ctx.requestNotificationPermission)
 };
-var __VLS_2;
+var __VLS_23;
 /** @type {[typeof GPSPointsModal, ]} */ ;
 // @ts-ignore
-var __VLS_9 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
-var __VLS_10 = __VLS_9.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_9), false));
-var __VLS_12;
-var __VLS_13;
-var __VLS_14;
-var __VLS_15 = {
+var __VLS_30 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
+var __VLS_31 = __VLS_30.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_30), false));
+var __VLS_33;
+var __VLS_34;
+var __VLS_35;
+var __VLS_36 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -331,10 +367,10 @@ var __VLS_15 = {
         __VLS_ctx.showModal = false;
     }
 };
-var __VLS_16 = {
+var __VLS_37 = {
     onToggleAnonymization: (__VLS_ctx.toggleAnonymization)
 };
-var __VLS_17 = {
+var __VLS_38 = {
     onExport: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -344,21 +380,21 @@ var __VLS_17 = {
         __VLS_ctx.showExportModal = true;
     }
 };
-var __VLS_18 = {
+var __VLS_39 = {
     onClear: (__VLS_ctx.handleClearAll)
 };
-var __VLS_19 = {
+var __VLS_40 = {
     onSettingsSave: (__VLS_ctx.handleSettingsSave)
 };
-var __VLS_11;
+var __VLS_32;
 /** @type {[typeof ExportModal, ]} */ ;
 // @ts-ignore
-var __VLS_20 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
-var __VLS_21 = __VLS_20.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_20), false));
-var __VLS_23;
-var __VLS_24;
-var __VLS_25;
-var __VLS_26 = {
+var __VLS_41 = __VLS_asFunctionalComponent(ExportModal, new ExportModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })));
+var __VLS_42 = __VLS_41.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onExportImage': {} }), { 'onExportData': {} }), { show: (__VLS_ctx.showExportModal), points: (__VLS_ctx.points) })], __VLS_functionalComponentArgsRest(__VLS_41), false));
+var __VLS_44;
+var __VLS_45;
+var __VLS_46;
+var __VLS_47 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -368,35 +404,35 @@ var __VLS_26 = {
         __VLS_ctx.showExportModal = false;
     }
 };
-var __VLS_27 = {
+var __VLS_48 = {
     onExportImage: (__VLS_ctx.handleExportImage)
 };
-var __VLS_28 = {
+var __VLS_49 = {
     onExportData: (__VLS_ctx.handleExportData)
 };
-var __VLS_22;
+var __VLS_43;
 /** @type {[typeof DevLogsModal, ]} */ ;
 // @ts-ignore
-var __VLS_29 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })));
-var __VLS_30 = __VLS_29.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_29), false));
-var __VLS_32;
-var __VLS_33;
-var __VLS_34;
-var __VLS_35 = {
+var __VLS_50 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })));
+var __VLS_51 = __VLS_50.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_50), false));
+var __VLS_53;
+var __VLS_54;
+var __VLS_55;
+var __VLS_56 = {
     onClose: (__VLS_ctx.hideDevLogs)
 };
-var __VLS_36 = {
+var __VLS_57 = {
     onClear: (__VLS_ctx.clearLogs)
 };
-var __VLS_31;
+var __VLS_52;
 /** @type {[typeof SettingsModal, ]} */ ;
 // @ts-ignore
-var __VLS_37 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })));
-var __VLS_38 = __VLS_37.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_37), false));
-var __VLS_40;
-var __VLS_41;
-var __VLS_42;
-var __VLS_43 = {
+var __VLS_58 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })));
+var __VLS_59 = __VLS_58.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_58), false));
+var __VLS_61;
+var __VLS_62;
+var __VLS_63;
+var __VLS_64 = {
     onClose: function () {
         var _a = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -406,31 +442,32 @@ var __VLS_43 = {
         __VLS_ctx.showSettingsModal = false;
     }
 };
-var __VLS_44 = {
+var __VLS_65 = {
     onSave: (__VLS_ctx.handleSettingsSave)
 };
-var __VLS_45 = {
+var __VLS_66 = {
     onOpenSettings: (__VLS_ctx.handleOpenAppSettings)
 };
-var __VLS_39;
+var __VLS_60;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
-/** @type {__VLS_StyleScopedClasses['dev-logs-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['dev-logs-icon']} */ ;
-/** @type {__VLS_StyleScopedClasses['gps-points-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['export-button-main']} */ ;
 /** @type {__VLS_StyleScopedClasses['export-button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-zoom-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['reset-zoom-icon']} */ ;
+/** @type {__VLS_StyleScopedClasses['reset-zoom-icon-image']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
+            CANVAS_CONFIG: CANVAS_CONFIG,
             GPSPointsModal: GPSPointsModal,
             ExportModal: ExportModal,
             DevLogsModal: DevLogsModal,
             PermissionModal: PermissionModal,
             SettingsModal: SettingsModal,
+            resetZoomIcon: resetZoomIcon,
+            BaseButton: BaseButton,
             showModal: showModal,
             showExportModal: showExportModal,
             showSettingsModal: showSettingsModal,

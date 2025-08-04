@@ -21,6 +21,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 import { computed, ref } from 'vue';
 import { getDistanceFromOrigin } from '../utils/coordinateUtils';
 import SettingsModal from './SettingsModal.vue';
+import BaseButton from './BaseButton.vue';
 var props = defineProps();
 var emit = defineEmits();
 // Settings modal state
@@ -234,7 +235,15 @@ if (__VLS_ctx.show) {
     }
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-left" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_3 = void 0;
+    var __VLS_4 = void 0;
+    var __VLS_5 = void 0;
+    var __VLS_6 = {
+        onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 _a[_i] = arguments[_i];
@@ -243,10 +252,32 @@ if (__VLS_ctx.show) {
             if (!(__VLS_ctx.show))
                 return;
             __VLS_ctx.$emit('export');
-        } }, { class: "export-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.handleClearAll) }, { class: "clear-button-1" }));
+        }
+    };
+    __VLS_2.slots.default;
+    var __VLS_2;
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_7 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
+    var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_7), false));
+    var __VLS_10 = void 0;
+    var __VLS_11 = void 0;
+    var __VLS_12 = void 0;
+    var __VLS_13 = {
+        onClick: (__VLS_ctx.handleClearAll)
+    };
+    __VLS_9.slots.default;
+    var __VLS_9;
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-right" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_14 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
+    var __VLS_15 = __VLS_14.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_14), false));
+    var __VLS_17 = void 0;
+    var __VLS_18 = void 0;
+    var __VLS_19 = void 0;
+    var __VLS_20 = {
+        onClick: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 _a[_i] = arguments[_i];
@@ -255,15 +286,18 @@ if (__VLS_ctx.show) {
             if (!(__VLS_ctx.show))
                 return;
             __VLS_ctx.$emit('close');
-        } }, { class: "close-button-footer" }));
+        }
+    };
+    __VLS_16.slots.default;
+    var __VLS_16;
     /** @type {[typeof SettingsModal, ]} */ ;
     // @ts-ignore
-    var __VLS_0 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })));
-    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_0), false));
-    var __VLS_3 = void 0;
-    var __VLS_4 = void 0;
-    var __VLS_5 = void 0;
-    var __VLS_6 = {
+    var __VLS_21 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })));
+    var __VLS_22 = __VLS_21.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onRequestLocation': {} }), { 'onRequestBackground': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.currentSettings), locationPermission: ('granted'), backgroundLocationPermission: ('granted'), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_21), false));
+    var __VLS_24 = void 0;
+    var __VLS_25 = void 0;
+    var __VLS_26 = void 0;
+    var __VLS_27 = {
         onClose: function () {
             var _a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -275,19 +309,19 @@ if (__VLS_ctx.show) {
             __VLS_ctx.showSettingsModal = false;
         }
     };
-    var __VLS_7 = {
+    var __VLS_28 = {
         onSave: (__VLS_ctx.handleSettingsSave)
     };
-    var __VLS_8 = {
+    var __VLS_29 = {
         onRequestLocation: (function () { })
     };
-    var __VLS_9 = {
+    var __VLS_30 = {
         onRequestBackground: (function () { })
     };
-    var __VLS_10 = {
+    var __VLS_31 = {
         onOpenSettings: (function () { })
     };
-    var __VLS_2;
+    var __VLS_23;
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
@@ -339,15 +373,13 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['accuracy']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer-left']} */ ;
-/** @type {__VLS_StyleScopedClasses['export-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['clear-button-1']} */ ;
 /** @type {__VLS_StyleScopedClasses['footer-right']} */ ;
-/** @type {__VLS_StyleScopedClasses['close-button-footer']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
             SettingsModal: SettingsModal,
+            BaseButton: BaseButton,
             showSettingsModal: showSettingsModal,
             currentSettings: currentSettings,
             handleSettingsSave: handleSettingsSave,

@@ -98,16 +98,6 @@ if (__VLS_ctx.show) {
             var $event = _a[0];
             if (!(__VLS_ctx.show))
                 return;
-            __VLS_ctx.$emit('clear');
-        } }, { class: "clear-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            if (!(__VLS_ctx.show))
-                return;
             __VLS_ctx.$emit('close');
         } }, { class: "close-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
@@ -161,7 +151,6 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['clear-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-body']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-state-section']} */ ;

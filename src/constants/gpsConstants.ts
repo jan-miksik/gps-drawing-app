@@ -21,6 +21,7 @@ export const DEFAULT_CANVAS_CONFIG = {
   PINCH_ZOOM_SENSITIVITY: 1, // Sensitivity multiplier for pinch-to-zoom (lower = slower)
   MIN_SCALE: 0.01,
   MAX_SCALE: 100,
+  DEFAULT_SCALE: 0.85, // Default scale when resetting view
 } as const;
 
 // Reactive GPS configuration
@@ -44,6 +45,7 @@ export const CANVAS_CONFIG = ref<{
   PINCH_ZOOM_SENSITIVITY: number;
   MIN_SCALE: number;
   MAX_SCALE: number;
+  DEFAULT_SCALE: number;
 }>({ ...DEFAULT_CANVAS_CONFIG });
 
 // Static file configuration (doesn't need to be reactive)
@@ -80,6 +82,7 @@ export const updateCanvasConfig = (newConfig: Partial<{
   PINCH_ZOOM_SENSITIVITY: number;
   MIN_SCALE: number;
   MAX_SCALE: number;
+  DEFAULT_SCALE: number;
 }>): void => {
   CANVAS_CONFIG.value = { ...CANVAS_CONFIG.value, ...newConfig };
 }; 

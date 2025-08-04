@@ -9,6 +9,16 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+import BaseButton from './BaseButton.vue';
 var __VLS_props = defineProps();
 var emit = defineEmits();
 var handleExportImage = function () {
@@ -73,7 +83,18 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleCancel) }, { class: "close-button-footer" }));
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_3 = void 0;
+    var __VLS_4 = void 0;
+    var __VLS_5 = void 0;
+    var __VLS_6 = {
+        onClick: (__VLS_ctx.handleCancel)
+    };
+    __VLS_2.slots.default;
+    var __VLS_2;
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
@@ -93,11 +114,11 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['button-text-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['button-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['close-button-footer']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
+            BaseButton: BaseButton,
             handleExportImage: handleExportImage,
             handleExportRelativeData: handleExportRelativeData,
             handleExportExactData: handleExportExactData,

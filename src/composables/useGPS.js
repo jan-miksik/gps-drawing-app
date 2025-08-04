@@ -17,29 +17,25 @@ export function useGPS() {
     // Note: Capacitor handles cleanup automatically when app terminates
     // No manual cleanup needed for app state listeners or GPS watchers
     var shouldAddPoint = function (points, newPoint) {
+        var accuracy = (newPoint === null || newPoint === void 0 ? void 0 : newPoint.accuracy) || 999;
+        // Check accuracy threshold for all points (including first point)
+        if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
+            return false;
+        }
         if (points.length === 0) {
-            console.log('Adding first GPS point');
             return true;
         }
         var lastPoint = points[points.length - 1];
         var distance = calculateDistance(lastPoint.lat, lastPoint.lon, newPoint.lat, newPoint.lon);
         var timeDiff = newPoint.timestamp - lastPoint.timestamp;
-        var accuracy = (newPoint === null || newPoint === void 0 ? void 0 : newPoint.accuracy) || 999;
-        // Check accuracy threshold
-        if (accuracy > GPS_CONFIG.value.ACCURACY_THRESHOLD) {
-            return false;
-        }
         // Check distance threshold
         if (distance < GPS_CONFIG.value.DISTANCE_THRESHOLD) {
-            console.log("Skipping point - too close: ".concat(distance.toFixed(1), "m (threshold: ").concat(GPS_CONFIG.value.DISTANCE_THRESHOLD, "m)"));
             return false;
         }
         // Check time interval
         if (timeDiff < GPS_CONFIG.value.MIN_TIME_INTERVAL) {
-            console.log("Skipping point - too soon: ".concat(timeDiff, "ms (threshold: ").concat(GPS_CONFIG.value.MIN_TIME_INTERVAL, "ms)"));
             return false;
         }
-        console.log("Adding GPS point - distance: ".concat(distance.toFixed(1), "m, time: ").concat(timeDiff, "ms"));
         return true;
     };
     var processNewPoint = function (newPoint) {

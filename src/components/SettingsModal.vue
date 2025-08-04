@@ -67,7 +67,7 @@
                 class="setting-input"
               />
             </div>
-            <div class="setting-description">Sensitivity for pinch-to-zoom (higher = faster)</div>
+            <div class="setting-description">higher number = faster zoom</div>
           </div>
         </div>
 
@@ -86,7 +86,7 @@
               />
               <span class="setting-unit">meters</span>
             </div>
-            <div class="setting-description">Minimum accuracy to add GPS point <br/>(lower = more accurate)</div>
+            <div class="setting-description">Minimum accuracy to add GPS point <br/>(lower number = more accurate)</div>
           </div>
 
           <div class="setting-item">
@@ -134,70 +134,16 @@
             <div class="setting-description">Number of points to average for smoothing <br/>(1 = no smoothing)</div>
           </div>
         </div>
-
-        <!-- Permissions Section - moved to bottom -->
-        <!-- <div class="settings-section">
-          <h3>Permissions</h3>
-          
-          <div class="permission-item">
-            <div class="permission-info">
-              <label class="permission-label">Location Access</label>
-              <div class="permission-status">
-                <span class="status-indicator" :class="locationStatusClass">{{ locationStatusIcon }}</span>
-                <span class="status-text">{{ locationStatusText }}</span>
-              </div>
-            </div>
-            <div class="permission-description">Required for creating GPS drawing</div>
-            <button 
-              v-if="needsLocationPermission"
-              @click="handleRequestLocation"
-              class="permission-action-button"
-            >
-              Enable Location Access
-            </button>
-          </div>
-
-          <div v-if="isNativePlatform" class="permission-item">
-            <div class="permission-info">
-              <label class="permission-label">Background Location Access</label>
-              <div class="permission-status">
-                <span class="status-indicator" :class="backgroundStatusClass">{{ backgroundStatusIcon }}</span>
-                <span class="status-text">{{ backgroundStatusText }}</span>
-              </div>
-            </div>
-            <div class="permission-description">Required for continuous GPS drawing when app is minimized or phone is locked</div>
-            <button 
-              v-if="needsBackgroundLocationPermission"
-              @click="handleRequestBackground"
-              class="permission-action-button"
-            >
-              Enable Background Access
-            </button>
-          </div>
-
-          <div v-if="showSettingsButton" class="permission-item">
-            <div class="permission-info">
-              <label class="permission-label">Manual Settings</label>
-            </div>
-            <div class="permission-description">Open device settings to manage permissions manually</div>
-            <button 
-              @click="handleOpenSettings"
-              class="permission-action-button secondary"
-            >
-              Open Device Settings
-            </button>
-          </div>
-        </div> -->
       </div>
       
       <div class="modal-footer">
-        <button @click="handleReset" class="reset-button" :disabled="!hasChangesFromDefaults">
+        <BaseButton @click="handleReset" variant="primary" size="medium" :disabled="!hasChangesFromDefaults">
           Reset to Defaults
-        </button>
+        </BaseButton>
         <div class="footer-right">
-          <button @click="handleSave" class="save-button" :disabled="!hasChanges">
+          <BaseButton @click="handleSave" variant="primary" size="medium" :disabled="!hasChanges">
             Save
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -207,6 +153,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { DEFAULT_GPS_CONFIG, DEFAULT_CANVAS_CONFIG } from '../constants/gpsConstants';
+import BaseButton from './BaseButton.vue';
 
 interface Settings {
   ACCURACY_THRESHOLD: number;
@@ -270,72 +217,6 @@ const hasChangesFromDefaults = computed(() => {
   return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
 });
 
-// Permission computed properties
-// const hasLocationPermission = computed(() => props.locationPermission === 'granted');
-
-// const needsLocationPermission = computed(() => !hasLocationPermission.value);
-// const needsBackgroundLocationPermission = computed(() => 
-//   hasLocationPermission.value && 
-//   props.isNativePlatform && 
-//   props.backgroundLocationPermission !== 'granted'
-// );
-
-// const showSettingsButton = computed(() => 
-//   props.locationPermission === 'denied' || props.backgroundLocationPermission === 'denied'
-// );
-
-// // Permission status computed properties
-// const locationStatusClass = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return 'status-granted';
-//     case 'denied': return 'status-denied';
-//     default: return 'status-pending';
-//   }
-// });
-
-// const backgroundStatusClass = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return 'status-granted';
-//     case 'denied': return 'status-denied';
-//     case 'not-needed': return 'status-granted';
-//     default: return 'status-pending';
-//   }
-// });
-
-// const locationStatusIcon = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return '✓';
-//     case 'denied': return '✗';
-//     default: return '?';
-//   }
-// });
-
-// const backgroundStatusIcon = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return '✓';
-//     case 'denied': return '✗';
-//     case 'not-needed': return '✓';
-//     default: return '?';
-//   }
-// });
-
-// const locationStatusText = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return 'Granted';
-//     case 'denied': return 'Denied';
-//     default: return 'Not set';
-//   }
-// });
-
-// const backgroundStatusText = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return 'Granted';
-//     case 'denied': return 'Denied';
-//     case 'not-needed': return 'Not needed';
-//     default: return 'Not set';
-//   }
-// });
-
 const handleReset = (): void => {
   localSettings.value = { ...defaultSettings };
   // Also emit the reset to parent so it can update the actual configs
@@ -348,18 +229,6 @@ const handleSave = (): void => {
   alert('Settings saved successfully!');
   emit('close');
 };
-
-// const handleRequestLocation = (): void => {
-//   emit('request-location');
-// };
-
-// const handleRequestBackground = (): void => {
-//   emit('request-background');
-// };
-
-// const handleOpenSettings = (): void => {
-//   emit('open-settings');
-// };
 </script>
 
 <style scoped>

@@ -6,7 +6,7 @@ export function useCanvas() {
     var canvasEl = ref(null);
     var context = ref(null);
     // Viewport state
-    var scale = ref(1);
+    var scale = ref(CANVAS_CONFIG.value.DEFAULT_SCALE);
     var viewOffsetX = ref(0);
     var viewOffsetY = ref(0);
     // Computed properties
@@ -44,7 +44,7 @@ export function useCanvas() {
         // Apply transforms
         ctx.scale(dpr, dpr);
         ctx.translate(logicalWidth / 2, logicalHeight / 2); // Move origin to center of canvas
-        ctx.scale(scale.value, scale.value); // Apply zoom centered on canvas origin
+        // ctx.scale(scale.value, scale.value);                  // Apply zoom centered on canvas origin
         ctx.translate(viewOffsetX.value, viewOffsetY.value); // Then apply panning in logical space
         ctx.translate(-logicalWidth / 2, -logicalHeight / 2); // Move origin back
         // Drawing logic
@@ -115,7 +115,7 @@ export function useCanvas() {
         viewOffsetY.value += (deltaY * panSpeed) / dpr;
     };
     var resetView = function () {
-        scale.value = 1;
+        scale.value = CANVAS_CONFIG.value.DEFAULT_SCALE;
         viewOffsetX.value = 0;
         viewOffsetY.value = 0;
     };

@@ -9,7 +9,7 @@ export function useCanvas() {
   const context = ref<CanvasRenderingContext2D | null>(null);
   
   // Viewport state
-  const scale = ref(1);
+  const scale = ref(CANVAS_CONFIG.value.DEFAULT_SCALE);
   const viewOffsetX = ref(0);
   const viewOffsetY = ref(0);
   
@@ -57,7 +57,7 @@ export function useCanvas() {
     // Apply transforms
     ctx.scale(dpr, dpr);
     ctx.translate(logicalWidth / 2, logicalHeight / 2);      // Move origin to center of canvas
-    ctx.scale(scale.value, scale.value);                    // Apply zoom centered on canvas origin
+    // ctx.scale(scale.value, scale.value);                  // Apply zoom centered on canvas origin
     ctx.translate(viewOffsetX.value, viewOffsetY.value);    // Then apply panning in logical space
     ctx.translate(-logicalWidth / 2, -logicalHeight / 2);   // Move origin back
 
@@ -147,7 +147,7 @@ export function useCanvas() {
   };
 
   const resetView = (): void => {
-    scale.value = 1;
+    scale.value = CANVAS_CONFIG.value.DEFAULT_SCALE;
     viewOffsetX.value = 0;
     viewOffsetY.value = 0;
   };
