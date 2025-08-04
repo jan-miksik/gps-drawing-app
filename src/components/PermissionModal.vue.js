@@ -25,7 +25,7 @@ var props = defineProps();
 var emit = defineEmits();
 var isKeepShowingModal = ref(false);
 var permissionsGranted = computed(function () {
-    return props.locationPermission === 'granted' || (props.notificationPermission === 'granted' || props.notificationPermission === 'not-needed');
+    return props.locationPermission === 'granted' && (props.notificationPermission === 'granted' || props.notificationPermission === 'not-needed');
 });
 var shouldShowModal = computed(function () {
     if (isKeepShowingModal.value) {

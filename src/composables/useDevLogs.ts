@@ -8,12 +8,16 @@ interface LogEntry {
   data?: any;
 }
 
+export const IS_DEV_MODE = true;
+
 export function useDevLogs() {
   const logs = ref<LogEntry[]>([]);
   const isDevLogsVisible = ref(false);
   let logIdCounter = 0;
 
   const addLog = (level: 'info' | 'warn' | 'error', message: string, data?: any): void => {
+    if (!IS_DEV_MODE) return;
+    
     const logEntry: LogEntry = {
       id: logIdCounter++,
       timestamp: Date.now(),

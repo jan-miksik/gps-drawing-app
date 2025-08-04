@@ -50,63 +50,6 @@ var hasChanges = computed(function () {
 var hasChangesFromDefaults = computed(function () {
     return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
 });
-// Permission computed properties
-// const hasLocationPermission = computed(() => props.locationPermission === 'granted');
-// const needsLocationPermission = computed(() => !hasLocationPermission.value);
-// const needsBackgroundLocationPermission = computed(() => 
-//   hasLocationPermission.value && 
-//   props.isNativePlatform && 
-//   props.backgroundLocationPermission !== 'granted'
-// );
-// const showSettingsButton = computed(() => 
-//   props.locationPermission === 'denied' || props.backgroundLocationPermission === 'denied'
-// );
-// // Permission status computed properties
-// const locationStatusClass = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return 'status-granted';
-//     case 'denied': return 'status-denied';
-//     default: return 'status-pending';
-//   }
-// });
-// const backgroundStatusClass = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return 'status-granted';
-//     case 'denied': return 'status-denied';
-//     case 'not-needed': return 'status-granted';
-//     default: return 'status-pending';
-//   }
-// });
-// const locationStatusIcon = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return '✓';
-//     case 'denied': return '✗';
-//     default: return '?';
-//   }
-// });
-// const backgroundStatusIcon = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return '✓';
-//     case 'denied': return '✗';
-//     case 'not-needed': return '✓';
-//     default: return '?';
-//   }
-// });
-// const locationStatusText = computed(() => {
-//   switch (props.locationPermission) {
-//     case 'granted': return 'Granted';
-//     case 'denied': return 'Denied';
-//     default: return 'Not set';
-//   }
-// });
-// const backgroundStatusText = computed(() => {
-//   switch (props.backgroundLocationPermission) {
-//     case 'granted': return 'Granted';
-//     case 'denied': return 'Denied';
-//     case 'not-needed': return 'Not needed';
-//     default: return 'Not set';
-//   }
-// });
 var handleReset = function () {
     localSettings.value = __assign({}, defaultSettings);
     // Also emit the reset to parent so it can update the actual configs
@@ -118,15 +61,6 @@ var handleSave = function () {
     alert('Settings saved successfully!');
     emit('close');
 };
-// const handleRequestLocation = (): void => {
-//   emit('request-location');
-// };
-// const handleRequestBackground = (): void => {
-//   emit('request-background');
-// };
-// const handleOpenSettings = (): void => {
-//   emit('open-settings');
-// };
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_withDefaultsArg = (function (t) { return t; })({
     isNativePlatform: true

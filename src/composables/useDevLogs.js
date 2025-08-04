@@ -1,9 +1,12 @@
 import { ref } from 'vue';
+export var IS_DEV_MODE = true;
 export function useDevLogs() {
     var logs = ref([]);
     var isDevLogsVisible = ref(false);
     var logIdCounter = 0;
     var addLog = function (level, message, data) {
+        if (!IS_DEV_MODE)
+            return;
         var logEntry = {
             id: logIdCounter++,
             timestamp: Date.now(),

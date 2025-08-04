@@ -1,8 +1,6 @@
 import { ref, computed } from 'vue';
 import { GPS_CONFIG } from '../constants/gpsConstants';
 import { calculateDistance, smoothGPSPoints } from '../utils/gpsUtils';
-import { useDevLogs } from './useDevLogs';
-var logInfo = useDevLogs().logInfo;
 export function useGPS() {
     // GPS state
     var currentLat = ref(0);
@@ -39,7 +37,6 @@ export function useGPS() {
         return true;
     };
     var processNewPoint = function (newPoint) {
-        logInfo('processNewPoint', newPoint);
         return smoothGPSPoints(newPoint);
     };
     return {

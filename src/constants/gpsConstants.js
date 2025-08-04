@@ -30,7 +30,7 @@ export var DEFAULT_CANVAS_CONFIG = {
     PINCH_ZOOM_SENSITIVITY: 1, // Sensitivity multiplier for pinch-to-zoom (lower = slower)
     MIN_SCALE: 0.01,
     MAX_SCALE: 100,
-    DEFAULT_SCALE: 0.85, // Default scale when resetting view
+    DEFAULT_SCALE: 0.75, // Default scale when resetting view
 };
 // Reactive GPS configuration
 export var GPS_CONFIG = ref(__assign({}, DEFAULT_GPS_CONFIG));

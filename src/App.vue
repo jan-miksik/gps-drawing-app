@@ -15,6 +15,7 @@
   
     <!-- Buttons -->
     <BaseButton 
+      v-if="IS_DEV_MODE" 
       @click="isDevLogsVisible = true" 
       variant="circular"
       position="top-left"
@@ -116,7 +117,7 @@ import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
-import { useDevLogs } from './composables/useDevLogs';
+import { useDevLogs, IS_DEV_MODE } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
 import { useNotificationPermission } from './composables/useNotificationPermission';
 import { useExportOperations } from './composables/useExportOperations';

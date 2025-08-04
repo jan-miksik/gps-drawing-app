@@ -57,7 +57,7 @@ export function useCanvas() {
     // Apply transforms
     ctx.scale(dpr, dpr);
     ctx.translate(logicalWidth / 2, logicalHeight / 2);      // Move origin to center of canvas
-    // ctx.scale(scale.value, scale.value);                  // Apply zoom centered on canvas origin
+    ctx.scale(scale.value, scale.value);                    // Apply zoom centered on canvas origin
     ctx.translate(viewOffsetX.value, viewOffsetY.value);    // Then apply panning in logical space
     ctx.translate(-logicalWidth / 2, -logicalHeight / 2);   // Move origin back
 

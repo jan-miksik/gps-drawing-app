@@ -12,7 +12,7 @@
 import { computed } from 'vue'
 
 interface Props {
-  variant?: 'primary' | 'secondary' | 'circular' | 'text' | 'export'
+  variant?: 'primary' | 'circular'
   size?: 'small' | 'medium' | 'large'
   disabled?: boolean
   title?: string
@@ -78,16 +78,7 @@ const buttonClasses = computed(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Secondary variant (based on export-button-main) */
-.base-button--secondary {
-  border-radius: 5px;
-  font-size: 14px;
-  padding: 6px 10px;
-}
 
-.base-button--secondary:hover:not(.base-button--disabled) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-}
 
 /* Circular variant (based on reset-zoom-button and dev-logs-button) */
 .base-button--circular {
@@ -103,34 +94,6 @@ const buttonClasses = computed(() => {
   background-color: rgba(0, 0, 0, 0.9);
   border-color: rgba(255, 255, 255, 0.6);
   transform: scale(1.05);
-}
-
-/* Text variant (minimal styling) */
-.base-button--text {
-  background: none;
-  padding: 4px 8px;
-  font-size: 14px;
-}
-
-.base-button--text:hover:not(.base-button--disabled) {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-/* Export variant (for export buttons) */
-.base-button--export {
-  background-color: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 14px;
-  min-width: 120px;
-}
-
-.base-button--export:hover:not(.base-button--disabled) {
-  background-color: rgba(0, 0, 0, 0.9);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-1px);
 }
 
 /* Size variants */
@@ -182,16 +145,16 @@ const buttonClasses = computed(() => {
 
 .base-button--bottom-left {
   position: absolute;
-  bottom: env(safe-area-inset-bottom);
+  bottom: calc(30px + env(safe-area-inset-bottom));
   left: 20px;
-  margin-bottom: env(safe-area-inset-bottom);
+  /* margin-bottom: env(safe-area-inset-bottom); */
 }
 
 .base-button--bottom-right {
   position: absolute;
-  bottom: env(safe-area-inset-bottom);
+  bottom: calc(30px + env(safe-area-inset-bottom));
   right: 20px;
-  margin-bottom: env(safe-area-inset-bottom);
+  /* margin-bottom: env(safe-area-inset-bottom); */
 }
 
 /* Disabled state */

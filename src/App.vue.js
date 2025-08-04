@@ -61,7 +61,7 @@ import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
 import { useFileOperations } from './composables/useFileOperations';
 import { useInteractions } from './composables/useInteractions';
-import { useDevLogs } from './composables/useDevLogs';
+import { useDevLogs, IS_DEV_MODE } from './composables/useDevLogs';
 import { usePermissions } from './composables/usePermissions';
 import { useNotificationPermission } from './composables/useNotificationPermission';
 import { useExportOperations } from './composables/useExportOperations';
@@ -95,19 +95,14 @@ var settings = computed(function () { return ({
     MAX_SCALE: CANVAS_CONFIG.value.MAX_SCALE,
     LINE_WIDTH: CANVAS_CONFIG.value.LINE_WIDTH,
 }); });
-// Composables
-var _a = useGPS(), currentAccuracy = _a.currentAccuracy, shouldAddPoint = _a.shouldAddPoint;
-// Permission computed properties
+var _a = useGPS(), currentAccuracy = _a.currentAccuracy, shouldAddPoint = _a.shouldAddPoint, processNewPoint = _a.processNewPoint;
 var initBackgroundGPS = useBackgroundGPS().initBackgroundGPS;
 var _b = useCanvas(), canvasEl = _b.canvasEl, setupCanvas = _b.setupCanvas, drawPath = _b.drawPath, calculateBounds = _b.calculateBounds, pan = _b.pan, zoom = _b.zoom, resetView = _b.resetView, scale = _b.scale, viewOffsetX = _b.viewOffsetX, viewOffsetY = _b.viewOffsetY;
 var _c = useFileOperations(), loadPointsFromFile = _c.loadPointsFromFile, savePointsToFile = _c.savePointsToFile, clearAllData = _c.clearAllData;
 var _d = useDevLogs(), logs = _d.logs, isDevLogsVisible = _d.isDevLogsVisible, logInfo = _d.logInfo, logError = _d.logError, clearLogs = _d.clearLogs, hideDevLogs = _d.hideDevLogs, formatLogTime = _d.formatLogTime;
 // Export operations
 var _e = useExportOperations(canvasEl, points, isAnonymized, anonymizationOrigin, showExportModal), handleDirectExport = _e.handleDirectExport, handleExportImage = _e.handleExportImage, handleExportData = _e.handleExportData;
-var _f = usePermissions(), locationPermission = _f.locationPermission, checkHasLocationPermission = _f.checkHasLocationPermission, requestLocationPermission = _f.requestLocationPermission, 
-// Permission handlers
-handleOpenAppSettings = _f.handleOpenAppSettings;
-// Notification permission handling
+var _f = usePermissions(), locationPermission = _f.locationPermission, checkHasLocationPermission = _f.checkHasLocationPermission, requestLocationPermission = _f.requestLocationPermission, handleOpenAppSettings = _f.handleOpenAppSettings;
 var _g = useNotificationPermission(), notificationPermission = _g.notificationPermission, checkNotificationPermission = _g.checkNotificationPermission, requestNotificationPermission = _g.requestNotificationPermission, isRequestingNotificationPermission = _g.isRequestingNotificationPermission;
 var _h = useInteractions(function (deltaX, deltaY) {
     pan(deltaX, deltaY);
@@ -116,7 +111,6 @@ var _h = useInteractions(function (deltaX, deltaY) {
     zoom(deltaY);
     redrawCanvas();
 }, function () {
-    // resetView();
     redrawCanvas();
 }), handleTouchStart = _h.handleTouchStart, handleTouchMove = _h.handleTouchMove, handleTouchEnd = _h.handleTouchEnd, handleMouseDown = _h.handleMouseDown, handleMouseMove = _h.handleMouseMove, handleMouseUp = _h.handleMouseUp, handleWheel = _h.handleWheel;
 // Computed properties
@@ -133,22 +127,22 @@ var updateCurrentAccuracy = function (accuracy) {
     currentAccuracy.value = accuracy;
 };
 var addBackgroundGPSPoint = function (newPoint) { return __awaiter(void 0, void 0, void 0, function () {
+    var processedPoint;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                logInfo('Background GPS point received', newPoint);
                 if (!shouldAddPoint(points.value, newPoint)) {
                     return [2 /*return*/];
                 }
-                // const processedPoint = newPoint; // turned off for now
-                logInfo('Background GPS point to add', newPoint);
-                points.value.push(newPoint);
+                processedPoint = processNewPoint(newPoint);
+                logInfo('Background GPS point to add', processedPoint);
+                points.value.push(processedPoint);
                 // Set anonymization origin if this is the first point
                 if (points.value.length === 1 && isAnonymized.value && !anonymizationOrigin.value) {
                     anonymizationOrigin.value = createAnonymizationOrigin(points.value);
                 }
                 // Save to file (this will handle both foreground and background points)
-                return [4 /*yield*/, savePointsToFile([newPoint], true)];
+                return [4 /*yield*/, savePointsToFile([processedPoint], true)];
             case 1:
                 // Save to file (this will handle both foreground and background points)
                 _a.sent(); // true = append mode
@@ -274,26 +268,30 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.d
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.canvas)(__assign(__assign(__assign(__assign(__assign(__assign(__assign(__assign({ onTouchstart: (__VLS_ctx.handleTouchStart) }, { onTouchmove: (__VLS_ctx.handleTouchMove) }), { onTouchend: (__VLS_ctx.handleTouchEnd) }), { onMousedown: (__VLS_ctx.handleMouseDown) }), { onMousemove: (__VLS_ctx.handleMouseMove) }), { onMouseup: (__VLS_ctx.handleMouseUp) }), { onWheel: (__VLS_ctx.handleWheel) }), { ref: "canvasEl" }), { class: "canvas" }));
 /** @type {typeof __VLS_ctx.canvasEl} */ ;
-/** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
-// @ts-ignore
-var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })));
-var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
-var __VLS_3;
-var __VLS_4;
-var __VLS_5;
-var __VLS_6 = {
-    onClick: function () {
-        var _a = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            _a[_i] = arguments[_i];
+if (__VLS_ctx.IS_DEV_MODE) {
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "circular", position: "top-left", title: "Open Dev Logs" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_3 = void 0;
+    var __VLS_4 = void 0;
+    var __VLS_5 = void 0;
+    var __VLS_6 = {
+        onClick: function () {
+            var _a = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _a[_i] = arguments[_i];
+            }
+            var $event = _a[0];
+            if (!(__VLS_ctx.IS_DEV_MODE))
+                return;
+            __VLS_ctx.isDevLogsVisible = true;
         }
-        var $event = _a[0];
-        __VLS_ctx.isDevLogsVisible = true;
-    }
-};
-__VLS_2.slots.default;
-__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "dev-logs-icon" }));
-var __VLS_2;
+    };
+    __VLS_2.slots.default;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "dev-logs-icon" }));
+    var __VLS_2;
+}
 /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
 // @ts-ignore
 var __VLS_7 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", position: "bottom-right", title: "Click: Open GPS Points" })));
@@ -460,6 +458,7 @@ var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
+            IS_DEV_MODE: IS_DEV_MODE,
             CANVAS_CONFIG: CANVAS_CONFIG,
             GPSPointsModal: GPSPointsModal,
             ExportModal: ExportModal,
