@@ -67,11 +67,11 @@ const buttonClasses = computed(() => {
 /* Primary variant (based on gps-points-button) */
 .base-button--primary {
   background-image: radial-gradient(#535353 0.7px, transparent 0.7px);
-  background-size: 3px 3px;
+  background-size: 1.5px 1.5px;
   border-radius: 5px;
   font-size: 14px;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px dotted rgba(255, 255, 255, 0.3);
 }
 
 .base-button--primary:hover:not(.base-button--disabled) {
