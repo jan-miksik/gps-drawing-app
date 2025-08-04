@@ -225,7 +225,7 @@ const handleClearAll = (): void => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: max(env(safe-area-inset-top), 20px);
+  padding-top: max(env(safe-area-inset-top), 50px);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -289,10 +289,31 @@ const handleClearAll = (): void => {
 }
 
 .toggle-checkbox {
+  appearance: none;
   width: 16px;
   height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background-color: transparent;
+  border-radius: 3px;
   cursor: pointer;
-  accent-color: rgba(255, 255, 255, 0.7);
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.toggle-checkbox:checked {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.toggle-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 0px;
+  left: 3px;
+  width: 4px;
+  height: 8px;
+  border: solid black;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .toggle-text {

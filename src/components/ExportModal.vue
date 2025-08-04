@@ -9,26 +9,26 @@
       <div class="modal-body">
         <div class="export-section">
 
-          <button @click="handleExportImage" class="export-option-button">
+          <BaseButton @click="handleExportImage" class="export-option-button">
             <!-- <span class="button-icon">📐</span> -->
             <div class="button-text-title">Image</div>
             <div class="button-text">GPS Drawing as SVG image</div>
-          </button>
+          </BaseButton>
         </div>
 
         <div class="export-section">
-            <button @click="handleExportRelativeData" class="export-option-button">
+            <BaseButton @click="handleExportRelativeData" class="export-option-button">
               <!-- <span class="button-icon">🔒</span> -->
               <div class="button-text-title">JSON - relative</div>
               <div class="button-text">Relative Coordinates (Anonymized)</div>
-            </button>
+            </BaseButton>
           </div>
         <div class="export-section">
-          <button @click="handleExportExactData" class="export-option-button">
+          <BaseButton @click="handleExportExactData" class="export-option-button">
             <!-- <span class="button-icon">📍</span> -->
             <div class="button-text-title">JSON - exact</div>
             <div class="button-text">Exact Coordinates (Latitude/Longitude)</div>
-          </button>
+          </BaseButton>
         </div>
       </div>
       
@@ -92,7 +92,7 @@ const handleCancel = (): void => {
 
 .modal-content {
   background: rgba(0, 0, 0, 0.9);
-  border-radius: 12px;
+  border-radius: 7px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   width: 90%;
   max-width: 500px;
@@ -100,6 +100,7 @@ const handleCancel = (): void => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid rgb(83, 83, 83);
 }
 
 .modal-header {
@@ -159,15 +160,9 @@ const handleCancel = (): void => {
   flex-direction: column;
   align-items: flex-start;
   gap: 5px;
-  background-color: rgba(255, 255, 255, 0.2);
   color: white;
   padding: 15px 20px;
-  border-radius: 3px;
   font-size: 14px;
-  backdrop-filter: blur(10px);
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
   width: 100%;
   text-align: left;
 }
