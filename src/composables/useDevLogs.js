@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-export var IS_DEV_MODE = true;
+export var IS_DEV_MODE = false;
 export function useDevLogs() {
     var logs = ref([]);
     var isDevLogsVisible = ref(false);

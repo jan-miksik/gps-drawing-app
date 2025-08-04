@@ -77,7 +77,7 @@ import { clearSmoothingBuffer } from './utils/gpsUtils';
 import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 // State
-var showModal = ref(false);
+var showGPSPointsModal = ref(false);
 var showExportModal = ref(false);
 var showSettingsModal = ref(false);
 var points = ref([]);
@@ -100,7 +100,6 @@ var initBackgroundGPS = useBackgroundGPS().initBackgroundGPS;
 var _b = useCanvas(), canvasEl = _b.canvasEl, setupCanvas = _b.setupCanvas, drawPath = _b.drawPath, calculateBounds = _b.calculateBounds, pan = _b.pan, zoom = _b.zoom, resetView = _b.resetView, scale = _b.scale, viewOffsetX = _b.viewOffsetX, viewOffsetY = _b.viewOffsetY;
 var _c = useFileOperations(), loadPointsFromFile = _c.loadPointsFromFile, savePointsToFile = _c.savePointsToFile, clearAllData = _c.clearAllData;
 var _d = useDevLogs(), logs = _d.logs, isDevLogsVisible = _d.isDevLogsVisible, logInfo = _d.logInfo, logError = _d.logError, clearLogs = _d.clearLogs, hideDevLogs = _d.hideDevLogs, formatLogTime = _d.formatLogTime;
-// Export operations
 var _e = useExportOperations(canvasEl, points, isAnonymized, anonymizationOrigin, showExportModal), handleDirectExport = _e.handleDirectExport, handleExportImage = _e.handleExportImage, handleExportData = _e.handleExportData;
 var _f = usePermissions(), locationPermission = _f.locationPermission, checkHasLocationPermission = _f.checkHasLocationPermission, requestLocationPermission = _f.requestLocationPermission, handleOpenAppSettings = _f.handleOpenAppSettings;
 var _g = useNotificationPermission(), notificationPermission = _g.notificationPermission, checkNotificationPermission = _g.checkNotificationPermission, requestNotificationPermission = _g.requestNotificationPermission, isRequestingNotificationPermission = _g.isRequestingNotificationPermission;
@@ -126,7 +125,8 @@ var displayBounds = computed(function () {
 var updateCurrentAccuracy = function (accuracy) {
     currentAccuracy.value = accuracy;
 };
-var addBackgroundGPSPoint = function (newPoint) { return __awaiter(void 0, void 0, void 0, function () {
+// Works for both foreground and background GPS points
+var addGPSPoint = function (newPoint) { return __awaiter(void 0, void 0, void 0, function () {
     var processedPoint;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -178,7 +178,7 @@ var handleClearAll = function () { return __awaiter(void 0, void 0, void 0, func
             case 1:
                 _a.sent();
                 redrawCanvas();
-                showModal.value = false;
+                showGPSPointsModal.value = false;
                 logInfo('All GPS points cleared', { clearedCount: pointCount });
                 return [2 /*return*/];
         }
@@ -235,7 +235,7 @@ watch([locationPermission, notificationPermission], function (_a) { return __awa
                 _c.label = 1;
             case 1:
                 _c.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy)];
+                return [4 /*yield*/, initBackgroundGPS(addGPSPoint, updateCurrentAccuracy)];
             case 2:
                 _c.sent();
                 logInfo('Background GPS tracking started for long-term drawing');
@@ -306,7 +306,7 @@ var __VLS_13 = {
             _a[_i] = arguments[_i];
         }
         var $event = _a[0];
-        __VLS_ctx.showModal = true;
+        __VLS_ctx.showGPSPointsModal = true;
     }
 };
 __VLS_9.slots.default;
@@ -350,8 +350,8 @@ var __VLS_29 = {
 var __VLS_23;
 /** @type {[typeof GPSPointsModal, ]} */ ;
 // @ts-ignore
-var __VLS_30 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
-var __VLS_31 = __VLS_30.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_30), false));
+var __VLS_30 = __VLS_asFunctionalComponent(GPSPointsModal, new GPSPointsModal(__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showGPSPointsModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })));
+var __VLS_31 = __VLS_30.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onToggleAnonymization': {} }), { 'onExport': {} }), { 'onClear': {} }), { 'onSettingsSave': {} }), { show: (__VLS_ctx.showGPSPointsModal), points: (__VLS_ctx.points), displayPoints: (__VLS_ctx.displayPoints), isAnonymized: (__VLS_ctx.isAnonymized), anonymizationOrigin: (__VLS_ctx.anonymizationOrigin), currentAccuracy: (__VLS_ctx.currentAccuracy), settings: (__VLS_ctx.settings) })], __VLS_functionalComponentArgsRest(__VLS_30), false));
 var __VLS_33;
 var __VLS_34;
 var __VLS_35;
@@ -362,7 +362,7 @@ var __VLS_36 = {
             _a[_i] = arguments[_i];
         }
         var $event = _a[0];
-        __VLS_ctx.showModal = false;
+        __VLS_ctx.showGPSPointsModal = false;
     }
 };
 var __VLS_37 = {
@@ -467,7 +467,7 @@ var __VLS_self = (await import('vue')).defineComponent({
             SettingsModal: SettingsModal,
             resetZoomIcon: resetZoomIcon,
             BaseButton: BaseButton,
-            showModal: showModal,
+            showGPSPointsModal: showGPSPointsModal,
             showExportModal: showExportModal,
             showSettingsModal: showSettingsModal,
             points: points,

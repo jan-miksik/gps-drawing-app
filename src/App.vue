@@ -25,7 +25,7 @@
     </BaseButton>
     
     <BaseButton 
-      @click="showModal = true" 
+      @click="showGPSPointsModal = true" 
       variant="primary"
       position="bottom-right"
       title="Click: Open GPS Points"
@@ -64,14 +64,14 @@
     />
 
     <GPSPointsModal
-      :show="showModal"
+      :show="showGPSPointsModal"
       :points="points"
       :display-points="displayPoints"
       :is-anonymized="isAnonymized"
       :anonymization-origin="anonymizationOrigin"
       :current-accuracy="currentAccuracy"
       :settings="settings"
-      @close="showModal = false"
+      @close="showGPSPointsModal = false"
       @toggle-anonymization="toggleAnonymization"
       @export="showExportModal = true"
       @clear="handleClearAll"
@@ -134,7 +134,7 @@ import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 
 // State
-const showModal = ref(false);
+const showGPSPointsModal = ref(false);
 const showExportModal = ref(false);
 const showSettingsModal = ref(false);
 const points = ref<Point[]>([]);
@@ -217,7 +217,8 @@ const updateCurrentAccuracy = (accuracy: number): void => {
   currentAccuracy.value = accuracy;
 };
 
-const addBackgroundGPSPoint = async (newPoint: Point): Promise<void> => {  
+// Works for both foreground and background GPS points
+const addGPSPoint = async (newPoint: Point): Promise<void> => {  
   if (!shouldAddPoint(points.value, newPoint)) {
     return;
   }
@@ -264,7 +265,7 @@ const handleClearAll = async (): Promise<void> => {
   clearSmoothingBuffer(); // Clear smoothing buffer for new drawing
   await clearAllData();
   redrawCanvas();
-  showModal.value = false;
+  showGPSPointsModal.value = false;
   logInfo('All GPS points cleared', { clearedCount: pointCount });
 };
 
@@ -308,7 +309,7 @@ watch([locationPermission, notificationPermission], async ([locationPermission, 
 
   if (locationPermission === 'granted') {
     try {
-      await initBackgroundGPS(addBackgroundGPSPoint, updateCurrentAccuracy);
+      await initBackgroundGPS(addGPSPoint, updateCurrentAccuracy);
       logInfo('Background GPS tracking started for long-term drawing');
     } catch (error) {
       logError('Failed to start GPS tracking', error);
@@ -327,4 +328,84 @@ onUnmounted(() => {
 });
 </script>
 
-<style src="./styles/app.css"></style>
+<style>
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* Prevents default touch actions like scrolling */
+}
+
+.reset-zoom-button {
+  position: absolute;
+  bottom: calc(100px + env(safe-area-inset-bottom));
+  right: 30px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 12px;
+  z-index: 10;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  margin-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reset-zoom-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.reset-zoom-icon-image {
+  padding-top: 3px;
+  width: 22px;
+  height: 22px;
+}
+
+.reset-zoom-icon {
+  font-size: 23px;
+  line-height: 1;
+  font-weight: bold;
+  font-family: 'Arial', sans-serif;
+}
+
+.dev-logs-button {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 20px);
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 16px;
+  z-index: 10;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dev-logs-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.dev-logs-icon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: bold;
+  filter:grayscale(1);
+}
+
+</style>
