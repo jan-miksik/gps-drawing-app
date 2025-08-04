@@ -8,7 +8,7 @@ interface LogEntry {
   data?: any;
 }
 
-export const IS_DEV_MODE = true;
+export const IS_DEV_MODE = false;
 
 export function useDevLogs() {
   const logs = ref<LogEntry[]>([]);

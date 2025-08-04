@@ -83,7 +83,7 @@
       <div class="modal-footer">
         <div class="footer-left">
           <BaseButton @click="$emit('export')" variant="primary" size="medium">
-            Export
+            Export+
           </BaseButton>
           <BaseButton @click="handleClearAll" variant="primary" size="medium">
             Clear
@@ -91,7 +91,7 @@
         </div>
         <div class="footer-right">
           <BaseButton @click="$emit('close')" variant="primary" size="medium">
-            Close
+            Map
           </BaseButton>
         </div>
       </div>
@@ -501,6 +501,8 @@ const handleClearAll = (): void => {
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
+  position: relative;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
 }
 
 .footer-left {

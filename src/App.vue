@@ -160,8 +160,6 @@ const { initBackgroundGPS } = useBackgroundGPS();
 const { canvasEl, setupCanvas, drawPath, calculateBounds, pan, zoom, resetView, scale, viewOffsetX, viewOffsetY } = useCanvas();
 const { loadPointsFromFile, savePointsToFile, clearAllData } = useFileOperations();
 const { logs, isDevLogsVisible, logInfo, logError, clearLogs, hideDevLogs, formatLogTime } = useDevLogs();
-
-// Export operations
 const { handleDirectExport, handleExportImage, handleExportData } = useExportOperations(
   canvasEl,
   points,
@@ -169,14 +167,12 @@ const { handleDirectExport, handleExportImage, handleExportData } = useExportOpe
   anonymizationOrigin,
   showExportModal
 );
-
 const {
   locationPermission,
   checkHasLocationPermission,
   requestLocationPermission,
   handleOpenAppSettings
 } = usePermissions();
-
 const {
   notificationPermission,
   checkNotificationPermission,
