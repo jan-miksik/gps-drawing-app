@@ -44,12 +44,12 @@
 
     <!-- Reset Zoom Button - appears when zoomed or pan the map-->
     <button 
-      v-if="scale !== CANVAS_CONFIG.DEFAULT_SCALE || viewOffsetX !== 0 || viewOffsetY !== 0"
+      v-show="scale !== CANVAS_CONFIG.DEFAULT_SCALE || viewOffsetX !== 0 || viewOffsetY !== 0"
       @click="handleResetZoom" 
       class="reset-zoom-button"
       title="Reset zoom and center"
     >
-      <span class="reset-zoom-icon"><img :src="resetZoomIcon" alt="Reset zoom" class="reset-zoom-icon-image" /></span>
+      <span class="reset-zoom-icon"> <img src="/reset-zoom.svg" alt="Reset zoom" class="reset-zoom-icon-image" /></span>
     </button>
 
 
@@ -130,7 +130,7 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
-import resetZoomIcon from './assets/reset-zoom.svg';
+// import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 
 // State
@@ -351,7 +351,6 @@ onUnmounted(() => {
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
-  margin-bottom: env(safe-area-inset-bottom);
   display: flex;
   align-items: center;
   justify-content: center;

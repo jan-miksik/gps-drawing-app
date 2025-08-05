@@ -74,7 +74,7 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
-import resetZoomIcon from './assets/reset-zoom.svg';
+// import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 // State
 var showGPSPointsModal = ref(false);
@@ -326,11 +326,10 @@ var __VLS_20 = {
 __VLS_16.slots.default;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "export-button-text" }));
 var __VLS_16;
-if (__VLS_ctx.scale !== __VLS_ctx.CANVAS_CONFIG.DEFAULT_SCALE || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.img)(__assign({ src: (__VLS_ctx.resetZoomIcon), alt: "Reset zoom" }, { class: "reset-zoom-icon-image" }));
-}
+__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign(__assign({ onClick: (__VLS_ctx.handleResetZoom) }, { class: "reset-zoom-button" }), { title: "Reset zoom and center" }));
+__VLS_asFunctionalDirective(__VLS_directives.vShow)(null, __assign(__assign({}, __VLS_directiveBindingRestFields), { value: (__VLS_ctx.scale !== __VLS_ctx.CANVAS_CONFIG.DEFAULT_SCALE || __VLS_ctx.viewOffsetX !== 0 || __VLS_ctx.viewOffsetY !== 0) }), null, null);
+__VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "reset-zoom-icon" }));
+__VLS_asFunctionalElement(__VLS_intrinsicElements.img)(__assign({ src: "/reset-zoom.svg", alt: "Reset zoom" }, { class: "reset-zoom-icon-image" }));
 /** @type {[typeof PermissionModal, ]} */ ;
 // @ts-ignore
 var __VLS_21 = __VLS_asFunctionalComponent(PermissionModal, new PermissionModal(__assign(__assign(__assign({ 'onRequestLocationPermission': {} }, { 'onOpenSettings': {} }), { 'onRequestNotificationPermission': {} }), { locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission), isRequesting: (__VLS_ctx.isRequestingNotificationPermission) })));
@@ -465,7 +464,6 @@ var __VLS_self = (await import('vue')).defineComponent({
             DevLogsModal: DevLogsModal,
             PermissionModal: PermissionModal,
             SettingsModal: SettingsModal,
-            resetZoomIcon: resetZoomIcon,
             BaseButton: BaseButton,
             showGPSPointsModal: showGPSPointsModal,
             showExportModal: showExportModal,

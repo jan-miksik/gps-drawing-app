@@ -71,30 +71,63 @@ if (__VLS_ctx.show) {
         } }, { class: "close-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportImage) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportRelativeData) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleExportExactData) }, { class: "export-option-button" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
     /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
     // @ts-ignore
-    var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
-    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
+    var __VLS_0 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { class: "export-option-button" })));
+    var __VLS_1 = __VLS_0.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { class: "export-option-button" })], __VLS_functionalComponentArgsRest(__VLS_0), false));
     var __VLS_3 = void 0;
     var __VLS_4 = void 0;
     var __VLS_5 = void 0;
     var __VLS_6 = {
-        onClick: (__VLS_ctx.handleCancel)
+        onClick: (__VLS_ctx.handleExportImage)
     };
     __VLS_2.slots.default;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
     var __VLS_2;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_7 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { class: "export-option-button" })));
+    var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { class: "export-option-button" })], __VLS_functionalComponentArgsRest(__VLS_7), false));
+    var __VLS_10 = void 0;
+    var __VLS_11 = void 0;
+    var __VLS_12 = void 0;
+    var __VLS_13 = {
+        onClick: (__VLS_ctx.handleExportRelativeData)
+    };
+    __VLS_9.slots.default;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
+    var __VLS_9;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "export-section" }));
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_14 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { class: "export-option-button" })));
+    var __VLS_15 = __VLS_14.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { class: "export-option-button" })], __VLS_functionalComponentArgsRest(__VLS_14), false));
+    var __VLS_17 = void 0;
+    var __VLS_18 = void 0;
+    var __VLS_19 = void 0;
+    var __VLS_20 = {
+        onClick: (__VLS_ctx.handleExportExactData)
+    };
+    __VLS_16.slots.default;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text-title" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "button-text" }));
+    var __VLS_16;
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-footer" }));
+    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
+    // @ts-ignore
+    var __VLS_21 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })));
+    var __VLS_22 = __VLS_21.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium" })], __VLS_functionalComponentArgsRest(__VLS_21), false));
+    var __VLS_24 = void 0;
+    var __VLS_25 = void 0;
+    var __VLS_26 = void 0;
+    var __VLS_27 = {
+        onClick: (__VLS_ctx.handleCancel)
+    };
+    __VLS_23.slots.default;
+    var __VLS_23;
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;

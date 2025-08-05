@@ -522,8 +522,9 @@ const handleClearAll = (): void => {
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
-  position: relative;
-  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  position: absolute;
+  width: 100%;
+  bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 .footer-left {

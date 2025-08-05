@@ -83,6 +83,8 @@ var __VLS_components;
 var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['settings-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['settings-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
+/** @type {__VLS_StyleScopedClasses['toggle-checkbox']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['header-item']} */ ;
