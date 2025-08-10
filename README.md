@@ -6,14 +6,18 @@ Built with Vue 3 + Capacitor for cross-platform deployment with privacy-first, l
 
 ## Features
 
-- **GPS Tracking**: Continuous GPS tracking with background support
-- **Real-time Drawing**: Visual representation of movement paths
-- **Privacy Controls**: Optional coordinate anonymization
+- **GPS Drawing**: Continuous real-time GPS drawing with background support if app is minimized or mobile locked
 - **Export Options**: 
   - **SVG Export**: Save the current drawing as a scalable SVG file
-  - **Data Export**: Export GPS coordinates with two options:
-    - **Relative Coordinates**: Anonymized version showing x,y coordinates relative to starting point
-    - **Exact Coordinates**: Real GPS coordinates (latitude/longitude)
+  - **Relative Coordinates**: coordinates relative to starting point
+  - **Exact Coordinates**: Real GPS coordinates (latitude/longitude)
+
+## app preview
+
+| Home Screen | GPS Points View | Settings |
+|-------------|-----------------|----------|
+| ![GPS Pen Home Screen](resources/home.jpg) | ![GPS Points Interface](resources/points.jpg) | ![App Settings](resources/settings.jpg) |
+
 
 ## License
 
