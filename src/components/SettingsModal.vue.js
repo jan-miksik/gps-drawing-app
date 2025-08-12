@@ -42,23 +42,18 @@ var localSettings = ref(__assign({}, props.settings));
 watch(function () { return props.settings; }, function (newSettings) {
     localSettings.value = __assign({}, newSettings);
 }, { deep: true });
-// Check if settings have changed from original
-var hasChanges = computed(function () {
-    return JSON.stringify(localSettings.value) !== JSON.stringify(props.settings);
-});
 // Check if any value differs from defaults
 var hasChangesFromDefaults = computed(function () {
     return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
 });
 var handleReset = function () {
     localSettings.value = __assign({}, defaultSettings);
-    // Also emit the reset to parent so it can update the actual configs
-    emit('save', defaultSettings);
-    alert('Settings reset to defaults successfully!');
+    // Emit reset event to parent
+    emit('reset');
 };
-var handleSave = function () {
+var handleCloseModal = function () {
     emit('save', __assign({}, localSettings.value));
-    alert('Settings saved successfully!');
+    // await handleSettingsSave(settings.value);
     emit('close');
 };
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
@@ -85,35 +80,14 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['reset-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['cancel-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['cancel-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['save-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['save-button']} */ ;
-/** @type {__VLS_StyleScopedClasses['save-button']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 if (__VLS_ctx.show) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            if (!(__VLS_ctx.show))
-                return;
-            __VLS_ctx.$emit('close');
-        } }, { class: "modal-overlay" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: (__VLS_ctx.handleCloseModal) }, { class: "modal-overlay" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ onClick: function () { } }, { class: "modal-content fullscreen" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-header" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h2, __VLS_intrinsicElements.h2)({});
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            if (!(__VLS_ctx.show))
-                return;
-            __VLS_ctx.$emit('close');
-        } }, { class: "close-button" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: (__VLS_ctx.handleCloseModal) }, { class: "close-button" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "modal-body" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "settings-section" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
@@ -187,19 +161,6 @@ if (__VLS_ctx.show) {
     };
     __VLS_2.slots.default;
     var __VLS_2;
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "footer-right" }));
-    /** @type {[typeof BaseButton, typeof BaseButton, ]} */ ;
-    // @ts-ignore
-    var __VLS_7 = __VLS_asFunctionalComponent(BaseButton, new BaseButton(__assign({ 'onClick': {} }, { variant: "primary", size: "medium", disabled: (!__VLS_ctx.hasChanges) })));
-    var __VLS_8 = __VLS_7.apply(void 0, __spreadArray([__assign({ 'onClick': {} }, { variant: "primary", size: "medium", disabled: (!__VLS_ctx.hasChanges) })], __VLS_functionalComponentArgsRest(__VLS_7), false));
-    var __VLS_10 = void 0;
-    var __VLS_11 = void 0;
-    var __VLS_12 = void 0;
-    var __VLS_13 = {
-        onClick: (__VLS_ctx.handleSave)
-    };
-    __VLS_9.slots.default;
-    var __VLS_9;
 }
 /** @type {__VLS_StyleScopedClasses['modal-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-content']} */ ;
@@ -256,17 +217,15 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['setting-unit']} */ ;
 /** @type {__VLS_StyleScopedClasses['setting-description']} */ ;
 /** @type {__VLS_StyleScopedClasses['modal-footer']} */ ;
-/** @type {__VLS_StyleScopedClasses['footer-right']} */ ;
 var __VLS_dollars;
 var __VLS_self = (await import('vue')).defineComponent({
     setup: function () {
         return {
             BaseButton: BaseButton,
             localSettings: localSettings,
-            hasChanges: hasChanges,
             hasChangesFromDefaults: hasChangesFromDefaults,
             handleReset: handleReset,
-            handleSave: handleSave,
+            handleCloseModal: handleCloseModal,
         };
     },
     __typeEmits: {},

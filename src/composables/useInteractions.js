@@ -89,7 +89,7 @@ export function useInteractions(onPan, onZoom, onReset) {
             var scaleChange = currentDistance / initialPinchDistance.value;
             // Get the center point between the two fingers
             var touchCenter = getTouchCenter(e.touches[0], e.touches[1]);
-            // Convert scale change to zoom delta
+            // Convert scale change to zoom delta - use computed to be reactive to config changes
             var zoomDelta = (scaleChange - 1) * CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY;
             onZoom(-zoomDelta, touchCenter.x, touchCenter.y); // Pass focal point
             initialPinchDistance.value = currentDistance;
@@ -133,7 +133,9 @@ export function useInteractions(onPan, onZoom, onReset) {
         var rect = e.currentTarget.getBoundingClientRect();
         var focalX = e.clientX - rect.left;
         var focalY = e.clientY - rect.top;
-        onZoom(e.deltaY, focalX, focalY);
+        // Apply zoom sensitivity to wheel events as well
+        var sensitivityAdjustedDelta = e.deltaY * CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY;
+        onZoom(sensitivityAdjustedDelta, focalX, focalY);
     };
     return {
         // State

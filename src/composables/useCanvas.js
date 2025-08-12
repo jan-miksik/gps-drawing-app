@@ -85,10 +85,12 @@ export function useCanvas() {
     };
     var zoom = function (deltaY, focalX, focalY) {
         var oldScale = scale.value;
-        var newScale = deltaY < 0
-            ? scale.value * (1 + CANVAS_CONFIG.value.ZOOM_FACTOR) // Zoom in
-            : scale.value / (1 + CANVAS_CONFIG.value.ZOOM_FACTOR); // Zoom out
-        var clampedScale = Math.max(CANVAS_CONFIG.value.MIN_SCALE, Math.min(newScale, CANVAS_CONFIG.value.MAX_SCALE));
+        // Step-based zoom: use sign of delta only, but scale step size by sensitivity
+        var stepFactor = 1 + CANVAS_CONFIG.value.ZOOM_FACTOR * CANVAS_CONFIG.value.PINCH_ZOOM_SENSITIVITY;
+        var proposedScale = deltaY < 0
+            ? oldScale * stepFactor // Zoom in
+            : oldScale / stepFactor; // Zoom out
+        var clampedScale = Math.max(CANVAS_CONFIG.value.MIN_SCALE, Math.min(proposedScale, CANVAS_CONFIG.value.MAX_SCALE));
         // If focal point is provided, adjust view offset to zoom towards that point
         if (focalX !== undefined && focalY !== undefined && canvasEl.value) {
             var rect = canvasEl.value.getBoundingClientRect();
@@ -99,7 +101,7 @@ export function useCanvas() {
             var centerY = canvasHeight / 2;
             var focalOffsetX = focalX - centerX;
             var focalOffsetY = focalY - centerY;
-            // Calculate the scale factor
+            // Calculate the scale factor actually applied (post-clamp)
             var scaleFactor = clampedScale / oldScale;
             // Adjust the view offset to keep the focal point in the same screen position
             viewOffsetX.value += focalOffsetX * (1 - scaleFactor);

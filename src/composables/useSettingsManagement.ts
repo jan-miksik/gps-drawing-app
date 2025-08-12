@@ -1,13 +1,15 @@
 import { useDevLogs } from './useDevLogs';
 import { updateGPSConfig, updateCanvasConfig } from '../constants/gpsConstants';
+import { useSettingsPersistence } from './useSettingsPersistence';
 
 export function useSettingsManagement(
   settings: any,
   redrawCanvas: () => void
 ) {
   const { logInfo } = useDevLogs();
+  const { saveSettings, loadSettings, resetSettings } = useSettingsPersistence();
 
-  const handleSettingsSave = (newSettings: any): void => {
+  const handleSettingsSave = async (newSettings: any): Promise<void> => {
     // Update GPS config
     updateGPSConfig({
       ACCURACY_THRESHOLD: newSettings.ACCURACY_THRESHOLD,
@@ -26,13 +28,31 @@ export function useSettingsManagement(
     // Also update the settings ref for the modal
     Object.assign(settings.value, newSettings);
     
+    // Save settings to persistent storage
+    await saveSettings(newSettings);
+    
     // Redraw canvas to apply visual changes immediately
     redrawCanvas();
     
-    logInfo('Settings updated', newSettings);
+    logInfo('Settings updated and saved', newSettings);
+  };
+
+  const loadPersistedSettings = async (): Promise<void> => {
+    const savedSettings = await loadSettings();
+    if (savedSettings) {
+      handleSettingsSave(savedSettings);
+      logInfo('Settings loaded from persistence', savedSettings);
+    }
+  };
+
+  const resetToDefaults = async (): Promise<void> => {
+    await resetSettings();
+    logInfo('Settings reset to defaults');
   };
 
   return {
-    handleSettingsSave
+    handleSettingsSave,
+    loadPersistedSettings,
+    resetToDefaults
   };
 } 

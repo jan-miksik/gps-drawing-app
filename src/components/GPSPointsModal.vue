@@ -371,6 +371,7 @@ const handleClearAll = (): void => {
 .modal-body {
   flex-grow: 1;
   padding: 10px;
+  padding-bottom: 100px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -519,12 +520,14 @@ const handleClearAll = (): void => {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 20px 20px 30px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
   position: absolute;
   width: 100%;
-  bottom: calc(10px + env(safe-area-inset-bottom));
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  right: 0;
 }
 
 .footer-left {

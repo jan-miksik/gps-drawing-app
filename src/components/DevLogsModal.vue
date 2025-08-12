@@ -28,6 +28,19 @@
             </div>
           </div>
         </div>
+
+        <!-- Test Tools Section -->
+        <div class="test-tools-section">
+          <h3>Test Tools</h3>
+          <div class="test-tools">
+            <button @click="$emit('add-test-points')" class="test-button">
+              Add Test Points (50)
+            </button>
+            <div class="test-info">
+              Adds 50 sample GPS points for testing scrolling functionality
+            </div>
+          </div>
+        </div>
         
         <div v-if="logs.length === 0" class="no-logs">
           No logs available.
@@ -88,6 +101,7 @@ interface Props {
 interface Emits {
   (e: 'close'): void;
   (e: 'clear'): void;
+  (e: 'add-test-points'): void;
 }
 
 const props = defineProps<Props>();
@@ -279,6 +293,49 @@ const getPermissionClass = (permission: string | null | undefined): string => {
   color: #888;
   background: rgba(136, 136, 136, 0.1);
   border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.test-tools-section {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.test-tools-section h3 {
+  margin: 0 0 8px 0;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.test-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-button {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  color: #00ff00;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  transition: background-color 0.3s ease;
+}
+
+.test-button:hover {
+  background: rgba(0, 255, 0, 0.2);
+}
+
+.test-info {
+  color: #ccc;
+  font-size: 10px;
+  font-style: italic;
 }
 
 .no-logs {

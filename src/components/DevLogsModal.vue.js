@@ -61,6 +61,8 @@ var __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-state-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-tools-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-button']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;
@@ -112,6 +114,20 @@ if (__VLS_ctx.show) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-label" }));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)(__assign({ class: "permission-value" }, { class: (__VLS_ctx.getPermissionClass(__VLS_ctx.notificationPermission)) }));
     (__VLS_ctx.notificationPermission || 'unknown');
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "test-tools-section" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.h3, __VLS_intrinsicElements.h3)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "test-tools" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)(__assign({ onClick: function () {
+            var _a = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _a[_i] = arguments[_i];
+            }
+            var $event = _a[0];
+            if (!(__VLS_ctx.show))
+                return;
+            __VLS_ctx.$emit('add-test-points');
+        } }, { class: "test-button" }));
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "test-info" }));
     if (__VLS_ctx.logs.length === 0) {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)(__assign({ class: "no-logs" }));
     }
@@ -161,6 +177,10 @@ if (__VLS_ctx.show) {
 /** @type {__VLS_StyleScopedClasses['permission-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['permission-value']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-tools-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-tools']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-button']} */ ;
+/** @type {__VLS_StyleScopedClasses['test-info']} */ ;
 /** @type {__VLS_StyleScopedClasses['no-logs']} */ ;
 /** @type {__VLS_StyleScopedClasses['logs-list']} */ ;
 /** @type {__VLS_StyleScopedClasses['log-entry']} */ ;

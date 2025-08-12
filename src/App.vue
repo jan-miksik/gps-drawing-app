@@ -94,6 +94,7 @@
       :notification-permission="notificationPermission"
       @close="hideDevLogs"
       @clear="clearLogs"
+      @add-test-points="addTestPoints"
     />
 
     <SettingsModal
@@ -101,8 +102,9 @@
       :settings="settings"
       :location-permission="locationPermission"
       :is-native-platform="true"
-      @close="showSettingsModal = false"
+      @close="handleSettingsModalClose"
       @save="handleSettingsSave"
+      @reset="resetToDefaults"
       @open-settings="handleOpenAppSettings"
     />
   </div>
@@ -130,7 +132,6 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
-// import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 
 // State
@@ -192,8 +193,8 @@ const {
     pan(deltaX, deltaY);
     redrawCanvas();
   },
-  (deltaY: number) => {
-    zoom(deltaY);
+  (deltaY: number, focalX?: number, focalY?: number) => {
+    zoom(deltaY, focalX, focalY);
     redrawCanvas();
   },
   () => {
@@ -243,7 +244,7 @@ const redrawCanvas = (): void => {
   });
 };
 
-const { handleSettingsSave } = useSettingsManagement(settings, redrawCanvas);
+const { handleSettingsSave, loadPersistedSettings, resetToDefaults } = useSettingsManagement(settings, redrawCanvas);
 
 const toggleAnonymization = (): void => {
   isAnonymized.value = !isAnonymized.value;
@@ -275,6 +276,10 @@ const handleResetZoom = (): void => {
   logInfo('Zoom and view reset to default');
 };
 
+const handleSettingsModalClose = async (): Promise<void> => {
+  showSettingsModal.value = false;
+};
+
 // Lifecycle
 onMounted(async () => {
   logInfo('App starting up');
@@ -285,6 +290,9 @@ onMounted(async () => {
   ]);
   
   setupCanvas();
+  
+  // Load persisted settings
+  await loadPersistedSettings();
   
   // Load existing points
   const loadedPoints = await loadPointsFromFile();
@@ -326,6 +334,41 @@ onUnmounted(() => {
   }
   // Note: Capacitor handles GPS cleanup automatically when app terminates
 });
+
+// Test function to add sample GPS points for testing scrolling
+const addTestPoints = (): void => {
+  const baseLat = 40.7128; // New York coordinates
+  const baseLon = -74.0060;
+  const baseTime = Date.now() - (50 * 60 * 1000); // 50 minutes ago
+  
+  const testPoints: Point[] = [];
+  
+  for (let i = 0; i < 50; i++) {
+    const point: Point = {
+      lat: baseLat + (i * 0.0001), // Small increment to create a path
+      lon: baseLon + (i * 0.0001),
+      timestamp: baseTime + (i * 60000), // 1 minute intervals
+      accuracy: Math.random() * 10 + 5 // Random accuracy between 5-15m
+    };
+    testPoints.push(point);
+  }
+  
+  // Add test points to existing points
+  points.value = [...points.value, ...testPoints];
+  
+  // Set anonymization origin if needed
+  if (isAnonymized.value && !anonymizationOrigin.value) {
+    anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+  }
+  
+  // Save to file
+  savePointsToFile(testPoints, true);
+  redrawCanvas();
+  
+  logInfo('Added test points', { count: testPoints.length, totalPoints: points.value.length });
+};
+
+
 </script>
 
 <style>

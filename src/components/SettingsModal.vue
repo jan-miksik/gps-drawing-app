@@ -1,9 +1,9 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click="$emit('close')">
+  <div v-if="show" class="modal-overlay" @click="handleCloseModal">
     <div class="modal-content fullscreen" @click.stop>
       <div class="modal-header">
         <h2>Settings</h2>
-        <button @click="$emit('close')" class="close-button">✕</button>
+        <button @click="handleCloseModal" class="close-button">✕</button>
       </div>
       
       <div class="modal-body">
@@ -140,11 +140,6 @@
         <BaseButton @click="handleReset" variant="primary" size="medium" :disabled="!hasChangesFromDefaults">
           Reset to Defaults
         </BaseButton>
-        <div class="footer-right">
-          <BaseButton @click="handleSave" variant="primary" size="medium" :disabled="!hasChanges">
-            Save
-          </BaseButton>
-        </div>
       </div>
     </div>
   </div>
@@ -176,6 +171,7 @@ interface Props {
 interface Emits {
   (e: 'close'): void;
   (e: 'save', settings: Settings): void;
+  (e: 'reset'): void;
   (e: 'request-location'): void;
   (e: 'request-background'): void;
   (e: 'open-settings'): void;
@@ -207,11 +203,6 @@ watch(() => props.settings, (newSettings) => {
   localSettings.value = { ...newSettings };
 }, { deep: true });
 
-// Check if settings have changed from original
-const hasChanges = computed(() => {
-  return JSON.stringify(localSettings.value) !== JSON.stringify(props.settings);
-});
-
 // Check if any value differs from defaults
 const hasChangesFromDefaults = computed(() => {
   return JSON.stringify(localSettings.value) !== JSON.stringify(defaultSettings);
@@ -219,16 +210,16 @@ const hasChangesFromDefaults = computed(() => {
 
 const handleReset = (): void => {
   localSettings.value = { ...defaultSettings };
-  // Also emit the reset to parent so it can update the actual configs
-  emit('save', defaultSettings);
-  alert('Settings reset to defaults successfully!');
+  // Emit reset event to parent
+  emit('reset');
 };
 
-const handleSave = (): void => {
+const handleCloseModal = () => {
   emit('save', { ...localSettings.value });
-  alert('Settings saved successfully!');
-  emit('close');
-};
+  // await handleSettingsSave(settings.value);
+  emit('close')
+}
+
 </script>
 
 <style scoped>
@@ -485,7 +476,7 @@ const handleSave = (): void => {
   gap: 10px;
 }
 
-.reset-button, .cancel-button, .save-button {
+.reset-button, .cancel-button {
   all: unset;
   padding: 8px 16px;
   border-radius: 6px;
@@ -522,23 +513,5 @@ const handleSave = (): void => {
 .cancel-button:hover {
   background-color: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
-}
-
-.save-button {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.save-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.save-button:disabled {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  cursor: not-allowed;
 }
 </style> 

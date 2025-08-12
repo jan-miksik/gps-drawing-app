@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Replace this with your actual 1024x1024 SVG logo -->
+
 <svg
-   width="1023.9999"
+   width="1024"
    height="1024"
    viewBox="0 0 1024 1024"
    version="1.1"
-   id="svg1"
-   sodipodi:docname="GPS-pen2.svg"
+   id="svg2"
+   sodipodi:docname="icon.svg"
    inkscape:version="1.3.2 (091e20e, 2023-11-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
   <sodipodi:namedview
-     id="namedview1"
+     id="namedview2"
      pagecolor="#ffffff"
      bordercolor="#000000"
      borderopacity="0.25"
@@ -20,118 +24,43 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="0.29849435"
-     inkscape:cx="169.18243"
-     inkscape:cy="291.4628"
-     inkscape:window-width="1752"
-     inkscape:window-height="995"
+     inkscape:zoom="0.41919369"
+     inkscape:cx="419.85364"
+     inkscape:cy="588.03365"
+     inkscape:window-width="1920"
+     inkscape:window-height="1088"
      inkscape:window-x="0"
      inkscape:window-y="43"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg1"
-     showguides="false" />
-  <defs
-     id="defs1">
-    <style
-       type="text/css"
-       id="style1">
-      .gps-path { stroke: #ffffff; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .gps-point { fill: #ffffff; }
-    </style>
-  </defs>
-  <!-- GPS Path -->
-  <!-- Last GPS Point -->
-  <!-- Metadata for preview systems -->
-  <metadata
-     id="metadata1">
-    <title
-       id="title1">GPS Drawing</title>
-    <description>GPS movement visualization with 69 points</description>
-  </metadata>
-  <path
-     style="fill:#4d4d4d;stroke-width:0.994016;stroke-linecap:round;paint-order:markers fill stroke"
-     d="m -897.15122,-508.39788 20.53553,-40.10845"
-     id="path2"
-     sodipodi:nodetypes="cc" />
-  <path
-     style="fill:#4d4d4d;stroke-width:0.994016;stroke-linecap:round;paint-order:markers fill stroke"
-     d="m -848.05847,-519.94911 11.55123,-22.46074"
-     id="path5"
-     sodipodi:nodetypes="cc" />
-  <path
-     style="fill:#4d4d4d;stroke-width:0.994016;stroke-linecap:round;paint-order:markers fill stroke"
-     d="m -824.95601,-518.34477 10.9095,-24.06508"
-     id="path6"
-     sodipodi:nodetypes="cc" />
-  <path
-     style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
-     d="m -968.82356,-410.58192 -6.3133,-17.82577 v -7.05603 l 2.97097,-8.54151 2.59959,-5.19919 0.37137,-6.31329 -4.08507,-6.68467 -2.5996,-7.05603 2.97097,-7.79877 4.82781,-3.34234 6.31329,-2.97096 8.54152,-2.22822 5.57055,-3.34233 1.11411,-10.027 -6.31329,-4.08507 -13.7407,0.37137 -5.94192,5.19918 -6.3133,3.71371 -7.4274,-1.85685 -4.45644,-8.17015"
-     id="path11"
-     sodipodi:nodetypes="cccccccccccccccccccc" />
-  <circle
-     style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.6;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-     id="path14"
-     cx="-811.07227"
-     cy="-533.26752"
-     r="0.67801565" />
-  <circle
-     style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.6;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-     id="path14-7"
-     cx="-762.49347"
-     cy="-529.23334"
-     r="0.67801565" />
-  <path
-     style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.6;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-     d="m -766.95996,-474.85232 1.57675,-3.31025 2.46449,-0.92969 0.80953,-1.79748 -0.9827,-2.23204 -0.69752,-1.73189 1.43234,-2.33726 c 0.64051,0.15055 2.71224,-0.45669 2.73095,-0.52496 l 1.6904,-1.76862 0.96759,-2.9623 -1.60384,-2.76588 -1.80836,-1.02594 -2.57788,-0.89766 -2.30773,-0.63299 -1.96174,-2.93145 -0.69903,-1.98057 v -1.39806 -1.86407 l 0.93204,-2.21358 0.81553,-2.09708 1.51455,-1.39806 1.51456,-2.21358 1.74757,-1.98058 1.04854,-4.54367 v -2.09708 l -0.69903,-3.37863 -1.16504,-1.51456 -0.21511,-1.33437"
-     id="path16"
-     sodipodi:nodetypes="cccccccccccccccccccccccccccc" />
-  <path
-     style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:0.6;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-     d="m -793.07853,-471.86402 -2.0192,-6.59605 -0.13462,-2.69227 v -1.88459 l 0.67307,-1.61536 0.80768,-1.61536 0.94229,-1.0769 1.74998,-1.74998 1.88458,-1.21152 2.0192,-1.34613 0.40384,-2.82688 0.13462,-2.69226 -0.26923,-2.69227 -1.48075,-1.61536 -2.55765,-1.07691 h -2.0192 l -1.88459,0.40384 -1.61536,1.21152 -0.40384,1.74998 v 1.88458 l 0.13462,2.42304 2.0192,1.88459 2.42304,0.94229 h 1.88458 l 4.30763,-0.53845 2.0192,-1.21152 1.07691,-1.07691 2.0192,-2.15381 0.40384,-1.61536 0.53845,-3.23072 -1.34613,-2.96149 -2.69227,-2.15382 -0.26923,-2.15381 0.9423,-2.69227 1.34613,-1.88458 1.74997,-1.48075 0.67307,-3.36533 -0.53845,-1.61536 -2.15382,-2.42304 0.9423,-1.88459 0.26922,-1.61536 v -1.48074 l -1.61536,-1.07691"
-     id="path19"
-     sodipodi:nodetypes="ccccccccccccccccccccccccccccccccccccccccccc" />
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2" />
+  <rect
+     width="1024"
+     height="1024"
+     fill="#000000"
+     id="rect1" />
   <g
-     id="g21"
-     transform="translate(-127.22193,-1082.3319)">
-    <rect
-       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:10.0548;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-       id="rect19"
-       width="1022.1079"
-       height="1020.5536"
-       x="131.13249"
-       y="1081.8914"
-       transform="matrix(0.99999431,0.00337361,-0.00185965,0.99999827,0,0)" />
-    <g
-       id="g20"
-       transform="matrix(12.340156,0,0,12.340156,-3300.4191,-8555.0043)">
-      <g
-         id="g22"
-         transform="rotate(10.204716,59.449875,819.30017)">
-        <g
-           id="g23"
-           transform="translate(68.066963,14.54504)">
-          <g
-             id="g24"
-             transform="translate(1.0809263,-0.58761078)">
-            <circle
-               style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:4.48867;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
-               id="path14-7-1"
-               cx="243.77766"
-               cy="741.42175"
-               r="5.07231" />
-            <path
-               style="fill:none;stroke:#ffffff;stroke-width:3.24145;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-               d="m 260.43762,769.74036 -13.88159,-5.12617 -4.59322,-7.87698 1.40197,-10.51816"
-               id="path1"
-               sodipodi:nodetypes="cccc" />
-            <path
-               style="fill:none;stroke:#ffffff;stroke-width:3.24145;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-               d="m 260.64934,769.87785 5.06453,4.41216 -0.88712,5.17048 -7.06053,4.36268 -5.83166,0.11489 -17.31686,7.93292"
-               id="path20"
-               sodipodi:nodetypes="cccccc" />
-          </g>
-        </g>
-      </g>
-    </g>
+     id="g2"
+     transform="translate(-0.12207031,84.15836)">
+    <text
+       x="512"
+       y="412"
+       font-family="Arial, sans-serif"
+       font-size="250px"
+       fill="#ffffff"
+       text-anchor="middle"
+       dominant-baseline="middle"
+       id="text1">GPS</text>
+    <text
+       x="514.5752"
+       y="600.91571"
+       font-family="Arial, sans-serif"
+       font-size="160px"
+       fill="#ffffff"
+       text-anchor="middle"
+       dominant-baseline="middle"
+       id="text2"
+       style="font-size:493.333px"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:493.333px;font-family:'After Daylight';-inkscape-font-specification:'After Daylight'"
+         id="tspan2">pen</tspan></text>
   </g>
 </svg>

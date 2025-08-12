@@ -74,7 +74,6 @@ import PermissionModal from './components/PermissionModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import { anonymizePoints, createAnonymizationOrigin } from './utils/coordinateUtils';
 import { clearSmoothingBuffer } from './utils/gpsUtils';
-// import resetZoomIcon from './assets/reset-zoom.svg';
 import BaseButton from './components/BaseButton.vue';
 // State
 var showGPSPointsModal = ref(false);
@@ -106,8 +105,8 @@ var _g = useNotificationPermission(), notificationPermission = _g.notificationPe
 var _h = useInteractions(function (deltaX, deltaY) {
     pan(deltaX, deltaY);
     redrawCanvas();
-}, function (deltaY) {
-    zoom(deltaY);
+}, function (deltaY, focalX, focalY) {
+    zoom(deltaY, focalX, focalY);
     redrawCanvas();
 }, function () {
     redrawCanvas();
@@ -156,7 +155,7 @@ var redrawCanvas = function () {
         drawPath(displayPoints.value, displayBounds.value);
     });
 };
-var handleSettingsSave = useSettingsManagement(settings, redrawCanvas).handleSettingsSave;
+var _j = useSettingsManagement(settings, redrawCanvas), handleSettingsSave = _j.handleSettingsSave, loadPersistedSettings = _j.loadPersistedSettings, resetToDefaults = _j.resetToDefaults;
 var toggleAnonymization = function () {
     isAnonymized.value = !isAnonymized.value;
     // Set origin when first enabling anonymization
@@ -189,6 +188,12 @@ var handleResetZoom = function () {
     redrawCanvas();
     logInfo('Zoom and view reset to default');
 };
+var handleSettingsModalClose = function () { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        showSettingsModal.value = false;
+        return [2 /*return*/];
+    });
+}); };
 // Lifecycle
 onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
     var loadedPoints;
@@ -203,8 +208,13 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
             case 1:
                 _a.sent();
                 setupCanvas();
-                return [4 /*yield*/, loadPointsFromFile()];
+                // Load persisted settings
+                return [4 /*yield*/, loadPersistedSettings()];
             case 2:
+                // Load persisted settings
+                _a.sent();
+                return [4 /*yield*/, loadPointsFromFile()];
+            case 3:
                 loadedPoints = _a.sent();
                 if (loadedPoints.length > 0) {
                     points.value = loadedPoints;
@@ -257,6 +267,32 @@ onUnmounted(function () {
     }
     // Note: Capacitor handles GPS cleanup automatically when app terminates
 });
+// Test function to add sample GPS points for testing scrolling
+var addTestPoints = function () {
+    var baseLat = 40.7128; // New York coordinates
+    var baseLon = -74.0060;
+    var baseTime = Date.now() - (50 * 60 * 1000); // 50 minutes ago
+    var testPoints = [];
+    for (var i = 0; i < 50; i++) {
+        var point = {
+            lat: baseLat + (i * 0.0001), // Small increment to create a path
+            lon: baseLon + (i * 0.0001),
+            timestamp: baseTime + (i * 60000), // 1 minute intervals
+            accuracy: Math.random() * 10 + 5 // Random accuracy between 5-15m
+        };
+        testPoints.push(point);
+    }
+    // Add test points to existing points
+    points.value = __spreadArray(__spreadArray([], points.value, true), testPoints, true);
+    // Set anonymization origin if needed
+    if (isAnonymized.value && !anonymizationOrigin.value) {
+        anonymizationOrigin.value = createAnonymizationOrigin(points.value);
+    }
+    // Save to file
+    savePointsToFile(testPoints, true);
+    redrawCanvas();
+    logInfo('Added test points', { count: testPoints.length, totalPoints: points.value.length });
+};
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 var __VLS_ctx = {};
 var __VLS_components;
@@ -410,8 +446,8 @@ var __VLS_49 = {
 var __VLS_43;
 /** @type {[typeof DevLogsModal, ]} */ ;
 // @ts-ignore
-var __VLS_50 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })));
-var __VLS_51 = __VLS_50.apply(void 0, __spreadArray([__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_50), false));
+var __VLS_50 = __VLS_asFunctionalComponent(DevLogsModal, new DevLogsModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { 'onAddTestPoints': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })));
+var __VLS_51 = __VLS_50.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onClear': {} }), { 'onAddTestPoints': {} }), { show: (__VLS_ctx.isDevLogsVisible), logs: (__VLS_ctx.logs), formatLogTime: (__VLS_ctx.formatLogTime), locationPermission: (__VLS_ctx.locationPermission), notificationPermission: (__VLS_ctx.notificationPermission) })], __VLS_functionalComponentArgsRest(__VLS_50), false));
 var __VLS_53;
 var __VLS_54;
 var __VLS_55;
@@ -421,31 +457,30 @@ var __VLS_56 = {
 var __VLS_57 = {
     onClear: (__VLS_ctx.clearLogs)
 };
+var __VLS_58 = {
+    onAddTestPoints: (__VLS_ctx.addTestPoints)
+};
 var __VLS_52;
 /** @type {[typeof SettingsModal, ]} */ ;
 // @ts-ignore
-var __VLS_58 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })));
-var __VLS_59 = __VLS_58.apply(void 0, __spreadArray([__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_58), false));
-var __VLS_61;
+var __VLS_59 = __VLS_asFunctionalComponent(SettingsModal, new SettingsModal(__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onReset': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })));
+var __VLS_60 = __VLS_59.apply(void 0, __spreadArray([__assign(__assign(__assign(__assign({ 'onClose': {} }, { 'onSave': {} }), { 'onReset': {} }), { 'onOpenSettings': {} }), { show: (__VLS_ctx.showSettingsModal), settings: (__VLS_ctx.settings), locationPermission: (__VLS_ctx.locationPermission), isNativePlatform: (true) })], __VLS_functionalComponentArgsRest(__VLS_59), false));
 var __VLS_62;
 var __VLS_63;
-var __VLS_64 = {
-    onClose: function () {
-        var _a = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            _a[_i] = arguments[_i];
-        }
-        var $event = _a[0];
-        __VLS_ctx.showSettingsModal = false;
-    }
-};
+var __VLS_64;
 var __VLS_65 = {
-    onSave: (__VLS_ctx.handleSettingsSave)
+    onClose: (__VLS_ctx.handleSettingsModalClose)
 };
 var __VLS_66 = {
+    onSave: (__VLS_ctx.handleSettingsSave)
+};
+var __VLS_67 = {
+    onReset: (__VLS_ctx.resetToDefaults)
+};
+var __VLS_68 = {
     onOpenSettings: (__VLS_ctx.handleOpenAppSettings)
 };
-var __VLS_60;
+var __VLS_61;
 /** @type {__VLS_StyleScopedClasses['canvas']} */ ;
 /** @type {__VLS_StyleScopedClasses['dev-logs-icon']} */ ;
 /** @type {__VLS_StyleScopedClasses['gps-points-button-text']} */ ;
@@ -500,9 +535,12 @@ var __VLS_self = (await import('vue')).defineComponent({
             handleWheel: handleWheel,
             displayPoints: displayPoints,
             handleSettingsSave: handleSettingsSave,
+            resetToDefaults: resetToDefaults,
             toggleAnonymization: toggleAnonymization,
             handleClearAll: handleClearAll,
             handleResetZoom: handleResetZoom,
+            handleSettingsModalClose: handleSettingsModalClose,
+            addTestPoints: addTestPoints,
         };
     },
 });
