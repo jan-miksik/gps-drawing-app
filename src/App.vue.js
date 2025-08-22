@@ -54,8 +54,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { Capacitor } from '@capacitor/core';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useGPS } from './composables/useGPS';
 import { useBackgroundGPS } from './composables/useBackgroundGPS';
 import { useCanvas } from './composables/useCanvas';
@@ -222,10 +221,6 @@ onMounted(function () { return __awaiter(void 0, void 0, void 0, function () {
                         anonymizationOrigin.value = createAnonymizationOrigin(points.value);
                     }
                 }
-                // Setup canvas resize listener only on desktop
-                if (!Capacitor.isNativePlatform()) {
-                    window.addEventListener('resize', setupCanvas);
-                }
                 // Initial draw
                 redrawCanvas();
                 logInfo('App initialization completed');
@@ -259,13 +254,6 @@ watch([locationPermission, notificationPermission], function (_a) { return __awa
     });
 }); }, {
     immediate: true,
-});
-onUnmounted(function () {
-    // Remove window resize listener (only if it was added on desktop)
-    if (!Capacitor.isNativePlatform()) {
-        window.removeEventListener('resize', setupCanvas);
-    }
-    // Note: Capacitor handles GPS cleanup automatically when app terminates
 });
 // Test function to add sample GPS points for testing scrolling
 var addTestPoints = function () {

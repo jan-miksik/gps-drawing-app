@@ -225,10 +225,8 @@ const handleClearAll = (): void => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: max(env(safe-area-inset-top), 50px);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  padding-top: 50px;
+  padding-bottom: 70px;
 }
 
 .modal-header {
@@ -525,7 +523,7 @@ const handleClearAll = (): void => {
   background-color: rgba(0, 0, 0, 0.8);
   position: absolute;
   width: 100%;
-  bottom: env(safe-area-inset-bottom);
+  bottom: 40px;
   left: 0;
   right: 0;
 }

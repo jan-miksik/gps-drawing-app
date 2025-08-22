@@ -133,28 +133,26 @@ const buttonClasses = computed(() => {
 /* Position variants */
 .base-button--top-left {
   position: absolute;
-  top: max(env(safe-area-inset-top), 20px);
+  top: 50px;
   left: 20px;
 }
 
 .base-button--top-right {
   position: absolute;
-  top: max(env(safe-area-inset-top), 20px);
+  top: 50px;
   right: 20px;
 }
 
 .base-button--bottom-left {
   position: absolute;
-  bottom: calc(30px + env(safe-area-inset-bottom));
+  bottom: 70px;
   left: 20px;
-  /* margin-bottom: env(safe-area-inset-bottom); */
 }
 
 .base-button--bottom-right {
   position: absolute;
-  bottom: calc(30px + env(safe-area-inset-bottom));
+  bottom: 70px;
   right: 20px;
-  /* margin-bottom: env(safe-area-inset-bottom); */
 }
 
 /* Disabled state */

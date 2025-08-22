@@ -264,7 +264,7 @@ const handleCloseModal = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-top: 60px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
 }
@@ -466,7 +466,7 @@ const handleCloseModal = () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding-bottom: 70px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background-color: rgba(0, 0, 0, 0.8);
 }

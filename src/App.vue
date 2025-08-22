@@ -111,8 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { Capacitor } from '@capacitor/core';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import type { Point, AnonymizationOrigin } from './types/gps';
 import { useGPS } from './composables/useGPS';
 import { useBackgroundGPS } from './composables/useBackgroundGPS';
@@ -303,10 +302,6 @@ onMounted(async () => {
     }
   }
 
-  // Setup canvas resize listener only on desktop
-  if (!Capacitor.isNativePlatform()) {
-    window.addEventListener('resize', setupCanvas);
-  }
   // Initial draw
   redrawCanvas();
   logInfo('App initialization completed');
@@ -326,14 +321,6 @@ watch([locationPermission, notificationPermission], async ([locationPermission, 
 }, {
   immediate: true,
 })
-
-onUnmounted(() => {
-  // Remove window resize listener (only if it was added on desktop)
-  if (!Capacitor.isNativePlatform()) {
-    window.removeEventListener('resize', setupCanvas);
-  }
-  // Note: Capacitor handles GPS cleanup automatically when app terminates
-});
 
 // Test function to add sample GPS points for testing scrolling
 const addTestPoints = (): void => {
@@ -382,7 +369,7 @@ const addTestPoints = (): void => {
 
 .reset-zoom-button {
   position: absolute;
-  bottom: calc(100px + env(safe-area-inset-bottom));
+  bottom: 150px;
   right: 30px;
   background-color: rgba(0, 0, 0, 0.7);
   color: white;

@@ -21,8 +21,8 @@ const config: CapacitorConfig = {
       androidSpinnerStyle: "small",
       iosSpinnerStyle: "small",
       spinnerColor: "#ffffff",
-      splashFullScreen: true,
-      splashImmersive: true,
+      splashFullScreen: false,   // 👈 let iOS manage safe area
+      splashImmersive: false,    // 👈 avoid forcing full bleed
       layoutName: "launch_screen",
       useDialog: true,
     },
