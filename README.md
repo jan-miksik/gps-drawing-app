@@ -1,16 +1,8 @@
 # GPS Pen
 
-This app explores surveillance and self-surveillance through minimalist GPS tracking. By reducing the interface to pure movement visualization.
+The GPS Pen is mobile app. This app capturing GPS path in minimalist way, without any maps in background only pure path. By moving the app creates drawing based on GPS data in real-time. The app uses privacy-first, all data are saved just on the device. Data can be exported as svg image, relative coordinates or exact coordinates. The focus is on offline-first, privacy and lightweight visualisation — making GPS data more accessible without vendor lock-in.
 
 Built with Vue 3 + Capacitor for cross-platform deployment with privacy-first, local data storage.
-
-## Features
-
-- **GPS Drawing**: Continuous real-time GPS drawing with background support if app is minimized or mobile locked
-- **Export Options**: 
-  - **SVG Export**: Save the current drawing as a scalable SVG file
-  - **Relative Coordinates**: coordinates relative to starting point
-  - **Exact Coordinates**: Real GPS coordinates (latitude/longitude)
 
 ## app preview
 
